@@ -34,10 +34,40 @@ public class Benefit {
 
     private LocalDateTime createdAt;
 
+    private Benefit(Builder builder){
+        this.name = builder.name;
+        this.provider = builder.provider;
+        this.description = builder.description;
+    }
+
     @PrePersist
     public void onCreate(){
         this.createdAt = LocalDateTime.now();
         this.active = Boolean.FALSE;
+    }
+
+    public static class Builder{
+
+        private final String name;
+        private final Company provider;
+
+        private String description;
+
+        public Builder(String name, Company provider) {
+            this.name = name;
+            this.provider = provider;
+        }
+
+        public Builder description(String val){
+            if(val.isBlank()) throw new IllegalArgumentException("Description cant be null");
+            description = val;
+            return this;
+        }
+
+        public Benefit build(){
+            return new Benefit(this);
+        }
+
     }
 
     public void activeBenefit(){

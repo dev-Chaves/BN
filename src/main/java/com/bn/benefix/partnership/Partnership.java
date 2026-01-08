@@ -34,9 +34,28 @@ public class Partnership {
 
     private LocalDateTime createdAt;
 
+    private Partnership(Builder builder){
+        this.clientCompany = builder.clientCompany;
+        this.benefit = builder.benefit;
+    }
+
     @PrePersist
     public void onCreate(){
         this.createdAt = LocalDateTime.now();
+        this.status = PartnershipStatus.PENDING;
     }
 
+    public static class Builder {
+        private final Company clientCompany;
+        private final Benefit benefit;
+
+        public Builder(Company clientCompany, Benefit benefit) {
+            this.clientCompany = clientCompany;
+            this.benefit = benefit;
+        }
+
+        public Partnership build(){
+            return new Partnership(this);
+        }
+    }
 }

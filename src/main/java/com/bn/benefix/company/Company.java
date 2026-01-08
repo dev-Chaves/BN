@@ -11,7 +11,7 @@ import lombok.Setter;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
-import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 @Entity
@@ -40,25 +40,78 @@ public class Company {
     private Set<Manager> managers = new HashSet<>();
 
     @OneToMany(mappedBy = "provider")
-    private List<Benefit> offeredBenefits;
+    private Set<Benefit> offeredBenefits;
 
     @Column(nullable = false, name = "created_at")
     private LocalDateTime createdAt;
+
+    private Company(Builder builder){
+        this.name = builder.name;
+        this.cnpj = builder.cnpj;
+
+        builder.employees.forEach(this::addEmployee);
+        builder.managers.forEach(this::addManager);
+        builder.benefits.forEach(this::addBenefit);
+    }
+
+    private void addEmployee(Employee val){
+        this.employees.add(val);
+        val.defineCompany(this);
+    }
+
+    private void addManager(Manager manager){
+        this.managers.add(manager);
+        manager.defineCompany(this);
+    }
+
+    private void addBenefit(Benefit val){
+        this.offeredBenefits.add(val);
+    }
 
     @PrePersist
     public void onCreate(){
         this.createdAt = LocalDateTime.now();
     }
 
-    public void addEmployee(Employee employee){
-        employees.add(employee);
-        employee.defineCompany(this);
+    public static Builder builder(String name, String cnpj){
+        return new Builder(name, cnpj);
     }
 
-    public void addManager(Manager manager){
-        managers.add(manager);
-        manager.defineCompany(this);
+    public static class Builder{
+
+        private final String name;
+        private final String cnpj;
+
+        private final Set<Manager> managers = new HashSet<>();
+        private final Set<Employee> employees = new HashSet<>();
+        private final Set<Benefit> benefits = new HashSet<>();
+
+        private Integer employeeCount = 0;
+
+        public Builder(String name, String cnpj) {
+            this.name = Objects.requireNonNull(name);
+            this.cnpj = Objects.requireNonNull(cnpj);
+        }
+
+
+        public Builder employee(Employee val){
+            this.employees.add(val);
+            return this;
+        }
+
+        public Builder manager(Manager manager){
+            this.managers.add(manager);
+            return this;
+        }
+
+        public Builder benefit(Benefit val){
+            this.benefits.add(val);
+            return this;
+        }
+
+        public Company build(){
+            return new Company(this);
+        }
+
     }
-
-
 }

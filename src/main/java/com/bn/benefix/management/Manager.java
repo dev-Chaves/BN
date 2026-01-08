@@ -33,9 +33,33 @@ public class Manager {
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
+    private Manager (Builder builder){
+        this.name = builder.name;
+        this.cpf = builder.cpf;
+        this.company = builder.company;
+    }
+
     @PrePersist
     public void onCreate(){
         this.createdAt = LocalDateTime.now();
+    }
+
+    public static class Builder{
+
+        private final String name;
+        private final String cpf;
+        private final Company company;
+
+        public Builder(String name, String cpf, Company company) {
+            this.name = name;
+            this.cpf = cpf;
+            this.company = company;
+        }
+
+        public Manager build(){
+            return new Manager(this);
+        }
+
     }
 
     public void defineCompany(Company company){
