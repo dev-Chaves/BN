@@ -13,14 +13,14 @@ public class CompanyService {
         this.companyRepository = companyRepository;
     }
 
-    private void createCompany(CompanyCreationRequestDTO dto){
+    public Company createCompany(CompanyCreationRequestDTO dto){
 
         Company newCompany = Company.builder(
                 dto.name(),
                 CNPJ.of(dto.cnpj()))
                 .build();
 
-        companyRepository.save(newCompany);
+        return companyRepository.save(newCompany);
     }
 
 }
