@@ -1,11 +1,13 @@
 package com.bn.benefix.employee;
 
 import com.bn.benefix.company.Company;
+import com.bn.benefix.shared.domain.CPF;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.EmbeddedColumnNaming;
 
 import java.time.LocalDateTime;
 
@@ -23,8 +25,9 @@ public class Employee {
     @Column(nullable = false)
     private String name;
 
-    @Column(nullable = false, unique = true)
-    private String cpf;
+    @Embedded
+    @EmbeddedColumnNaming("")
+    private CPF cpf;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "company_id", nullable = false)
@@ -50,11 +53,11 @@ public class Employee {
     public static class Builder{
 
         private final String name;
-        private final String cpf;
+        private final CPF cpf;
 
         private Boolean active;
 
-        public Builder(String name, String cpf) {
+        public Builder(String name, CPF cpf) {
             this.name = name;
             this.cpf = cpf;
         }

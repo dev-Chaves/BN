@@ -3,11 +3,13 @@ package com.bn.benefix.company;
 import com.bn.benefix.benefit.Benefit;
 import com.bn.benefix.employee.Employee;
 import com.bn.benefix.management.Manager;
+import com.bn.benefix.shared.domain.CNPJ;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.EmbeddedColumnNaming;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
@@ -28,8 +30,9 @@ public class Company {
     @Column(nullable = false)
     private String name;
 
-    @Column(nullable = false, unique = true)
-    private String cnpj;
+    @Embedded
+    @EmbeddedColumnNaming("")
+    private CNPJ cnpj;
 
     private Integer employeeCount;
 
@@ -73,14 +76,14 @@ public class Company {
         this.createdAt = LocalDateTime.now();
     }
 
-    public static Builder builder(String name, String cnpj){
+    public static Builder builder(String name, CNPJ cnpj){
         return new Builder(name, cnpj);
     }
 
     public static class Builder{
 
         private final String name;
-        private final String cnpj;
+        private final CNPJ cnpj;
 
         private final Set<Manager> managers = new HashSet<>();
         private final Set<Employee> employees = new HashSet<>();
@@ -88,7 +91,7 @@ public class Company {
 
         private Integer employeeCount = 0;
 
-        public Builder(String name, String cnpj) {
+        public Builder(String name, CNPJ cnpj) {
             this.name = Objects.requireNonNull(name);
             this.cnpj = Objects.requireNonNull(cnpj);
         }
