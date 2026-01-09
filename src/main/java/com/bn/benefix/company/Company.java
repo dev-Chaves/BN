@@ -96,7 +96,6 @@ public class Company {
             this.cnpj = Objects.requireNonNull(cnpj);
         }
 
-
         public Builder employee(Employee val){
             this.employees.add(val);
             return this;
