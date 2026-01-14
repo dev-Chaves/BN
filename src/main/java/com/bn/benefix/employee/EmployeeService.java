@@ -17,7 +17,7 @@ public class EmployeeService {
         this.companyRepository = companyRepository;
     }
 
-    private void createEmployee(EmployeeCreationRequestDTO dto) {
+    public Employee createEmployee(EmployeeCreationRequestDTO dto) {
         Company company = companyRepository.findById(dto.companyId())
                 .orElseThrow(() -> new IllegalArgumentException("Company not found"));
 
@@ -28,6 +28,6 @@ public class EmployeeService {
         
         newEmployee.defineCompany(company);
 
-        employeeRepository.save(newEmployee);
+        return employeeRepository.save(newEmployee);
     }
 }
