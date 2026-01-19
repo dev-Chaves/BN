@@ -1,5 +1,7 @@
 package com.bn.benefix.onboarding;
 
+import com.bn.benefix.company.CompanyService;
+import com.bn.benefix.management.ManagerService;
 import com.bn.benefix.onboarding.dto.OnboardingRegistrationRequestDTO;
 import com.bn.benefix.onboarding.dto.OnboardingRegistrationResponseDTO;
 import jakarta.validation.Valid;
@@ -14,18 +16,22 @@ import org.springframework.web.bind.annotation.RestController;
 public class OnboardingController {
 
     private final OnboardingService onboardingService;
+    private final CompanyService companyService;
+    private final ManagerService managerService;
 
-    public OnboardingController(OnboardingService onboardingService) {
+    public OnboardingController(OnboardingService onboardingService, CompanyService companyService, ManagerService managerService) {
         this.onboardingService = onboardingService;
+        this.companyService = companyService;
+        this.managerService = managerService;
     }
 
     @PostMapping()
     public ResponseEntity<OnboardingRegistrationResponseDTO> registerCompany(@Valid @RequestBody OnboardingRegistrationRequestDTO dto) {
 
-        onboardingService.registerCompany(dto);
-        OnboardingRegistrationResponseDTO responseDTO = new OnboardingRegistrationResponseDTO("Company and manager registered successfully.");
-        return ResponseEntity.ok(responseDTO);
+
+        return ResponseEntity.ok(onboardingService.registerCompany(dto));
 
     }
+
 
 }

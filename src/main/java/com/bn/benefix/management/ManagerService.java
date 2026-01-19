@@ -22,4 +22,9 @@ public class ManagerService {
         return managerRepository.save(newManager);
     }
 
+    public Manager findByCpf(String cpf) {
+        return managerRepository.findByCPF(cpf)
+                .orElseThrow(() -> new RuntimeException("Manager not found with CPF: " + cpf));
+    }
+
 }

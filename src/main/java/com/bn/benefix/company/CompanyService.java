@@ -23,4 +23,9 @@ public class CompanyService {
         return companyRepository.save(newCompany);
     }
 
+    public Company findByCnpj(String cnpj) {
+        return companyRepository.findByCNPJ(cnpj)
+                .orElseThrow(() -> new RuntimeException("Company not found with CNPJ: " + cnpj));
+    }
+
 }
