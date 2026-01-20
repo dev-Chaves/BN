@@ -45,6 +45,8 @@ public class Company {
     @OneToMany(mappedBy = "provider")
     private Set<Benefit> offeredBenefits;
 
+    private Boolean active;
+
     @Column(nullable = false, name = "created_at")
     private LocalDateTime createdAt;
 
@@ -74,12 +76,21 @@ public class Company {
     @PrePersist
     public void onCreate(){
         this.createdAt = LocalDateTime.now();
+        this.active = Boolean.TRUE;
     }
 
     public void update(String name) {
         if (name != null && !name.isBlank()) {
             this.name = name;
         }
+    }
+
+    public void activeCompany(){
+        this.active = Boolean.TRUE;
+    }
+
+    public void deactivateCompany(){
+        this.active = Boolean.FALSE;
     }
 
     public static Builder builder(String name, CNPJ cnpj){

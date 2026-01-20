@@ -33,6 +33,8 @@ public class Manager {
     @JoinColumn(name = "company_id", nullable = false)
     private Company company;
 
+    private Boolean active;
+
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
@@ -45,12 +47,21 @@ public class Manager {
     @PrePersist
     public void onCreate(){
         this.createdAt = LocalDateTime.now();
+        this.active = Boolean.TRUE;
     }
 
     public void update(String name) {
         if (name != null && !name.isBlank()) {
             this.name = name;
         }
+    }
+
+    public void activeManager(){
+        this.active = Boolean.TRUE;
+    }
+
+    public void deactivateManager(){
+        this.active = Boolean.FALSE;
     }
 
     public static class Builder{

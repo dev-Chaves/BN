@@ -7,6 +7,7 @@ public record ManagerCreationResponseDTO(
         String name,
         String cpf,
         Long companyId,
+        Boolean active,
         LocalDateTime createdAt
 ) {
 }

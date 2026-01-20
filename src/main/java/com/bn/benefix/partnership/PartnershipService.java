@@ -89,10 +89,11 @@ public class PartnershipService {
         );
     }
 
+    @Transactional
     public void delete(Long id) {
-        if (!partnershipRepository.existsById(id)) {
-            throw new EntityNotFoundException("Partnership not found");
-        }
-        partnershipRepository.deleteById(id);
+        Partnership partnership = partnershipRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Partnership not found"));
+        
+        partnership.updateStatus(PartnershipStatus.DISABLE);
     }
 }

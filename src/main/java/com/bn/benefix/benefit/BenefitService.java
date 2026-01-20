@@ -83,10 +83,11 @@ public class BenefitService {
         );
     }
 
+    @Transactional
     public void delete(Long id) {
-        if (!benefitRepository.existsById(id)) {
-            throw new EntityNotFoundException("Benefit not found");
-        }
-        benefitRepository.deleteById(id);
+        Benefit benefit = benefitRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Benefit not found"));
+        
+        benefit.deactivateBenefit();
     }
 }

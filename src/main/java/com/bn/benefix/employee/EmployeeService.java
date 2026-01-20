@@ -89,10 +89,14 @@ public class EmployeeService {
         );
     }
 
+    @Transactional
     public void delete(Long id) {
-        if (!employeeRepository.existsById(id)) {
-            throw new EntityNotFoundException("Employee not found");
+        Employee employee = employeeRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Employee not found"));
+        
+        // Assuming we want to set it to DISABLE when "deleting"
+        if (employee.getActive() != EmployeeStatus.DISABLE) {
+            employee.disableEmployee(EmployeeStatus.DISABLE);
         }
-        employeeRepository.deleteById(id);
     }
 }

@@ -32,6 +32,7 @@ public class CompanyService {
                 savedCompany.getId(),
                 savedCompany.getName(),
                 savedCompany.getCnpj().getValue(),
+                savedCompany.getActive(),
                 savedCompany.getCreatedAt()
         );
     }
@@ -42,6 +43,7 @@ public class CompanyService {
                         c.getId(),
                         c.getName(),
                         c.getCnpj().getValue(),
+                        c.getActive(),
                         c.getCreatedAt()
                 ))
                 .toList();
@@ -54,6 +56,7 @@ public class CompanyService {
                 company.getId(),
                 company.getName(),
                 company.getCnpj().getValue(),
+                company.getActive(),
                 company.getCreatedAt()
         );
     }
@@ -74,15 +77,17 @@ public class CompanyService {
                 company.getId(),
                 company.getName(),
                 company.getCnpj().getValue(),
+                company.getActive(),
                 company.getCreatedAt()
         );
     }
 
+    @Transactional
     public void delete(Long id) {
-        if (!companyRepository.existsById(id)) {
-            throw new EntityNotFoundException("Company not found");
-        }
-        companyRepository.deleteById(id);
+        Company company = companyRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Company not found"));
+        
+        company.deactivateCompany();
     }
 
 }

@@ -40,6 +40,7 @@ public class ManagerService {
                 savedManager.getName(),
                 savedManager.getCpf().getValue(),
                 savedManager.getCompany().getId(),
+                savedManager.getActive(),
                 savedManager.getCreatedAt()
         );
     }
@@ -51,6 +52,7 @@ public class ManagerService {
                         m.getName(),
                         m.getCpf().getValue(),
                         m.getCompany().getId(),
+                        m.getActive(),
                         m.getCreatedAt()
                 ))
                 .toList();
@@ -64,6 +66,7 @@ public class ManagerService {
                 manager.getName(),
                 manager.getCpf().getValue(),
                 manager.getCompany().getId(),
+                manager.getActive(),
                 manager.getCreatedAt()
         );
     }
@@ -80,15 +83,17 @@ public class ManagerService {
                 manager.getName(),
                 manager.getCpf().getValue(),
                 manager.getCompany().getId(),
+                manager.getActive(),
                 manager.getCreatedAt()
         );
     }
 
+    @Transactional
     public void delete(Long id) {
-        if (!managerRepository.existsById(id)) {
-            throw new EntityNotFoundException("Manager not found");
-        }
-        managerRepository.deleteById(id);
+        Manager manager = managerRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Manager not found"));
+        
+        manager.deactivateManager();
     }
 
     public Manager findByCpf(String cpf) {

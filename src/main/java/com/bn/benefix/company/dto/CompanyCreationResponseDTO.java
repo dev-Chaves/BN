@@ -6,6 +6,7 @@ public record CompanyCreationResponseDTO(
         Long id,
         String name,
         String cnpj,
+        Boolean active,
         LocalDateTime createdAt
 ) {
 }
