@@ -76,6 +76,12 @@ public class Company {
         this.createdAt = LocalDateTime.now();
     }
 
+    public void update(String name) {
+        if (name != null && !name.isBlank()) {
+            this.name = name;
+        }
+    }
+
     public static Builder builder(String name, CNPJ cnpj){
         return new Builder(name, cnpj);
     }

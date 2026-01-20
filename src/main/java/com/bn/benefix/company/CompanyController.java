@@ -31,4 +31,27 @@ public class CompanyController {
 
     }
 
+    @org.springframework.web.bind.annotation.GetMapping
+    public ResponseEntity<java.util.List<CompanyCreationResponseDTO>> getAllCompanies() {
+        return ResponseEntity.ok(companyService.findAll());
+    }
+
+    @org.springframework.web.bind.annotation.GetMapping("/{id}")
+    public ResponseEntity<CompanyCreationResponseDTO> getCompanyById(@org.springframework.web.bind.annotation.PathVariable Long id) {
+        return ResponseEntity.ok(companyService.findById(id));
+    }
+
+    @org.springframework.web.bind.annotation.PutMapping("/{id}")
+    public ResponseEntity<CompanyCreationResponseDTO> updateCompany(
+            @org.springframework.web.bind.annotation.PathVariable Long id,
+            @RequestBody com.bn.benefix.company.dto.CompanyUpdateRequestDTO dto) {
+        return ResponseEntity.ok(companyService.update(id, dto));
+    }
+
+    @org.springframework.web.bind.annotation.DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteCompany(@org.springframework.web.bind.annotation.PathVariable Long id) {
+        companyService.delete(id);
+        return ResponseEntity.noContent().build();
+    }
+
 }

@@ -33,4 +33,27 @@ public class BenefitController {
 
     }
 
+    @org.springframework.web.bind.annotation.GetMapping
+    public ResponseEntity<java.util.List<BenefitCreationResponseDTO>> getAllBenefits() {
+        return ResponseEntity.ok(benefitService.findAll());
+    }
+
+    @org.springframework.web.bind.annotation.GetMapping("/{id}")
+    public ResponseEntity<BenefitCreationResponseDTO> getBenefitById(@org.springframework.web.bind.annotation.PathVariable Long id) {
+        return ResponseEntity.ok(benefitService.findById(id));
+    }
+
+    @org.springframework.web.bind.annotation.PutMapping("/{id}")
+    public ResponseEntity<BenefitCreationResponseDTO> updateBenefit(
+            @org.springframework.web.bind.annotation.PathVariable Long id,
+            @RequestBody com.bn.benefix.benefit.dto.BenefitUpdateRequestDTO dto) {
+        return ResponseEntity.ok(benefitService.update(id, dto));
+    }
+
+    @org.springframework.web.bind.annotation.DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteBenefit(@org.springframework.web.bind.annotation.PathVariable Long id) {
+        benefitService.delete(id);
+        return ResponseEntity.noContent().build();
+    }
+
 }

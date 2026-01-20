@@ -31,9 +31,53 @@ public class CompanyService {
         );
     }
 
+    public java.util.List<CompanyCreationResponseDTO> findAll() {
+        return companyRepository.findAll().stream()
+                .map(c -> new CompanyCreationResponseDTO(
+                        c.getId(),
+                        c.getName(),
+                        c.getCnpj().getValue(),
+                        c.getCreatedAt()
+                ))
+                .toList();
+    }
+
+    public CompanyCreationResponseDTO findById(Long id) {
+        Company company = companyRepository.findById(id)
+                .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Company not found"));
+        return new CompanyCreationResponseDTO(
+                company.getId(),
+                company.getName(),
+                company.getCnpj().getValue(),
+                company.getCreatedAt()
+        );
+    }
+
     public Company findByCnpj(String cnpj) {
         return companyRepository.findByCNPJ(cnpj)
                 .orElseThrow(() -> new RuntimeException("Company not found with CNPJ: " + cnpj));
+    }
+
+    @org.springframework.transaction.annotation.Transactional
+    public CompanyCreationResponseDTO update(Long id, com.bn.benefix.company.dto.CompanyUpdateRequestDTO dto) {
+        Company company = companyRepository.findById(id)
+                .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Company not found"));
+
+        company.update(dto.name());
+
+        return new CompanyCreationResponseDTO(
+                company.getId(),
+                company.getName(),
+                company.getCnpj().getValue(),
+                company.getCreatedAt()
+        );
+    }
+
+    public void delete(Long id) {
+        if (!companyRepository.existsById(id)) {
+            throw new jakarta.persistence.EntityNotFoundException("Company not found");
+        }
+        companyRepository.deleteById(id);
     }
 
 }

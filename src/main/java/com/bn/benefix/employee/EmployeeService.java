@@ -40,4 +40,54 @@ public class EmployeeService {
                 savedEmployee.getCreatedAt()
         );
     }
+
+    public java.util.List<EmployeeCreationResponseDTO> findAll() {
+        return employeeRepository.findAll().stream()
+                .map(e -> new EmployeeCreationResponseDTO(
+                        e.getId(),
+                        e.getName(),
+                        e.getCpf().getValue(),
+                        e.getCompany().getId(),
+                        e.getActive(),
+                        e.getCreatedAt()
+                ))
+                .toList();
+    }
+
+    public EmployeeCreationResponseDTO findById(Long id) {
+        Employee employee = employeeRepository.findById(id)
+                .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Employee not found"));
+        return new EmployeeCreationResponseDTO(
+                employee.getId(),
+                employee.getName(),
+                employee.getCpf().getValue(),
+                employee.getCompany().getId(),
+                employee.getActive(),
+                employee.getCreatedAt()
+        );
+    }
+
+    @org.springframework.transaction.annotation.Transactional
+    public EmployeeCreationResponseDTO update(Long id, com.bn.benefix.employee.dto.EmployeeUpdateRequestDTO dto) {
+        Employee employee = employeeRepository.findById(id)
+                .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Employee not found"));
+
+        employee.update(dto.name());
+
+        return new EmployeeCreationResponseDTO(
+                employee.getId(),
+                employee.getName(),
+                employee.getCpf().getValue(),
+                employee.getCompany().getId(),
+                employee.getActive(),
+                employee.getCreatedAt()
+        );
+    }
+
+    public void delete(Long id) {
+        if (!employeeRepository.existsById(id)) {
+            throw new jakarta.persistence.EntityNotFoundException("Employee not found");
+        }
+        employeeRepository.deleteById(id);
+    }
 }

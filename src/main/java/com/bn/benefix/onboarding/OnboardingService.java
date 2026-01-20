@@ -24,11 +24,11 @@ public class OnboardingService {
         var companyDto = companyService.createCompany(dto.company());
         Company companyEntity = companyService.findByCnpj(companyDto.cnpj());
 
-        managerService.createManager(
+        managerService.createManager(new com.bn.benefix.management.dto.ManagerCreationRequestDTO(
                 dto.manager().name(),
                 dto.manager().cpf(),
-                companyEntity
-        );
+                companyEntity.getId()
+        ));
 
         return new OnboardingRegistrationResponseDTO(
                 companyDto.cnpj(),

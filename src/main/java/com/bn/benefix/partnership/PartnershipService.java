@@ -43,4 +43,51 @@ public class PartnershipService {
                 savedPartnership.getCreatedAt()
         );
     }
+
+    public java.util.List<PartnershipCreationResponseDTO> findAll() {
+        return partnershipRepository.findAll().stream()
+                .map(p -> new PartnershipCreationResponseDTO(
+                        p.getId(),
+                        p.getClientCompany().getId(),
+                        p.getBenefit().getId(),
+                        p.getStatus(),
+                        p.getCreatedAt()
+                ))
+                .toList();
+    }
+
+    public PartnershipCreationResponseDTO findById(Long id) {
+        Partnership partnership = partnershipRepository.findById(id)
+                .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Partnership not found"));
+        return new PartnershipCreationResponseDTO(
+                partnership.getId(),
+                partnership.getClientCompany().getId(),
+                partnership.getBenefit().getId(),
+                partnership.getStatus(),
+                partnership.getCreatedAt()
+        );
+    }
+
+    @org.springframework.transaction.annotation.Transactional
+    public PartnershipCreationResponseDTO update(Long id, com.bn.benefix.partnership.dto.PartnershipUpdateRequestDTO dto) {
+        Partnership partnership = partnershipRepository.findById(id)
+                .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Partnership not found"));
+
+        partnership.updateStatus(dto.status());
+
+        return new PartnershipCreationResponseDTO(
+                partnership.getId(),
+                partnership.getClientCompany().getId(),
+                partnership.getBenefit().getId(),
+                partnership.getStatus(),
+                partnership.getCreatedAt()
+        );
+    }
+
+    public void delete(Long id) {
+        if (!partnershipRepository.existsById(id)) {
+            throw new jakarta.persistence.EntityNotFoundException("Partnership not found");
+        }
+        partnershipRepository.deleteById(id);
+    }
 }

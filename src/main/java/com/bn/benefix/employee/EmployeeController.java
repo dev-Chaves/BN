@@ -34,4 +34,27 @@ public class EmployeeController {
         return ResponseEntity.created(uri).body(response);
     }
 
+    @org.springframework.web.bind.annotation.GetMapping
+    public ResponseEntity<java.util.List<EmployeeCreationResponseDTO>> getAllEmployees() {
+        return ResponseEntity.ok(employeeService.findAll());
+    }
+
+    @org.springframework.web.bind.annotation.GetMapping("/{id}")
+    public ResponseEntity<EmployeeCreationResponseDTO> getEmployeeById(@org.springframework.web.bind.annotation.PathVariable Long id) {
+        return ResponseEntity.ok(employeeService.findById(id));
+    }
+
+    @org.springframework.web.bind.annotation.PutMapping("/{id}")
+    public ResponseEntity<EmployeeCreationResponseDTO> updateEmployee(
+            @org.springframework.web.bind.annotation.PathVariable Long id,
+            @RequestBody com.bn.benefix.employee.dto.EmployeeUpdateRequestDTO dto) {
+        return ResponseEntity.ok(employeeService.update(id, dto));
+    }
+
+    @org.springframework.web.bind.annotation.DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteEmployee(@org.springframework.web.bind.annotation.PathVariable Long id) {
+        employeeService.delete(id);
+        return ResponseEntity.noContent().build();
+    }
+
 }

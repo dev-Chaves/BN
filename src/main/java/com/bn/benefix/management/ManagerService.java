@@ -9,14 +9,20 @@ import org.springframework.stereotype.Service;
 public class ManagerService {
 
     private final ManagerRepository managerRepository;
-    public ManagerService(ManagerRepository managerRepository) {
+    private final com.bn.benefix.company.CompanyRepository companyRepository;
+
+    public ManagerService(ManagerRepository managerRepository, com.bn.benefix.company.CompanyRepository companyRepository) {
         this.managerRepository = managerRepository;
+        this.companyRepository = companyRepository;
     }
 
-    public ManagerCreationResponseDTO createManager(String name, String cpf, Company company) {
+    public ManagerCreationResponseDTO createManager(com.bn.benefix.management.dto.ManagerCreationRequestDTO dto) {
+        Company company = companyRepository.findById(dto.companyId())
+                .orElseThrow(() -> new IllegalArgumentException("Company not found"));
+
         Manager newManager = new Manager.Builder(
-                name,
-                CPF.of(cpf),
+                dto.name(),
+                CPF.of(dto.cpf()),
                 company)
                 .build();
 
@@ -29,6 +35,53 @@ public class ManagerService {
                 savedManager.getCompany().getId(),
                 savedManager.getCreatedAt()
         );
+    }
+
+    public java.util.List<ManagerCreationResponseDTO> findAll() {
+        return managerRepository.findAll().stream()
+                .map(m -> new ManagerCreationResponseDTO(
+                        m.getId(),
+                        m.getName(),
+                        m.getCpf().getValue(),
+                        m.getCompany().getId(),
+                        m.getCreatedAt()
+                ))
+                .toList();
+    }
+
+    public ManagerCreationResponseDTO findById(Long id) {
+        Manager manager = managerRepository.findById(id)
+                .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Manager not found"));
+        return new ManagerCreationResponseDTO(
+                manager.getId(),
+                manager.getName(),
+                manager.getCpf().getValue(),
+                manager.getCompany().getId(),
+                manager.getCreatedAt()
+        );
+    }
+
+    @org.springframework.transaction.annotation.Transactional
+    public ManagerCreationResponseDTO update(Long id, com.bn.benefix.management.dto.ManagerUpdateRequestDTO dto) {
+        Manager manager = managerRepository.findById(id)
+                .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Manager not found"));
+
+        manager.update(dto.name());
+
+        return new ManagerCreationResponseDTO(
+                manager.getId(),
+                manager.getName(),
+                manager.getCpf().getValue(),
+                manager.getCompany().getId(),
+                manager.getCreatedAt()
+        );
+    }
+
+    public void delete(Long id) {
+        if (!managerRepository.existsById(id)) {
+            throw new jakarta.persistence.EntityNotFoundException("Manager not found");
+        }
+        managerRepository.deleteById(id);
     }
 
     public Manager findByCpf(String cpf) {

@@ -47,6 +47,12 @@ public class Manager {
         this.createdAt = LocalDateTime.now();
     }
 
+    public void update(String name) {
+        if (name != null && !name.isBlank()) {
+            this.name = name;
+        }
+    }
+
     public static class Builder{
 
         private final String name;

@@ -45,6 +45,12 @@ public class Partnership {
         this.status = PartnershipStatus.PENDING;
     }
 
+    public void updateStatus(PartnershipStatus status) {
+        if (status != null) {
+            this.status = status;
+        }
+    }
+
     public static class Builder {
         private final Company clientCompany;
         private final Benefit benefit;

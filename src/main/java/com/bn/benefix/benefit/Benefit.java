@@ -46,6 +46,15 @@ public class Benefit {
         this.active = Boolean.FALSE;
     }
 
+    public void update(String name, String description) {
+        if (name != null && !name.isBlank()) {
+            this.name = name;
+        }
+        if (description != null && !description.isBlank()) {
+            this.description = description;
+        }
+    }
+
     public static class Builder{
 
         private final String name;
@@ -72,6 +81,10 @@ public class Benefit {
 
     public void activeBenefit(){
         this.active = Boolean.TRUE;
+    }
+
+    public void deactivateBenefit(){
+        this.active = Boolean.FALSE;
     }
 
 }
