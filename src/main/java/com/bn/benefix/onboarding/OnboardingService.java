@@ -21,18 +21,19 @@ public class OnboardingService {
 
     @Transactional
     public OnboardingRegistrationResponseDTO registerCompany(OnboardingRegistrationRequestDTO dto) {
-        Company savedCompany = companyService.createCompany(dto.company());
+        var companyDto = companyService.createCompany(dto.company());
+        Company companyEntity = companyService.findByCnpj(companyDto.cnpj());
 
         managerService.createManager(
                 dto.manager().name(),
                 dto.manager().cpf(),
-                savedCompany
+                companyEntity
         );
 
         return new OnboardingRegistrationResponseDTO(
-                savedCompany.getCnpj().getValue(),
+                companyDto.cnpj(),
                 dto.manager().name(),
-                savedCompany.getName()
+                companyDto.name()
         );
 
     }

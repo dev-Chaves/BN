@@ -1,6 +1,7 @@
 package com.bn.benefix.company;
 
 import com.bn.benefix.company.dto.CompanyCreationRequestDTO;
+import com.bn.benefix.company.dto.CompanyCreationResponseDTO;
 import com.bn.benefix.shared.domain.CNPJ;
 import org.springframework.stereotype.Service;
 
@@ -13,14 +14,21 @@ public class CompanyService {
         this.companyRepository = companyRepository;
     }
 
-    public Company createCompany(CompanyCreationRequestDTO dto){
+    public CompanyCreationResponseDTO createCompany(CompanyCreationRequestDTO dto){
 
         Company newCompany = Company.builder(
                 dto.name(),
                 CNPJ.of(dto.cnpj()))
                 .build();
 
-        return companyRepository.save(newCompany);
+        Company savedCompany = companyRepository.save(newCompany);
+
+        return new CompanyCreationResponseDTO(
+                savedCompany.getId(),
+                savedCompany.getName(),
+                savedCompany.getCnpj().getValue(),
+                savedCompany.getCreatedAt()
+        );
     }
 
     public Company findByCnpj(String cnpj) {

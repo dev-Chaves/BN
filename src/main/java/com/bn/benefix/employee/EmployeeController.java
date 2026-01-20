@@ -26,19 +26,10 @@ public class EmployeeController {
     @PostMapping()
     public ResponseEntity<EmployeeCreationResponseDTO> createEmployee(@Valid @RequestBody EmployeeCreationRequestDTO dto, UriComponentsBuilder builder){
 
-        Employee employee = employeeService.createEmployee(dto);
-
-        EmployeeCreationResponseDTO response = new EmployeeCreationResponseDTO(
-                employee.getId(),
-                employee.getName(),
-                employee.getCpf().getValue(),
-                employee.getCompany().getId(),
-                employee.getActive(),
-                employee.getCreatedAt()
-        );
+        EmployeeCreationResponseDTO response = employeeService.createEmployee(dto);
 
         URI uri = builder.path("/employee/{id}")
-                .buildAndExpand(employee.getId())
+                .buildAndExpand(response.id())
                 .toUri();
         return ResponseEntity.created(uri).body(response);
     }

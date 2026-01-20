@@ -1,6 +1,7 @@
 package com.bn.benefix.management;
 
 import com.bn.benefix.company.Company;
+import com.bn.benefix.management.dto.ManagerCreationResponseDTO;
 import com.bn.benefix.shared.domain.CPF;
 import org.springframework.stereotype.Service;
 
@@ -12,14 +13,22 @@ public class ManagerService {
         this.managerRepository = managerRepository;
     }
 
-    public Manager createManager(String name, String cpf, Company company) {
+    public ManagerCreationResponseDTO createManager(String name, String cpf, Company company) {
         Manager newManager = new Manager.Builder(
                 name,
                 CPF.of(cpf),
                 company)
                 .build();
 
-        return managerRepository.save(newManager);
+        Manager savedManager = managerRepository.save(newManager);
+
+        return new ManagerCreationResponseDTO(
+                savedManager.getId(),
+                savedManager.getName(),
+                savedManager.getCpf().getValue(),
+                savedManager.getCompany().getId(),
+                savedManager.getCreatedAt()
+        );
     }
 
     public Manager findByCpf(String cpf) {

@@ -8,6 +8,7 @@ import lombok.*;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Getter
 @Setter(AccessLevel.PROTECTED)
+@EqualsAndHashCode
 public class CPF {
 
     private String value;

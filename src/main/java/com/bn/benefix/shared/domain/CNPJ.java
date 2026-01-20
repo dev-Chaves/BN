@@ -3,14 +3,19 @@ package com.bn.benefix.shared.domain;
 import jakarta.persistence.Embeddable;
 import lombok.*;
 
+import java.util.regex.Pattern;
+
 @Embeddable
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Getter
 @Setter(AccessLevel.PROTECTED)
+@EqualsAndHashCode
 public class CNPJ {
 
     private String value;
+
+    private static final Pattern CNPJ_PATTERN = Pattern.compile("\\d{14}");
 
     public static CNPJ of(String value) {
         if (value == null || value.isEmpty()) throw new IllegalArgumentException("CNPJ cant be null");
@@ -21,7 +26,7 @@ public class CNPJ {
     private static void validate(String value) {
         if (value == null || !value.matches("\\d{14}")) throw new IllegalArgumentException("CNPJ must contain exactly 14 digits");
 
-        if (value.matches("(\\d)\\1{13}")) {
+        if (CNPJ_PATTERN.matcher(value).matches()) {
             throw new IllegalArgumentException("CNPJ numbers cannot be repeated");
         }
 

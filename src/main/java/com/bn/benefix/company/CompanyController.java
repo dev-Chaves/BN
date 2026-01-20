@@ -23,16 +23,9 @@ public class CompanyController {
     @PostMapping()
     public ResponseEntity<CompanyCreationResponseDTO> createCompany(@Valid @RequestBody CompanyCreationRequestDTO dto, UriComponentsBuilder uriBuilder){
 
-        var company = companyService.createCompany(dto);
+        var response = companyService.createCompany(dto);
 
-        var response = new CompanyCreationResponseDTO(
-                company.getId(),
-                company.getName(),
-                company.getCnpj().getValue(),
-                company.getCreatedAt()
-        );
-
-        var uri = uriBuilder.path("/company/{id}").buildAndExpand(company.getId()).toUri();
+        var uri = uriBuilder.path("/company/{id}").buildAndExpand(response.id()).toUri();
 
         return ResponseEntity.created(uri).body(response);
 

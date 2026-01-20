@@ -1,10 +1,11 @@
 package com.bn.benefix.partnership;
 
 import com.bn.benefix.benefit.Benefit;
-import com.bn.benefix.benefit.BeneftiRepository;
+import com.bn.benefix.benefit.BenefitRepository;
 import com.bn.benefix.company.Company;
 import com.bn.benefix.company.CompanyRepository;
 import com.bn.benefix.partnership.dto.PartnershipCreationRequestDTO;
+import com.bn.benefix.partnership.dto.PartnershipCreationResponseDTO;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -12,15 +13,15 @@ public class PartnershipService {
 
     private final PartnershipRepository partnershipRepository;
     private final CompanyRepository companyRepository;
-    private final BeneftiRepository benefitRepository;
+    private final BenefitRepository benefitRepository;
 
-    public PartnershipService(PartnershipRepository partnershipRepository, CompanyRepository companyRepository, BeneftiRepository benefitRepository) {
+    public PartnershipService(PartnershipRepository partnershipRepository, CompanyRepository companyRepository, BenefitRepository benefitRepository) {
         this.partnershipRepository = partnershipRepository;
         this.companyRepository = companyRepository;
         this.benefitRepository = benefitRepository;
     }
 
-    private void createPartnership(PartnershipCreationRequestDTO dto) {
+    public PartnershipCreationResponseDTO createPartnership(PartnershipCreationRequestDTO dto) {
         Company clientCompany = companyRepository.findById(dto.clientCompanyId())
                 .orElseThrow(() -> new IllegalArgumentException("Client company not found"));
 
@@ -32,6 +33,14 @@ public class PartnershipService {
                 benefit)
                 .build();
 
-        partnershipRepository.save(newPartnership);
+        Partnership savedPartnership = partnershipRepository.save(newPartnership);
+
+        return new PartnershipCreationResponseDTO(
+                savedPartnership.getId(),
+                savedPartnership.getClientCompany().getId(),
+                savedPartnership.getBenefit().getId(),
+                savedPartnership.getStatus(),
+                savedPartnership.getCreatedAt()
+        );
     }
 }

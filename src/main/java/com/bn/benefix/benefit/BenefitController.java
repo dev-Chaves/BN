@@ -25,13 +25,9 @@ public class BenefitController {
     @PostMapping()
     public ResponseEntity<BenefitCreationResponseDTO> createBenefit(@Valid @RequestBody BenefitCreationRequestDTO dto, UriComponentsBuilder builder){
 
-        Benefit benefit = benefitService.createBenefit(dto);
+        BenefitCreationResponseDTO response = benefitService.createBenefit(dto);
 
-        BenefitCreationResponseDTO response = new BenefitCreationResponseDTO(
-                benefit.getId(), benefit.getName(), benefit.getProvider().getName(), benefit.getActive(), benefit.getCreatedAt()
-        );
-
-        URI uri = builder.path("/benefit/{id}").buildAndExpand(benefit.getId()).toUri();
+        URI uri = builder.path("/benefit/{id}").buildAndExpand(response.id()).toUri();
 
         return ResponseEntity.created(uri).body(response);
 

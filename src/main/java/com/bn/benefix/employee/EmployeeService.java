@@ -3,6 +3,7 @@ package com.bn.benefix.employee;
 import com.bn.benefix.company.Company;
 import com.bn.benefix.company.CompanyRepository;
 import com.bn.benefix.employee.dto.EmployeeCreationRequestDTO;
+import com.bn.benefix.employee.dto.EmployeeCreationResponseDTO;
 import com.bn.benefix.shared.domain.CPF;
 import org.springframework.stereotype.Service;
 
@@ -17,7 +18,7 @@ public class EmployeeService {
         this.companyRepository = companyRepository;
     }
 
-    public Employee createEmployee(EmployeeCreationRequestDTO dto) {
+    public EmployeeCreationResponseDTO createEmployee(EmployeeCreationRequestDTO dto) {
         Company company = companyRepository.findById(dto.companyId())
                 .orElseThrow(() -> new IllegalArgumentException("Company not found"));
 
@@ -28,6 +29,15 @@ public class EmployeeService {
         
         newEmployee.defineCompany(company);
 
-        return employeeRepository.save(newEmployee);
+        Employee savedEmployee = employeeRepository.save(newEmployee);
+
+        return new EmployeeCreationResponseDTO(
+                savedEmployee.getId(),
+                savedEmployee.getName(),
+                savedEmployee.getCpf().getValue(),
+                savedEmployee.getCompany().getId(),
+                savedEmployee.getActive(),
+                savedEmployee.getCreatedAt()
+        );
     }
 }
