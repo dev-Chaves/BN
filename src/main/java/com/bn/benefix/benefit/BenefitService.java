@@ -4,6 +4,7 @@ import com.bn.benefix.benefit.dto.BenefitCreationRequestDTO;
 import com.bn.benefix.benefit.dto.BenefitCreationResponseDTO;
 import com.bn.benefix.company.Company;
 import com.bn.benefix.company.CompanyRepository;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
@@ -53,7 +54,7 @@ public class BenefitService {
 
     public BenefitCreationResponseDTO findById(Long id) {
         Benefit benefit = benefitRepository.findById(id)
-                .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Benefit not found"));
+                .orElseThrow(() -> new EntityNotFoundException("Benefit not found"));
         return new BenefitCreationResponseDTO(
                 benefit.getId(),
                 benefit.getName(),
@@ -66,7 +67,7 @@ public class BenefitService {
     @Transactional
     public BenefitCreationResponseDTO update(Long id, com.bn.benefix.benefit.dto.BenefitUpdateRequestDTO dto) {
         Benefit benefit = benefitRepository.findById(id)
-                .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Benefit not found"));
+                .orElseThrow(() -> new EntityNotFoundException("Benefit not found"));
         
         benefit.update(dto.name(), dto.description());
         
@@ -81,7 +82,7 @@ public class BenefitService {
 
     public void delete(Long id) {
         if (!benefitRepository.existsById(id)) {
-            throw new jakarta.persistence.EntityNotFoundException("Benefit not found");
+            throw new EntityNotFoundException("Benefit not found");
         }
         benefitRepository.deleteById(id);
     }

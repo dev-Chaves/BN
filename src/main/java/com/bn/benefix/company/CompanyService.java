@@ -3,6 +3,8 @@ package com.bn.benefix.company;
 import com.bn.benefix.company.dto.CompanyCreationRequestDTO;
 import com.bn.benefix.company.dto.CompanyCreationResponseDTO;
 import com.bn.benefix.shared.domain.CNPJ;
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -44,7 +46,7 @@ public class CompanyService {
 
     public CompanyCreationResponseDTO findById(Long id) {
         Company company = companyRepository.findById(id)
-                .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Company not found"));
+                .orElseThrow(() -> new EntityNotFoundException("Company not found"));
         return new CompanyCreationResponseDTO(
                 company.getId(),
                 company.getName(),
@@ -58,10 +60,10 @@ public class CompanyService {
                 .orElseThrow(() -> new RuntimeException("Company not found with CNPJ: " + cnpj));
     }
 
-    @org.springframework.transaction.annotation.Transactional
+    @Transactional
     public CompanyCreationResponseDTO update(Long id, com.bn.benefix.company.dto.CompanyUpdateRequestDTO dto) {
         Company company = companyRepository.findById(id)
-                .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Company not found"));
+                .orElseThrow(() -> new EntityNotFoundException("Company not found"));
 
         company.update(dto.name());
 
@@ -75,7 +77,7 @@ public class CompanyService {
 
     public void delete(Long id) {
         if (!companyRepository.existsById(id)) {
-            throw new jakarta.persistence.EntityNotFoundException("Company not found");
+            throw new EntityNotFoundException("Company not found");
         }
         companyRepository.deleteById(id);
     }

@@ -6,7 +6,12 @@ import com.bn.benefix.company.Company;
 import com.bn.benefix.company.CompanyRepository;
 import com.bn.benefix.partnership.dto.PartnershipCreationRequestDTO;
 import com.bn.benefix.partnership.dto.PartnershipCreationResponseDTO;
+import com.bn.benefix.partnership.dto.PartnershipUpdateRequestDTO;
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 public class PartnershipService {
@@ -44,7 +49,7 @@ public class PartnershipService {
         );
     }
 
-    public java.util.List<PartnershipCreationResponseDTO> findAll() {
+    public List<PartnershipCreationResponseDTO> findAll() {
         return partnershipRepository.findAll().stream()
                 .map(p -> new PartnershipCreationResponseDTO(
                         p.getId(),
@@ -58,7 +63,7 @@ public class PartnershipService {
 
     public PartnershipCreationResponseDTO findById(Long id) {
         Partnership partnership = partnershipRepository.findById(id)
-                .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Partnership not found"));
+                .orElseThrow(() -> new EntityNotFoundException("Partnership not found"));
         return new PartnershipCreationResponseDTO(
                 partnership.getId(),
                 partnership.getClientCompany().getId(),
@@ -68,8 +73,8 @@ public class PartnershipService {
         );
     }
 
-    @org.springframework.transaction.annotation.Transactional
-    public PartnershipCreationResponseDTO update(Long id, com.bn.benefix.partnership.dto.PartnershipUpdateRequestDTO dto) {
+    @Transactional
+    public PartnershipCreationResponseDTO update(Long id, PartnershipUpdateRequestDTO dto) {
         Partnership partnership = partnershipRepository.findById(id)
                 .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Partnership not found"));
 
@@ -86,7 +91,7 @@ public class PartnershipService {
 
     public void delete(Long id) {
         if (!partnershipRepository.existsById(id)) {
-            throw new jakarta.persistence.EntityNotFoundException("Partnership not found");
+            throw new EntityNotFoundException("Partnership not found");
         }
         partnershipRepository.deleteById(id);
     }

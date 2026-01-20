@@ -1,8 +1,12 @@
 package com.bn.benefix.management;
 
 import com.bn.benefix.company.Company;
+import com.bn.benefix.management.dto.ManagerCreationRequestDTO;
 import com.bn.benefix.management.dto.ManagerCreationResponseDTO;
+import com.bn.benefix.management.dto.ManagerUpdateRequestDTO;
 import com.bn.benefix.shared.domain.CPF;
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -16,7 +20,7 @@ public class ManagerService {
         this.companyRepository = companyRepository;
     }
 
-    public ManagerCreationResponseDTO createManager(com.bn.benefix.management.dto.ManagerCreationRequestDTO dto) {
+    public ManagerCreationResponseDTO createManager(ManagerCreationRequestDTO dto) {
         Company company = companyRepository.findById(dto.companyId())
                 .orElseThrow(() -> new IllegalArgumentException("Company not found"));
 
@@ -51,7 +55,7 @@ public class ManagerService {
 
     public ManagerCreationResponseDTO findById(Long id) {
         Manager manager = managerRepository.findById(id)
-                .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Manager not found"));
+                .orElseThrow(() -> new EntityNotFoundException("Manager not found"));
         return new ManagerCreationResponseDTO(
                 manager.getId(),
                 manager.getName(),
@@ -61,10 +65,10 @@ public class ManagerService {
         );
     }
 
-    @org.springframework.transaction.annotation.Transactional
-    public ManagerCreationResponseDTO update(Long id, com.bn.benefix.management.dto.ManagerUpdateRequestDTO dto) {
+    @Transactional
+    public ManagerCreationResponseDTO update(Long id, ManagerUpdateRequestDTO dto) {
         Manager manager = managerRepository.findById(id)
-                .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Manager not found"));
+                .orElseThrow(() -> new EntityNotFoundException("Manager not found"));
 
         manager.update(dto.name());
 
@@ -79,7 +83,7 @@ public class ManagerService {
 
     public void delete(Long id) {
         if (!managerRepository.existsById(id)) {
-            throw new jakarta.persistence.EntityNotFoundException("Manager not found");
+            throw new EntityNotFoundException("Manager not found");
         }
         managerRepository.deleteById(id);
     }
