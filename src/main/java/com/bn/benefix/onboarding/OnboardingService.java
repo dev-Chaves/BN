@@ -3,6 +3,7 @@ package com.bn.benefix.onboarding;
 import com.bn.benefix.company.Company;
 import com.bn.benefix.company.CompanyService;
 import com.bn.benefix.management.ManagerService;
+import com.bn.benefix.management.dto.ManagerCreationRequestDTO;
 import com.bn.benefix.onboarding.dto.OnboardingRegistrationRequestDTO;
 import com.bn.benefix.onboarding.dto.OnboardingRegistrationResponseDTO;
 import jakarta.transaction.Transactional;
@@ -24,7 +25,7 @@ public class OnboardingService {
         var companyDto = companyService.createCompany(dto.company());
         Company companyEntity = companyService.findByCnpj(companyDto.cnpj());
 
-        managerService.createManager(new com.bn.benefix.management.dto.ManagerCreationRequestDTO(
+        managerService.createManager(new ManagerCreationRequestDTO(
                 dto.manager().name(),
                 dto.manager().cpf(),
                 companyEntity.getId()

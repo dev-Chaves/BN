@@ -1,6 +1,7 @@
 package com.bn.benefix.management;
 
 import com.bn.benefix.company.Company;
+import com.bn.benefix.company.CompanyRepository;
 import com.bn.benefix.management.dto.ManagerCreationRequestDTO;
 import com.bn.benefix.management.dto.ManagerCreationResponseDTO;
 import com.bn.benefix.management.dto.ManagerUpdateRequestDTO;
@@ -9,13 +10,15 @@ import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 public class ManagerService {
 
     private final ManagerRepository managerRepository;
-    private final com.bn.benefix.company.CompanyRepository companyRepository;
+    private final CompanyRepository companyRepository;
 
-    public ManagerService(ManagerRepository managerRepository, com.bn.benefix.company.CompanyRepository companyRepository) {
+    public ManagerService(ManagerRepository managerRepository, CompanyRepository companyRepository) {
         this.managerRepository = managerRepository;
         this.companyRepository = companyRepository;
     }
@@ -41,7 +44,7 @@ public class ManagerService {
         );
     }
 
-    public java.util.List<ManagerCreationResponseDTO> findAll() {
+    public List<ManagerCreationResponseDTO> findAll() {
         return managerRepository.findAll().stream()
                 .map(m -> new ManagerCreationResponseDTO(
                         m.getId(),

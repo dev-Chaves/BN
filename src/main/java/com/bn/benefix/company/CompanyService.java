@@ -2,10 +2,13 @@ package com.bn.benefix.company;
 
 import com.bn.benefix.company.dto.CompanyCreationRequestDTO;
 import com.bn.benefix.company.dto.CompanyCreationResponseDTO;
+import com.bn.benefix.company.dto.CompanyUpdateRequestDTO;
 import com.bn.benefix.shared.domain.CNPJ;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 public class CompanyService {
@@ -33,7 +36,7 @@ public class CompanyService {
         );
     }
 
-    public java.util.List<CompanyCreationResponseDTO> findAll() {
+    public List<CompanyCreationResponseDTO> findAll() {
         return companyRepository.findAll().stream()
                 .map(c -> new CompanyCreationResponseDTO(
                         c.getId(),
@@ -61,7 +64,7 @@ public class CompanyService {
     }
 
     @Transactional
-    public CompanyCreationResponseDTO update(Long id, com.bn.benefix.company.dto.CompanyUpdateRequestDTO dto) {
+    public CompanyCreationResponseDTO update(Long id, CompanyUpdateRequestDTO dto) {
         Company company = companyRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Company not found"));
 

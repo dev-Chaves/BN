@@ -4,8 +4,13 @@ import com.bn.benefix.company.Company;
 import com.bn.benefix.company.CompanyRepository;
 import com.bn.benefix.employee.dto.EmployeeCreationRequestDTO;
 import com.bn.benefix.employee.dto.EmployeeCreationResponseDTO;
+import com.bn.benefix.employee.dto.EmployeeUpdateRequestDTO;
 import com.bn.benefix.shared.domain.CPF;
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 public class EmployeeService {
@@ -41,7 +46,7 @@ public class EmployeeService {
         );
     }
 
-    public java.util.List<EmployeeCreationResponseDTO> findAll() {
+    public List<EmployeeCreationResponseDTO> findAll() {
         return employeeRepository.findAll().stream()
                 .map(e -> new EmployeeCreationResponseDTO(
                         e.getId(),
@@ -56,7 +61,7 @@ public class EmployeeService {
 
     public EmployeeCreationResponseDTO findById(Long id) {
         Employee employee = employeeRepository.findById(id)
-                .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Employee not found"));
+                .orElseThrow(() -> new EntityNotFoundException("Employee not found"));
         return new EmployeeCreationResponseDTO(
                 employee.getId(),
                 employee.getName(),
@@ -67,10 +72,10 @@ public class EmployeeService {
         );
     }
 
-    @org.springframework.transaction.annotation.Transactional
-    public EmployeeCreationResponseDTO update(Long id, com.bn.benefix.employee.dto.EmployeeUpdateRequestDTO dto) {
+    @Transactional
+    public EmployeeCreationResponseDTO update(Long id, EmployeeUpdateRequestDTO dto) {
         Employee employee = employeeRepository.findById(id)
-                .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Employee not found"));
+                .orElseThrow(() -> new EntityNotFoundException("Employee not found"));
 
         employee.update(dto.name());
 
@@ -86,7 +91,7 @@ public class EmployeeService {
 
     public void delete(Long id) {
         if (!employeeRepository.existsById(id)) {
-            throw new jakarta.persistence.EntityNotFoundException("Employee not found");
+            throw new EntityNotFoundException("Employee not found");
         }
         employeeRepository.deleteById(id);
     }

@@ -2,15 +2,14 @@ package com.bn.benefix.benefit;
 
 import com.bn.benefix.benefit.dto.BenefitCreationRequestDTO;
 import com.bn.benefix.benefit.dto.BenefitCreationResponseDTO;
+import com.bn.benefix.benefit.dto.BenefitUpdateRequestDTO;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
+import java.util.List;
 
 @RestController
 @RequestMapping("benefit")
@@ -33,25 +32,25 @@ public class BenefitController {
 
     }
 
-    @org.springframework.web.bind.annotation.GetMapping
-    public ResponseEntity<java.util.List<BenefitCreationResponseDTO>> getAllBenefits() {
+    @GetMapping
+    public ResponseEntity<List<BenefitCreationResponseDTO>> getAllBenefits() {
         return ResponseEntity.ok(benefitService.findAll());
     }
 
-    @org.springframework.web.bind.annotation.GetMapping("/{id}")
-    public ResponseEntity<BenefitCreationResponseDTO> getBenefitById(@org.springframework.web.bind.annotation.PathVariable Long id) {
+    @GetMapping("/{id}")
+    public ResponseEntity<BenefitCreationResponseDTO> getBenefitById(@PathVariable Long id) {
         return ResponseEntity.ok(benefitService.findById(id));
     }
 
-    @org.springframework.web.bind.annotation.PutMapping("/{id}")
+    @PutMapping("/{id}")
     public ResponseEntity<BenefitCreationResponseDTO> updateBenefit(
-            @org.springframework.web.bind.annotation.PathVariable Long id,
-            @RequestBody com.bn.benefix.benefit.dto.BenefitUpdateRequestDTO dto) {
+            @PathVariable Long id,
+            @RequestBody BenefitUpdateRequestDTO dto) {
         return ResponseEntity.ok(benefitService.update(id, dto));
     }
 
-    @org.springframework.web.bind.annotation.DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteBenefit(@org.springframework.web.bind.annotation.PathVariable Long id) {
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteBenefit(@PathVariable Long id) {
         benefitService.delete(id);
         return ResponseEntity.noContent().build();
     }

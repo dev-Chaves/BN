@@ -1,7 +1,15 @@
 package com.bn.benefix.management;
 
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import com.bn.benefix.management.dto.ManagerCreationRequestDTO;
+import com.bn.benefix.management.dto.ManagerCreationResponseDTO;
+import com.bn.benefix.management.dto.ManagerUpdateRequestDTO;
+import jakarta.validation.Valid;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.util.UriComponentsBuilder;
+
+import java.net.URI;
+import java.util.List;
 
 @RestController
 @RequestMapping("management")
@@ -13,40 +21,40 @@ public class ManagementController {
         this.managerService = managerService;
     }
 
-    @org.springframework.web.bind.annotation.PostMapping()
-    public org.springframework.http.ResponseEntity<com.bn.benefix.management.dto.ManagerCreationResponseDTO> createManager(
-            @jakarta.validation.Valid @org.springframework.web.bind.annotation.RequestBody com.bn.benefix.management.dto.ManagerCreationRequestDTO dto,
-            org.springframework.web.util.UriComponentsBuilder builder){
+    @PostMapping()
+    public ResponseEntity<ManagerCreationResponseDTO> createManager(
+            @Valid @RequestBody ManagerCreationRequestDTO dto,
+            UriComponentsBuilder builder){
 
-        com.bn.benefix.management.dto.ManagerCreationResponseDTO response = managerService.createManager(dto);
+        ManagerCreationResponseDTO response = managerService.createManager(dto);
 
-        java.net.URI uri = builder.path("/management/{id}")
+        URI uri = builder.path("/management/{id}")
                 .buildAndExpand(response.id())
                 .toUri();
-        return org.springframework.http.ResponseEntity.created(uri).body(response);
+        return ResponseEntity.created(uri).body(response);
     }
 
-    @org.springframework.web.bind.annotation.GetMapping
-    public org.springframework.http.ResponseEntity<java.util.List<com.bn.benefix.management.dto.ManagerCreationResponseDTO>> getAllManagers() {
-        return org.springframework.http.ResponseEntity.ok(managerService.findAll());
+    @GetMapping
+    public ResponseEntity<List<ManagerCreationResponseDTO>> getAllManagers() {
+        return ResponseEntity.ok(managerService.findAll());
     }
 
-    @org.springframework.web.bind.annotation.GetMapping("/{id}")
-    public org.springframework.http.ResponseEntity<com.bn.benefix.management.dto.ManagerCreationResponseDTO> getManagerById(@org.springframework.web.bind.annotation.PathVariable Long id) {
-        return org.springframework.http.ResponseEntity.ok(managerService.findById(id));
+    @GetMapping("/{id}")
+    public ResponseEntity<ManagerCreationResponseDTO> getManagerById(@PathVariable Long id) {
+        return ResponseEntity.ok(managerService.findById(id));
     }
 
-    @org.springframework.web.bind.annotation.PutMapping("/{id}")
-    public org.springframework.http.ResponseEntity<com.bn.benefix.management.dto.ManagerCreationResponseDTO> updateManager(
-            @org.springframework.web.bind.annotation.PathVariable Long id,
-            @org.springframework.web.bind.annotation.RequestBody com.bn.benefix.management.dto.ManagerUpdateRequestDTO dto) {
-        return org.springframework.http.ResponseEntity.ok(managerService.update(id, dto));
+    @PutMapping("/{id}")
+    public ResponseEntity<ManagerCreationResponseDTO> updateManager(
+            @PathVariable Long id,
+            @RequestBody ManagerUpdateRequestDTO dto) {
+        return ResponseEntity.ok(managerService.update(id, dto));
     }
 
-    @org.springframework.web.bind.annotation.DeleteMapping("/{id}")
-    public org.springframework.http.ResponseEntity<Void> deleteManager(@org.springframework.web.bind.annotation.PathVariable Long id) {
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteManager(@PathVariable Long id) {
         managerService.delete(id);
-        return org.springframework.http.ResponseEntity.noContent().build();
+        return ResponseEntity.noContent().build();
     }
 
 }

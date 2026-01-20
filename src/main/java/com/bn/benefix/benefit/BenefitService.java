@@ -2,11 +2,14 @@ package com.bn.benefix.benefit;
 
 import com.bn.benefix.benefit.dto.BenefitCreationRequestDTO;
 import com.bn.benefix.benefit.dto.BenefitCreationResponseDTO;
+import com.bn.benefix.benefit.dto.BenefitUpdateRequestDTO;
 import com.bn.benefix.company.Company;
 import com.bn.benefix.company.CompanyRepository;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 public class BenefitService {
@@ -40,7 +43,7 @@ public class BenefitService {
         );
     }
 
-    public java.util.List<BenefitCreationResponseDTO> findAll() {
+    public List<BenefitCreationResponseDTO> findAll() {
         return benefitRepository.findAll().stream()
                 .map(b -> new BenefitCreationResponseDTO(
                         b.getId(),
@@ -65,7 +68,7 @@ public class BenefitService {
     }
 
     @Transactional
-    public BenefitCreationResponseDTO update(Long id, com.bn.benefix.benefit.dto.BenefitUpdateRequestDTO dto) {
+    public BenefitCreationResponseDTO update(Long id, BenefitUpdateRequestDTO dto) {
         Benefit benefit = benefitRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Benefit not found"));
         
