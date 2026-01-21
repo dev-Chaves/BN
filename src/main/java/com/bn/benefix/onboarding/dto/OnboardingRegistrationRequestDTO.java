@@ -18,6 +18,10 @@ public record OnboardingRegistrationRequestDTO(
             @NotEmpty(message = "Manager name cannot be null")
             String name,
             @NotNull(message = "Manager CPF cannot be null")
-            String cpf
+            String cpf,
+            @NotEmpty(message = "Email cannot be null")
+            String email,
+            @NotEmpty(message = "Password cannot be null")
+            String password
     ) {}
 }

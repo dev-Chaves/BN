@@ -1,5 +1,6 @@
 package com.bn.benefix.management;
 
+import com.bn.benefix.account.Account;
 import com.bn.benefix.company.Company;
 import com.bn.benefix.shared.domain.CPF;
 import jakarta.persistence.*;
@@ -25,9 +26,9 @@ public class Manager {
     @Column(nullable = false)
     private String name;
 
-    @Embedded
-    @EmbeddedColumnNaming("")
-    private CPF cpf;
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "account_id", referencedColumnName = "id", nullable = false)
+    private Account account;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "company_id", nullable = false)
@@ -40,7 +41,6 @@ public class Manager {
 
     private Manager (Builder builder){
         this.name = builder.name;
-        this.cpf = builder.cpf;
         this.company = builder.company;
     }
 
@@ -69,11 +69,13 @@ public class Manager {
         private final String name;
         private final CPF cpf;
         private final Company company;
+        private final Account account;
 
-        public Builder(String name, CPF cpf, Company company) {
+        public Builder(String name, CPF cpf, Company company, Account account) {
             this.name = name;
             this.cpf = cpf;
             this.company = company;
+            this.account = account;
         }
 
         public Manager build(){

@@ -28,6 +28,8 @@ public class OnboardingService {
         managerService.createManager(new ManagerCreationRequestDTO(
                 dto.manager().name(),
                 dto.manager().cpf(),
+                dto.manager().email(),
+                dto.manager().password(),
                 companyEntity.getId()
         ));
 

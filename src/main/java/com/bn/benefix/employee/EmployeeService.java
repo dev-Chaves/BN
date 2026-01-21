@@ -39,7 +39,6 @@ public class EmployeeService {
         return new EmployeeCreationResponseDTO(
                 savedEmployee.getId(),
                 savedEmployee.getName(),
-                savedEmployee.getCpf().getValue(),
                 savedEmployee.getCompany().getId(),
                 savedEmployee.getActive(),
                 savedEmployee.getCreatedAt()
@@ -51,7 +50,6 @@ public class EmployeeService {
                 .map(e -> new EmployeeCreationResponseDTO(
                         e.getId(),
                         e.getName(),
-                        e.getCpf().getValue(),
                         e.getCompany().getId(),
                         e.getActive(),
                         e.getCreatedAt()
@@ -65,7 +63,6 @@ public class EmployeeService {
         return new EmployeeCreationResponseDTO(
                 employee.getId(),
                 employee.getName(),
-                employee.getCpf().getValue(),
                 employee.getCompany().getId(),
                 employee.getActive(),
                 employee.getCreatedAt()
@@ -82,7 +79,6 @@ public class EmployeeService {
         return new EmployeeCreationResponseDTO(
                 employee.getId(),
                 employee.getName(),
-                employee.getCpf().getValue(),
                 employee.getCompany().getId(),
                 employee.getActive(),
                 employee.getCreatedAt()

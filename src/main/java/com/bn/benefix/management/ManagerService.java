@@ -1,5 +1,7 @@
 package com.bn.benefix.management;
 
+import com.bn.benefix.account.Account;
+import com.bn.benefix.account.AccountRepository;
 import com.bn.benefix.company.Company;
 import com.bn.benefix.company.CompanyRepository;
 import com.bn.benefix.management.dto.ManagerCreationRequestDTO;
@@ -11,26 +13,47 @@ import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class ManagerService {
 
     private final ManagerRepository managerRepository;
     private final CompanyRepository companyRepository;
+    private final AccountRepository accountRepository;
 
-    public ManagerService(ManagerRepository managerRepository, CompanyRepository companyRepository) {
+    public ManagerService(ManagerRepository managerRepository, CompanyRepository companyRepository, AccountRepository accountRepository) {
         this.managerRepository = managerRepository;
         this.companyRepository = companyRepository;
+        this.accountRepository = accountRepository;
     }
 
     public ManagerCreationResponseDTO createManager(ManagerCreationRequestDTO dto) {
         Company company = companyRepository.findById(dto.companyId())
                 .orElseThrow(() -> new IllegalArgumentException("Company not found"));
 
+        if (accountRepository.findByCpf(dto.cpf()).isPresent()) {
+            throw new IllegalArgumentException("Account with this CPF already exists");
+        }
+
+        // Ideally check by email too, assuming finding by email is supported or added later.
+        
+        Account newAccount = new Account.Builder(
+                dto.name(),
+                CPF.of(dto.cpf()),
+                dto.password(), // In a real app, hash this!
+                dto.email(),
+                com.bn.benefix.shared.enums.Role.MANAGER
+        ).build();
+
+        Account savedAccount = accountRepository.save(newAccount);
+
         Manager newManager = new Manager.Builder(
                 dto.name(),
                 CPF.of(dto.cpf()),
-                company)
+                company,
+                savedAccount
+                )
                 .build();
 
         Manager savedManager = managerRepository.save(newManager);
@@ -38,7 +61,6 @@ public class ManagerService {
         return new ManagerCreationResponseDTO(
                 savedManager.getId(),
                 savedManager.getName(),
-                savedManager.getCpf().getValue(),
                 savedManager.getCompany().getId(),
                 savedManager.getActive(),
                 savedManager.getCreatedAt()
@@ -50,7 +72,6 @@ public class ManagerService {
                 .map(m -> new ManagerCreationResponseDTO(
                         m.getId(),
                         m.getName(),
-                        m.getCpf().getValue(),
                         m.getCompany().getId(),
                         m.getActive(),
                         m.getCreatedAt()
@@ -64,7 +85,6 @@ public class ManagerService {
         return new ManagerCreationResponseDTO(
                 manager.getId(),
                 manager.getName(),
-                manager.getCpf().getValue(),
                 manager.getCompany().getId(),
                 manager.getActive(),
                 manager.getCreatedAt()
@@ -81,7 +101,6 @@ public class ManagerService {
         return new ManagerCreationResponseDTO(
                 manager.getId(),
                 manager.getName(),
-                manager.getCpf().getValue(),
                 manager.getCompany().getId(),
                 manager.getActive(),
                 manager.getCreatedAt()
@@ -96,9 +115,9 @@ public class ManagerService {
         manager.deactivateManager();
     }
 
-    public Manager findByCpf(String cpf) {
-        return managerRepository.findByCPF(cpf)
-                .orElseThrow(() -> new RuntimeException("Manager not found with CPF: " + cpf));
+    public Manager findByCpf(UUID id) {
+        return managerRepository.findByAccountId(id)
+                .orElseThrow(() -> new RuntimeException("Manager not found with ID: " + id));
     }
 
 }

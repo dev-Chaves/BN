@@ -1,5 +1,6 @@
 package com.bn.benefix.employee;
 
+import com.bn.benefix.account.Account;
 import com.bn.benefix.company.Company;
 import com.bn.benefix.shared.domain.CPF;
 import jakarta.persistence.*;
@@ -25,9 +26,9 @@ public class Employee {
     @Column(nullable = false)
     private String name;
 
-    @Embedded
-    @EmbeddedColumnNaming("")
-    private CPF cpf;
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "account_id", referencedColumnName = "id", nullable = false)
+    private Account account;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "company_id", nullable = false)
@@ -40,8 +41,7 @@ public class Employee {
     private LocalDateTime createdAt;
 
     private Employee(Builder builder){
-        this.name = builder.name;
-        this.cpf = builder.cpf;
+
     }
 
     @PrePersist

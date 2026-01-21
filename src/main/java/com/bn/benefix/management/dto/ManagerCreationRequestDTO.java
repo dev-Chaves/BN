@@ -8,6 +8,10 @@ public record ManagerCreationRequestDTO(
         String name,
         @NotNull(message = "CPF cannot be null")
         String cpf,
+        @NotEmpty(message = "Email cannot be null")
+        String email,
+        @NotEmpty(message = "Password cannot be null")
+        String password,
         @NotNull(message = "Company ID cannot be null")
         Long companyId
 ) {
