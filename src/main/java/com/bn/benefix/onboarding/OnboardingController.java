@@ -1,7 +1,7 @@
 package com.bn.benefix.onboarding;
 
 import com.bn.benefix.company.CompanyService;
-import com.bn.benefix.management.ManagerService;
+import com.bn.benefix.manager.ManagerService;
 import com.bn.benefix.onboarding.dto.OnboardingRegistrationRequestDTO;
 import com.bn.benefix.onboarding.dto.OnboardingRegistrationResponseDTO;
 import jakarta.validation.Valid;

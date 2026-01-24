@@ -1,12 +1,12 @@
-package com.bn.benefix.management;
+package com.bn.benefix.manager;
 
 import com.bn.benefix.account.Account;
 import com.bn.benefix.account.AccountRepository;
 import com.bn.benefix.company.Company;
 import com.bn.benefix.company.CompanyRepository;
-import com.bn.benefix.management.dto.ManagerCreationRequestDTO;
-import com.bn.benefix.management.dto.ManagerCreationResponseDTO;
-import com.bn.benefix.management.dto.ManagerUpdateRequestDTO;
+import com.bn.benefix.manager.dto.ManagerCreationRequestDTO;
+import com.bn.benefix.manager.dto.ManagerCreationResponseDTO;
+import com.bn.benefix.manager.dto.ManagerUpdateRequestDTO;
 import com.bn.benefix.shared.domain.CPF;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
@@ -21,11 +21,13 @@ public class ManagerService {
     private final ManagerRepository managerRepository;
     private final CompanyRepository companyRepository;
     private final AccountRepository accountRepository;
+    private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
 
-    public ManagerService(ManagerRepository managerRepository, CompanyRepository companyRepository, AccountRepository accountRepository) {
+    public ManagerService(ManagerRepository managerRepository, CompanyRepository companyRepository, AccountRepository accountRepository, org.springframework.security.crypto.password.PasswordEncoder passwordEncoder) {
         this.managerRepository = managerRepository;
         this.companyRepository = companyRepository;
         this.accountRepository = accountRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     public ManagerCreationResponseDTO createManager(ManagerCreationRequestDTO dto) {
@@ -36,12 +38,14 @@ public class ManagerService {
             throw new IllegalArgumentException("Account with this CPF already exists");
         }
 
-        // Ideally check by email too, assuming finding by email is supported or added later.
+        if(isEmailTaken(dto.email())) {
+            throw new IllegalArgumentException("Email is already in use");
+        }
         
         Account newAccount = new Account.Builder(
                 dto.name(),
                 CPF.of(dto.cpf()),
-                dto.password(), // In a real app, hash this!
+                passwordEncoder.encode(dto.password()),
                 dto.email(),
                 com.bn.benefix.shared.enums.Role.MANAGER
         ).build();
@@ -50,7 +54,6 @@ public class ManagerService {
 
         Manager newManager = new Manager.Builder(
                 dto.name(),
-                CPF.of(dto.cpf()),
                 company,
                 savedAccount
                 )
@@ -115,9 +118,13 @@ public class ManagerService {
         manager.deactivateManager();
     }
 
-    public Manager findByCpf(UUID id) {
+    public Manager findByAccountId(UUID id) {
         return managerRepository.findByAccountId(id)
                 .orElseThrow(() -> new RuntimeException("Manager not found with ID: " + id));
+    }
+
+    private boolean isEmailTaken(String email) {
+        return accountRepository.findByEmail(email).isPresent();
     }
 
 }

@@ -8,6 +8,8 @@ import java.util.UUID;
 
 public interface AccountRepository extends JpaRepository<Account, UUID> {
 
-    @Query(value = "SELECT a from Account a where a.cpf =: cpf")
+    @Query(value = "SELECT a from Account a where a.cpf.value =: cpf")
     Optional<Account> findByCpf(String cpf);
+
+    Optional<Account> findByEmail(String email);
 }

@@ -1,4 +1,4 @@
-package com.bn.benefix.management.dto;
+package com.bn.benefix.manager.dto;
 
 public record ManagerUpdateRequestDTO(
         String name

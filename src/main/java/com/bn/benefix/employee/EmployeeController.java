@@ -3,8 +3,11 @@ package com.bn.benefix.employee;
 import com.bn.benefix.employee.dto.EmployeeCreationRequestDTO;
 import com.bn.benefix.employee.dto.EmployeeCreationResponseDTO;
 import com.bn.benefix.employee.dto.EmployeeUpdateRequestDTO;
+import com.bn.benefix.infra.security.AccountUserDetails;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -22,9 +25,13 @@ public class EmployeeController {
     }
 
     @PostMapping()
-    public ResponseEntity<EmployeeCreationResponseDTO> createEmployee(@Valid @RequestBody EmployeeCreationRequestDTO dto, UriComponentsBuilder builder){
+    @PreAuthorize("hasRole('MANAGER')")
+    public ResponseEntity<EmployeeCreationResponseDTO> createEmployee(
+            @Valid @RequestBody EmployeeCreationRequestDTO dto,
+            UriComponentsBuilder builder,
+            @AuthenticationPrincipal AccountUserDetails userDetails){
 
-        EmployeeCreationResponseDTO response = employeeService.createEmployee(dto);
+        EmployeeCreationResponseDTO response = employeeService.createEmployee(dto, userDetails.getAccount().getId());
 
         URI uri = builder.path("/employee/{id}")
                 .buildAndExpand(response.id())
@@ -33,25 +40,30 @@ public class EmployeeController {
     }
 
     @GetMapping
-    public ResponseEntity<List<EmployeeCreationResponseDTO>> getAllEmployees() {
-        return ResponseEntity.ok(employeeService.findAll());
+    public ResponseEntity<List<EmployeeCreationResponseDTO>> getAllEmployees(@AuthenticationPrincipal AccountUserDetails userDetails) {
+        return ResponseEntity.ok(employeeService.findAll(userDetails.getAccount()));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<EmployeeCreationResponseDTO> getEmployeeById(@PathVariable Long id) {
-        return ResponseEntity.ok(employeeService.findById(id));
+    public ResponseEntity<EmployeeCreationResponseDTO> getEmployeeById(@PathVariable Long id, @AuthenticationPrincipal AccountUserDetails userDetails) {
+        return ResponseEntity.ok(employeeService.findById(id, userDetails.getAccount()));
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('MANAGER')")
     public ResponseEntity<EmployeeCreationResponseDTO> updateEmployee(
             @PathVariable Long id,
-            @RequestBody EmployeeUpdateRequestDTO dto) {
-        return ResponseEntity.ok(employeeService.update(id, dto));
+            @RequestBody EmployeeUpdateRequestDTO dto,
+            @AuthenticationPrincipal AccountUserDetails userDetails) {
+        return ResponseEntity.ok(employeeService.update(id, dto, userDetails.getAccount().getId()));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteEmployee(@PathVariable Long id) {
-        employeeService.delete(id);
+    @PreAuthorize("hasRole('MANAGER')")
+    public ResponseEntity<Void> deleteEmployee(
+            @PathVariable Long id,
+            @AuthenticationPrincipal AccountUserDetails userDetails) {
+        employeeService.delete(id, userDetails.getAccount().getId());
         return ResponseEntity.noContent().build();
     }
 }

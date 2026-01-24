@@ -1,14 +1,12 @@
-package com.bn.benefix.management;
+package com.bn.benefix.manager;
 
 import com.bn.benefix.account.Account;
 import com.bn.benefix.company.Company;
-import com.bn.benefix.shared.domain.CPF;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.EmbeddedColumnNaming;
 
 import java.time.LocalDateTime;
 
@@ -42,6 +40,7 @@ public class Manager {
     private Manager (Builder builder){
         this.name = builder.name;
         this.company = builder.company;
+        this.account = builder.account;
     }
 
     @PrePersist
@@ -67,13 +66,11 @@ public class Manager {
     public static class Builder{
 
         private final String name;
-        private final CPF cpf;
         private final Company company;
         private final Account account;
 
-        public Builder(String name, CPF cpf, Company company, Account account) {
+        public Builder(String name, Company company, Account account) {
             this.name = name;
-            this.cpf = cpf;
             this.company = company;
             this.account = account;
         }

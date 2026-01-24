@@ -5,6 +5,7 @@ import com.bn.benefix.company.dto.CompanyCreationResponseDTO;
 import com.bn.benefix.company.dto.CompanyUpdateRequestDTO;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -44,13 +45,16 @@ public class CompanyController {
     @PutMapping("/{id}")
     public ResponseEntity<CompanyCreationResponseDTO> updateCompany(
             @PathVariable Long id,
-            @RequestBody CompanyUpdateRequestDTO dto) {
-        return ResponseEntity.ok(companyService.update(id, dto));
+            @RequestBody CompanyUpdateRequestDTO dto,
+            @AuthenticationPrincipal com.bn.benefix.infra.security.AccountUserDetails userDetails) {
+        return ResponseEntity.ok(companyService.update(id, dto, userDetails.getAccount().getId()));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteCompany(@PathVariable Long id) {
-        companyService.delete(id);
+    public ResponseEntity<Void> deleteCompany(
+            @PathVariable Long id,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal com.bn.benefix.infra.security.AccountUserDetails userDetails) {
+        companyService.delete(id, userDetails.getAccount().getId());
         return ResponseEntity.noContent().build();
     }
 

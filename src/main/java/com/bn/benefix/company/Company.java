@@ -2,7 +2,7 @@ package com.bn.benefix.company;
 
 import com.bn.benefix.benefit.Benefit;
 import com.bn.benefix.employee.Employee;
-import com.bn.benefix.management.Manager;
+import com.bn.benefix.manager.Manager;
 import com.bn.benefix.shared.domain.CNPJ;
 import jakarta.persistence.*;
 import lombok.AccessLevel;

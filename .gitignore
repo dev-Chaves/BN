@@ -1,4 +1,4 @@
-HELP.md
+markdowns/HELP.md
 target/
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
@@ -32,6 +32,7 @@ build/
 ### VS Code ###
 .vscode/
 
-MICROSERVICES_GUIDE.md
-FLOW.md
+markdowns/MICROSERVICES_GUIDE.md
+markdowns/FLOW.md
 requisitos.md
+markdowns

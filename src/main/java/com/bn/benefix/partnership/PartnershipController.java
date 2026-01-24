@@ -3,8 +3,11 @@ package com.bn.benefix.partnership;
 import com.bn.benefix.partnership.dto.PartnershipCreationRequestDTO;
 import com.bn.benefix.partnership.dto.PartnershipCreationResponseDTO;
 import com.bn.benefix.partnership.dto.PartnershipUpdateRequestDTO;
+import com.bn.benefix.infra.security.AccountUserDetails;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -22,16 +25,27 @@ public class PartnershipController {
     }
 
     @PostMapping()
+    @PreAuthorize("hasRole('MANAGER')")
     public ResponseEntity<PartnershipCreationResponseDTO> createPartnership(
             @Valid @RequestBody PartnershipCreationRequestDTO dto,
-            UriComponentsBuilder builder){
+            UriComponentsBuilder builder,
+            @AuthenticationPrincipal AccountUserDetails userDetails){
 
-        PartnershipCreationResponseDTO response = partnershipService.createPartnership(dto);
+        PartnershipCreationResponseDTO response = partnershipService.createPartnership(dto, userDetails.getAccount().getId());
 
         URI uri = builder.path("/partnership/{id}")
                 .buildAndExpand(response.id())
                 .toUri();
         return ResponseEntity.created(uri).body(response);
+    }
+
+    @PatchMapping("/{id}/accept")
+    @PreAuthorize("hasRole('MANAGER')")
+    public ResponseEntity<Void> acceptPartnership(
+            @PathVariable Long id,
+            @AuthenticationPrincipal AccountUserDetails userDetails) {
+        partnershipService.acceptPartnership(id, userDetails.getAccount().getId());
+        return ResponseEntity.ok().build();
     }
 
     @GetMapping
@@ -45,15 +59,20 @@ public class PartnershipController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('MANAGER')")
     public ResponseEntity<PartnershipCreationResponseDTO> updatePartnership(
             @PathVariable Long id,
-            @RequestBody PartnershipUpdateRequestDTO dto) {
-        return ResponseEntity.ok(partnershipService.update(id, dto));
+            @RequestBody PartnershipUpdateRequestDTO dto,
+            @AuthenticationPrincipal AccountUserDetails userDetails) {
+        return ResponseEntity.ok(partnershipService.update(id, dto, userDetails.getAccount().getId()));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deletePartnership(@PathVariable Long id) {
-        partnershipService.delete(id);
+    @PreAuthorize("hasRole('MANAGER')")
+    public ResponseEntity<Void> deletePartnership(
+            @PathVariable Long id,
+            @AuthenticationPrincipal AccountUserDetails userDetails) {
+        partnershipService.delete(id, userDetails.getAccount().getId());
         return ResponseEntity.noContent().build();
     }
 

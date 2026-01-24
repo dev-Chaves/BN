@@ -1,10 +1,11 @@
-package com.bn.benefix.management;
+package com.bn.benefix.manager;
 
-import com.bn.benefix.management.dto.ManagerCreationRequestDTO;
-import com.bn.benefix.management.dto.ManagerCreationResponseDTO;
-import com.bn.benefix.management.dto.ManagerUpdateRequestDTO;
+import com.bn.benefix.manager.dto.ManagerCreationRequestDTO;
+import com.bn.benefix.manager.dto.ManagerCreationResponseDTO;
+import com.bn.benefix.manager.dto.ManagerUpdateRequestDTO;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -12,23 +13,24 @@ import java.net.URI;
 import java.util.List;
 
 @RestController
-@RequestMapping("management")
-public class ManagementController {
+@RequestMapping("manager")
+public class ManagerController {
 
     private final ManagerService managerService;
 
-    public ManagementController(ManagerService managerService) {
+    public ManagerController(ManagerService managerService) {
         this.managerService = managerService;
     }
 
     @PostMapping()
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ManagerCreationResponseDTO> createManager(
             @Valid @RequestBody ManagerCreationRequestDTO dto,
             UriComponentsBuilder builder){
 
         ManagerCreationResponseDTO response = managerService.createManager(dto);
 
-        URI uri = builder.path("/management/{id}")
+        URI uri = builder.path("/manager/{id}")
                 .buildAndExpand(response.id())
                 .toUri();
         return ResponseEntity.created(uri).body(response);
@@ -45,6 +47,7 @@ public class ManagementController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ManagerCreationResponseDTO> updateManager(
             @PathVariable Long id,
             @RequestBody ManagerUpdateRequestDTO dto) {
@@ -52,6 +55,7 @@ public class ManagementController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteManager(@PathVariable Long id) {
         managerService.delete(id);
         return ResponseEntity.noContent().build();

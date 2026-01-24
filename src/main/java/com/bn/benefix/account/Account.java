@@ -7,7 +7,6 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.EmbeddedColumnNaming;
 
 import java.util.UUID;
 
@@ -30,7 +29,7 @@ public class Account {
     private String password;
 
     @Embedded
-    @EmbeddedColumnNaming("")
+    @AttributeOverride(name = "value", column = @Column(name = "cpf"))
     private CPF cpf;
 
     @Enumerated(EnumType.STRING)

@@ -1,6 +1,7 @@
 package com.bn.benefix.benefit;
 
 import com.bn.benefix.company.Company;
+import com.bn.benefix.subscription.Subscription;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -8,6 +9,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Table(name = "benefits")
@@ -31,6 +33,9 @@ public class Benefit {
     private Company provider;
 
     private Boolean active;
+
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "benefit")
+    private List<Subscription> subscriptions;
 
     private LocalDateTime createdAt;
 

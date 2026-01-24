@@ -2,15 +2,15 @@ package com.bn.benefix.employee;
 
 import com.bn.benefix.account.Account;
 import com.bn.benefix.company.Company;
-import com.bn.benefix.shared.domain.CPF;
+import com.bn.benefix.subscription.Subscription;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.EmbeddedColumnNaming;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Table(name = "employees")
@@ -37,11 +37,16 @@ public class Employee {
     @Enumerated(EnumType.STRING)
     private EmployeeStatus active;
 
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "employee")
+    private List<Subscription> subscriptions;
+
     @Column(nullable = false, name = "created_at")
     private LocalDateTime createdAt;
 
     private Employee(Builder builder){
-
+        this.name = builder.name;
+        this.company = builder.company;
+        this.account = builder.account;
     }
 
     @PrePersist
@@ -59,23 +64,19 @@ public class Employee {
     public static class Builder{
 
         private final String name;
-        private final CPF cpf;
+        private final Company company;
+        private final Account account;
 
-        private Boolean active;
-
-        public Builder(String name, CPF cpf) {
+        public Builder(String name, Company company, Account account) {
             this.name = name;
-            this.cpf = cpf;
+            this.company = company;
+            this.account = account;
         }
 
         public Employee build(){
             return new Employee(this);
         }
 
-    }
-
-    public void defineCompany(Company company){
-        this.company = company;
     }
 
     public void activeEmployee(EmployeeStatus val){
@@ -86,6 +87,10 @@ public class Employee {
     public void disableEmployee(EmployeeStatus val){
         if(val == EmployeeStatus.ACTIVE) throw new IllegalArgumentException("This employee is activated");
         this.active = val;
+    }
+
+    public void defineCompany(Company company){
+        this.company = company;
     }
 
 

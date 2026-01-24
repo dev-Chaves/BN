@@ -5,6 +5,7 @@ import com.bn.benefix.benefit.dto.BenefitCreationResponseDTO;
 import com.bn.benefix.benefit.dto.BenefitUpdateRequestDTO;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -22,9 +23,13 @@ public class BenefitController {
     }
 
     @PostMapping()
-    public ResponseEntity<BenefitCreationResponseDTO> createBenefit(@Valid @RequestBody BenefitCreationRequestDTO dto, UriComponentsBuilder builder){
+    @PreAuthorize("hasRole('MANAGER')")
+    public ResponseEntity<BenefitCreationResponseDTO> createBenefit(
+            @Valid @RequestBody BenefitCreationRequestDTO dto,
+            UriComponentsBuilder builder,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal com.bn.benefix.infra.security.AccountUserDetails userDetails){
 
-        BenefitCreationResponseDTO response = benefitService.createBenefit(dto);
+        BenefitCreationResponseDTO response = benefitService.createBenefit(dto, userDetails.getAccount().getId());
 
         URI uri = builder.path("/benefit/{id}").buildAndExpand(response.id()).toUri();
 
@@ -43,15 +48,20 @@ public class BenefitController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('MANAGER')")
     public ResponseEntity<BenefitCreationResponseDTO> updateBenefit(
             @PathVariable Long id,
-            @RequestBody BenefitUpdateRequestDTO dto) {
-        return ResponseEntity.ok(benefitService.update(id, dto));
+            @RequestBody BenefitUpdateRequestDTO dto,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal com.bn.benefix.infra.security.AccountUserDetails userDetails) {
+        return ResponseEntity.ok(benefitService.update(id, dto, userDetails.getAccount().getId()));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteBenefit(@PathVariable Long id) {
-        benefitService.delete(id);
+    @PreAuthorize("hasRole('MANAGER')")
+    public ResponseEntity<Void> deleteBenefit(
+            @PathVariable Long id,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal com.bn.benefix.infra.security.AccountUserDetails userDetails) {
+        benefitService.delete(id, userDetails.getAccount().getId());
         return ResponseEntity.noContent().build();
     }
 
