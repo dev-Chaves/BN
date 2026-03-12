@@ -52,11 +52,15 @@ public class Account extends PanacheEntityBase {
     private void setCpf(CPF cpf) { this.cpf = cpf; }
     private void setRole(Role role) { this.role = role; }
 
+    public static Builder builder(String name, CPF cpf, String password, String email, Role role) {
+        return new Builder(name, cpf, password, email, role);
+    }  
+
     public static class Builder {
 
-        private final String name;
-        private final CPF cpf;
-        private final String password;
+        private String name;
+        private CPF cpf;
+        private String password;
         private final String email;
         private final Role role;
 

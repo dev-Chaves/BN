@@ -68,10 +68,14 @@ public class Manager extends PanacheEntity {
         this.active = Boolean.FALSE;
     }
 
+    public static Builder builder(String name, Company company, Account account) {
+        return new Builder(name, company, account);
+    }
+
     public static class Builder {
 
-        private final String name;
-        private final Company company;
+        private String name;
+        private Company company;
         private final Account account;
 
         public Builder(String name, Company company, Account account) {
