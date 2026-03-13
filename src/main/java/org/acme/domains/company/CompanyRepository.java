@@ -8,11 +8,16 @@ import jakarta.enterprise.context.ApplicationScoped;
 public class CompanyRepository implements PanacheRepository<Company> {
 
     public Uni<Company> findByCNPJ(String cnpj) {
-        return find("cnpj", cnpj).firstResult();
+        return find("cnpj.value", cnpj).firstResult();
     }
 
     public Uni<Company> findByName(String name) {
         return find("name", name).firstResult();
+    }
+
+    public  Uni<Company> findByManagerEmail(String managerEmail){
+        return find("select distinct c from Company c join c.managers m where m.account.email = ?1", managerEmail)
+                .firstResult();
     }
 
 }
