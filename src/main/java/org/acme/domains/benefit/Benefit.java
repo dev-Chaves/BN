@@ -32,6 +32,10 @@ public class Benefit extends PanacheEntity {
 
     protected Benefit() {}
 
+    public static Builder builder(String name, Company provider) {
+        return new Builder(name, provider);
+    }
+
     private Benefit(Builder builder) {
         this.name = builder.name;
         this.provider = builder.provider;
