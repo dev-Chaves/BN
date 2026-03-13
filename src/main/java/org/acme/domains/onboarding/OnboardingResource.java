@@ -1,5 +1,6 @@
 package org.acme.domains.onboarding;
 
+import jakarta.ws.rs.core.Response;
 import org.acme.domains.onboarding.dto.OnboardingRequest;
 import org.acme.domains.onboarding.dto.OnboardingResponse;
 
@@ -10,12 +11,13 @@ import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
+import org.acme.domains.shared.api.BaseResource;
 
 @Path("/onboarding")
 @ApplicationScoped
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
-public class OnboardingResource {
+public class OnboardingResource implements BaseResource {
 
     private final OnboardingService onboardingService;
 
@@ -24,8 +26,19 @@ public class OnboardingResource {
     }
 
     @POST
-    public Uni<OnboardingResponse> onboardingCompany(OnboardingRequest request) {
-        return onboardingService.onboardingCompany(request);
+    public Uni<Response> onboardingCompany(OnboardingRequest request) {
+        return toCreated(onboardingService.onboardingCompany(request));
     }
 
+    public <T> Uni<Response> toCreated(Uni<T> useCaseResult) {
+        return BaseResource.super.toCreated(useCaseResult);
+    }
+
+    public <T> Uni<Response> toOk(Uni<T> useCaseResult) {
+        return BaseResource.super.toOk(useCaseResult);
+    }
+
+    public <T> Uni<Response> delete(Uni<T> useCaseResult) {
+        return BaseResource.super.delete(useCaseResult);
+    }
 }
