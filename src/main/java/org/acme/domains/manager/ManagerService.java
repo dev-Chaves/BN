@@ -1,4 +1,8 @@
 package org.acme.domains.manager;
 
-public class ManagerServic {
+import jakarta.enterprise.context.ApplicationScoped;
+
+@ApplicationScoped
+public class ManagerService {
+
 }
