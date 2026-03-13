@@ -1,13 +1,16 @@
 package org.acme.domains.employee;
 
+import io.quarkus.hibernate.reactive.panache.common.WithTransaction;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.ws.rs.NotFoundException;
 import org.acme.domains.account.Account;
 import org.acme.domains.account.AccountRepository;
 import org.acme.domains.company.CompanyRepository;
 import org.acme.domains.employee.dto.CreateEmployeeRequest;
 import org.acme.domains.employee.dto.EmployeeResponse;
 import org.acme.domains.employee.dto.UpdateEmployeeRequest;
+import org.acme.domains.manager.Manager;
 import org.acme.domains.manager.ManagerRepository;
 import org.acme.domains.shared.domain.CPF;
 import org.acme.domains.shared.enums.Role;
@@ -61,43 +64,42 @@ public class EmployeeService {
 
     }
 
+    @WithTransaction
     public Uni<EmployeeResponse> disabledEmployee(Long id, String managerEmail) {
 
-        return managerRepository.findByEmail(managerEmail).onItem()
-                .transform(manager -> manager.getCompany().id)
-                .call(()-> employeeRepository.findById(id).onItem()
-                        .transform(employee -> employee.disableEmployee(DISABLED)));
+        return managerRepository.findByEmail(managerEmail).onItem().ifNull().failWith(()-> new NotFoundException("Manager not Found"))
+                .flatMap(manager ->
+                        employeeRepository.findById(id).onItem().ifNull().failWith(()-> new NotFoundException("Employee not Found"))
+                                .flatMap(employee -> validateSameCompany(manager, employee))
+                                .flatMap(this::validateNotDisabled)
+                                .flatMap(employee -> {
+                                    employee.disableEmployee(DISABLED);
+                                    return employeeRepository.persist(employee);
+                                })
+                                .map(employee -> new EmployeeResponse(
+                                        employee.id,
+                                        employee.getName(),
+                                        employee.getCompany().id,
+                                        employee.getActive(),
+                                        employee.getCreatedAt()
+                                ))
+                );
 
     }
-//
-//    @WithTransaction
-//    public Uni<EmployeeResponse> disableEmployee(Long employeeId, String managerEmail) {
-//        return managerRepository.findByEmail(managerEmail)
-//                .onItem().ifNull().failWith(() -> new NotFoundException("Manager nao encontrado"))
-//                .flatMap(manager ->
-//                        employeeRepository.findById(employeeId)
-//                                .onItem().ifNull().failWith(() -> new NotFoundException("Employee nao encontrado"))
-//                                .flatMap(employee -> validateSameCompany(manager, employee))
-//                                .flatMap(this::validateNotDisabled)
-//                                .invoke(employee -> employee.disableEmployee(EmployeeStatus.DISABLED)) // side-effect
-//                                .onItem().transform(this::toResponse)
-//                );
-//    }
-//
-//    private Uni<Employee> validateSameCompany(Manager manager, Employee employee) {
-//        if (!manager.getCompany().id.equals(employee.getCompany().id)) {
-//            return Uni.createFrom().failure(new ForbiddenException("Manager e employee nao sao da mesma empresa"));
-//        }
-//        return Uni.createFrom().item(employee);
-//    }
-//
-//    private Uni<Employee> validateNotDisabled(Employee employee) {
-//        if (employee.getActive() == EmployeeStatus.DISABLED) {
-//            return Uni.createFrom().failure(new ConflictException("Employee ja esta desativado"));
-//        }
-//        return Uni.createFrom().item(employee);
-//    }
 
+    private Uni<Employee> validateSameCompany(Manager manager, Employee employee) {
+        if (!manager.getCompany().id.equals(employee.getCompany().id)) {
+            return Uni.createFrom().failure(new NotFoundException("Manager and Employee are not the same company"));
+        }
+        return Uni.createFrom().item(employee);
+    }
+
+    private Uni<Employee> validateNotDisabled(Employee employee) {
+        if(employee.getActive().equals(DISABLED)){
+            return Uni.createFrom().failure(new NotFoundException("Employee is already disabled"));
+        }
+        return Uni.createFrom().item(employee);
+    }
 
 
 

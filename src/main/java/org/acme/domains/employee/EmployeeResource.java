@@ -41,7 +41,9 @@ public class EmployeeResource implements BaseResource {
     @RolesAllowed("MANAGER")
     public Uni<Response> disabledEmployee(@QueryParam("employeeId") Long employeeId){
 
-        return toOk(employeeService.disabledEmployee(employeeId));
+        String email = jwt.getName();
+
+        return toOk(employeeService.disabledEmployee(employeeId, email));
     }
 
     public <T> Uni<Response> toCreated(Uni<T> useCaseResult) {
