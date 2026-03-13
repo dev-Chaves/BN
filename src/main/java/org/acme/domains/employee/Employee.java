@@ -68,6 +68,10 @@ public class Employee extends PanacheEntity {
         }
     }
 
+    public static Builder builder(String name, Company company, Account account) {
+        return new Builder(name, company, account);
+    }
+
     public static class Builder {
 
         private final String name;

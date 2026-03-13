@@ -43,6 +43,10 @@ public class Subscription extends PanacheEntity {
         this.createdAt = LocalDateTime.now();
     }
 
+    public static Builder builder(Benefit benefit, Employee employee) {
+        return new Builder(benefit, employee);
+    }
+
     public static class Builder {
         private final Benefit benefit;
         private final Employee employee;
