@@ -21,7 +21,7 @@ public class ManagerRepository implements PanacheRepository<Manager> {
         return list("company.cnpj", cnpj);
     }
 
-    public Uni<Manager> findbByEmail(String email) {
+    public Uni<Manager> findByEmail(String email) {
         return find("select m from Manager m join m.account a where a.email = ?1", email).firstResult();
     }
 

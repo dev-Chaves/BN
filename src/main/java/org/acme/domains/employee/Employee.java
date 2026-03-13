@@ -59,7 +59,7 @@ public class Employee extends PanacheEntity {
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
-        this.active = EmployeeStatus.DISABLE;
+        this.active = EmployeeStatus.DISABLED;
     }
 
     public void update(String name) {
@@ -90,7 +90,7 @@ public class Employee extends PanacheEntity {
     }
 
     public void activeEmployee(EmployeeStatus val) {
-        if (val == EmployeeStatus.DISABLE) throw new IllegalArgumentException("This employee is disabled");
+        if (val == EmployeeStatus.DISABLED) throw new IllegalArgumentException("This employee is disabled");
         this.active = val;
     }
 
