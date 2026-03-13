@@ -5,7 +5,6 @@ import jakarta.annotation.security.RolesAllowed;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.POST;
-import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -30,7 +29,6 @@ public class BenefitResource implements BaseResource {
     @POST
     @RolesAllowed("MANAGER")
     public Uni<Response> createBenefit(CreateBenefitRequest request){
-
         String email = jwt.getName();
 
         return toCreated(benefitService.createBenefit(request, email));
