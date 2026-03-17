@@ -54,6 +54,10 @@ public class Partnership extends PanacheEntity {
         }
     }
 
+    public static Builder builder(Company clientCompany, Benefit benefit) {
+        return new Builder(clientCompany, benefit);
+    }
+
     public static class Builder {
         private final Company clientCompany;
         private final Benefit benefit;
