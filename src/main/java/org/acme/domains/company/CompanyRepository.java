@@ -20,4 +20,8 @@ public class CompanyRepository implements PanacheRepository<Company> {
                 .firstResult();
     }
 
+    public Uni<Company> findByBenefitId(Long benefitId) {
+        return find("select distinct c from Company where c.offeredBenefits ").firstResult();
+    }
+
 }
