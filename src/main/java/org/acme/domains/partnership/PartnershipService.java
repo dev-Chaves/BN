@@ -17,17 +17,26 @@ public class PartnershipService {
     private final CompanyRepository companyRepository;
     private final ManagerRepository managerRepository;
     private final BenefitRepository benefitRepository;
+    private final PartnershipRepository partnershipRepository;
 
-    public PartnershipService(CompanyRepository companyRepository, ManagerRepository managerRepository, BenefitRepository benefitRepository) {
+    public PartnershipService(CompanyRepository companyRepository, ManagerRepository managerRepository, BenefitRepository benefitRepository, PartnershipRepository partnershipRepository) {
         this.companyRepository = companyRepository;
         this.managerRepository = managerRepository;
         this.benefitRepository = benefitRepository;
+        this.partnershipRepository = partnershipRepository;
     }
 
     public Uni<PartnershipResponse> requestPartnership(String managerEmail, Long benefitId){
 
         return managerRepository.findByEmail(managerEmail).onItem().ifNull().failWith(() -> new NotFoundException("Manager not found"))
+
+                .call(manager -> partnershipRepository.findExistingPartnership(manager.getCompany().id, benefitId))
+
                 .call(manager -> companyRepository.findByManagerEmail(managerEmail).onItem().ifNull().failWith(() -> new NotFoundException("Company not found"))
+                        .call(companyRequest -> companyRepository.findByBenefitId(benefitId)).onItem().ifNull().failWith(()  -> new NotFoundException("Benefit not found"))
+
+                        .call()
+
 
     }
 
@@ -47,15 +56,16 @@ public class PartnershipService {
 
     }
 
-    private Uni<Company> checkIfTheCompanyAlreadyHasAPartnershipWithTheSameBenefit(Company companyProvider, Company clientCompany, Benefit benefit){
-     
-        if(companyProvider.getOfferedBenefits().contains(benefit)){
-            return Uni.createFrom().failure(new IllegalArgumentException("Company already has a partnership with the same benefit"));
-        }
+    private Uni<Boolean> validatePartnership(Long company, Long benefit){
 
-        return Uni.createFrom().item(clientCompany);
+        return partnershipRepository.findExistingPartnership(company, benefit).call(exists -> {
+            if(exists){
+                return Uni.createFrom().failure(new IllegalStateException("Partnership already exists"));
+            }
+            return Uni.createFrom().voidItem();
+        });
 
-    }   
+    }
 
     
 

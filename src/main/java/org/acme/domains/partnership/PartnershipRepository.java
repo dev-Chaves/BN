@@ -21,4 +21,8 @@ public class PartnershipRepository implements PanacheRepository<Partnership> {
         return list("status", status);
     }
 
+    public Uni<Boolean> findExistingPartnership(Long clientCompanyId, Long benefitId) {
+        return find("select count(p) from Partnership p where p.clientCompany.id = ?1 and p.benefit.id = ?2", clientCompanyId, benefitId).count().map(count -> count > 0);
+    }
+
 }

@@ -21,7 +21,7 @@ public class CompanyRepository implements PanacheRepository<Company> {
     }
 
     public Uni<Company> findByBenefitId(Long benefitId) {
-        return find("select distinct c from Company where c.offeredBenefits ").firstResult();
+        return find("select distinct c from Company c join c.offeredBenefits b where b.id = ?1 ", benefitId).firstResult();
     }
 
 }
