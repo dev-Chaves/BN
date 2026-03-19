@@ -28,14 +28,20 @@ public class PartnershipService {
 
     public Uni<PartnershipResponse> requestPartnership(String managerEmail, Long benefitId){
 
-        return managerRepository.findByEmail(managerEmail).onItem().ifNull().failWith(() -> new NotFoundException("Manager not found"))
+        return managerRepository.findByEmail(managerEmail).onItem().ifNull().failWith(()-> new NotFoundException("Manager not found"))
+        .call(manager -> companyRepository.findByManagerEmail(managerEmail).onItem().ifNull().failWith(()-> new NotFoundException("Requested Company not found"))
+                .call(requestCompany -> benefitRepository.findById(benefitId).onItem().ifNull().failWith(()-> new NotFoundException("Requested Benefit not found"))
+                        .call(benefit -> validatePartnership(requestCompany.id, benefit.id)
+                                .call(()-> verifyClientCompany(requestCompany, benefit.getProvider()))
+                                .call(clientCompany -> createPartnership(requestCompany, benefit)))
+                        .onItem().transform(partnership -> new PartnershipResponse(
+                                partnership.id,
+                                partnership.getClientCompany().id,
+                                partnership.getBenefit().id,
+                                partnership.getStatus(),
+                                partnership.getCreatedAt()
+                        ))));
 
-                .call(manager -> partnershipRepository.findExistingPartnership(manager.getCompany().id, benefitId))
-
-                .call(manager -> companyRepository.findByManagerEmail(managerEmail).onItem().ifNull().failWith(() -> new NotFoundException("Company not found"))
-                        .call(companyRequest -> companyRepository.findByBenefitId(benefitId)).onItem().ifNull().failWith(()  -> new NotFoundException("Benefit not found"))
-
-                        .call()
 
 
     }
