@@ -1424,6 +1424,397 @@ return getEntity(id)
 
 ---
 
+## 6.6 🎯 EXEMPLO PRÁTICO COMPLETO: requestPartnership() Refatorado
+
+> **Este é o código REAL e FUNCIONAL do método refatorado com TODOS os métodos privados necessários.**
+
+### Código Completo do Service
+
+```java
+package org.acme.domains.partnership;
+
+import io.quarkus.hibernate.reactive.panache.common.WithTransaction;
+import io.smallrye.mutiny.Uni;
+import io.smallrye.mutiny.tuples.Tuple2;
+import jakarta.enterprise.context.ApplicationScoped;
+import org.acme.domains.benefit.Benefit;
+import org.acme.domains.benefit.BenefitRepository;
+import org.acme.domains.company.Company;
+import org.acme.domains.company.CompanyRepository;
+import org.acme.domains.manager.ManagerRepository;
+import org.acme.domains.partnership.dto.PartnershipResponse;
+import org.jboss.resteasy.reactive.common.NotImplementedYet;
+
+import jakarta.ws.rs.NotFoundException;
+
+@ApplicationScoped
+public class PartnershipService {
+
+    private final PartnershipRepository partnershipRepository;
+    private final ManagerRepository managerRepository;
+    private final CompanyRepository companyRepository;
+    private final BenefitRepository benefitRepository;
+
+    // Constructor injection
+    public PartnershipService(
+            PartnershipRepository partnershipRepository,
+            ManagerRepository managerRepository,
+            CompanyRepository companyRepository,
+            BenefitRepository benefitRepository) {
+        this.partnershipRepository = partnershipRepository;
+        this.managerRepository = managerRepository;
+        this.companyRepository = companyRepository;
+        this.benefitRepository = benefitRepository;
+    }
+
+    // ============================================================================
+    // MÉTODO PRINCIPAL - Linear, legível, sem aninhamento!
+    // ============================================================================
+    
+    /**
+     * Solicita uma parceria entre uma empresa e um benefício.
+     * 
+     * Fluxo:
+     * 1. Valida que o manager existe (fast-fail)
+     * 2. Busca company e benefit em PARALELO (performance)
+     * 3. Valida regras de negócio (partnership não existe + não é self-provider)
+     * 4. Cria e persiste a partnership
+     * 5. Converte para DTO de resposta
+     */
+    @WithTransaction
+    public Uni<PartnershipResponse> requestPartnership(String managerEmail, Long benefitId) {
+        return validateManagerExists(managerEmail)
+            .flatMap(ignored -> fetchCompanyAndBenefit(managerEmail, benefitId))
+            .call(this::validateBusinessRules)
+            .flatMap(this::createAndPersistPartnership)
+            .map(this::toPartnershipResponse);
+    }
+    
+    // ============================================================================
+    // MÉTODOS PRIVADOS - Cada um faz UMA COISA
+    // ============================================================================
+    
+    /**
+     * Step 1: Valida que o manager existe.
+     * 
+     * Fast-fail pattern: Se manager não existe, falha ANTES de buscar outras coisas.
+     * 
+     * @return Uni<Void> - Não retorna o Manager porque ele não é usado depois,
+     *                     apenas validamos que existe.
+     */
+    private Uni<Void> validateManagerExists(String email) {
+        return managerRepository.findByEmail(email)
+            .onItem().ifNull().failWith(() -> 
+                new NotFoundException("Manager not found with email: " + email)
+            )
+            .replaceWithVoid();  // Descarta o Manager, retorna Uni<Void>
+    }
+    
+    /**
+     * Step 2: Busca Company e Benefit em PARALELO.
+     * 
+     * Performance: Executa as duas queries ao mesmo tempo (~100ms) em vez de 
+     * sequencial (~200ms).
+     * 
+     * @return Uni<Tuple2<Company, Benefit>> - Tupla com os dois objetos
+     */
+    private Uni<Tuple2<Company, Benefit>> fetchCompanyAndBenefit(
+            String managerEmail, 
+            Long benefitId) {
+        
+        return Uni.combine().all()
+            .unis(
+                getCompanyByManagerEmail(managerEmail),
+                getBenefitById(benefitId)
+            )
+            .asTuple();
+    }
+    
+    /**
+     * Step 3: Valida todas as regras de negócio.
+     * 
+     * Executa validações em sequência:
+     * - Partnership não pode existir já
+     * - Company não pode ser seu próprio provider
+     * 
+     * Se qualquer validação falhar, a cadeia é interrompida.
+     * 
+     * @return Uni<Void> - Se chegou aqui, todas validações passaram
+     */
+    private Uni<Void> validateBusinessRules(Tuple2<Company, Benefit> tuple) {
+        Company company = tuple.getItem1();
+        Benefit benefit = tuple.getItem2();
+        
+        return validatePartnershipDoesNotExist(company.id, benefit.id)
+            .call(() -> validateCompanyIsNotOwnProvider(company, benefit));
+    }
+    
+    /**
+     * Step 4: Cria a Partnership e persiste no banco.
+     * 
+     * Builder pattern: Usa o builder da entidade para criar a instância.
+     * 
+     * @return Uni<Partnership> - Entidade persistida com ID gerado
+     */
+    private Uni<Partnership> createAndPersistPartnership(Tuple2<Company, Benefit> tuple) {
+        Company company = tuple.getItem1();
+        Benefit benefit = tuple.getItem2();
+        
+        // Cria a entidade usando builder pattern
+        Partnership partnership = Partnership.builder(company, benefit).build();
+        
+        // Persiste e retorna a entidade com ID gerado
+        return partnershipRepository.persist(partnership);
+    }
+    
+    // ============================================================================
+    // HELPERS DE BUSCA - Encapsulam queries + validação de null
+    // ============================================================================
+    
+    /**
+     * Busca Company por email do Manager.
+     * 
+     * Pattern: Busca + validação de null encapsulada.
+     * Mensagem de erro clara e específica.
+     */
+    private Uni<Company> getCompanyByManagerEmail(String managerEmail) {
+        return companyRepository.findByManagerEmail(managerEmail)
+            .onItem().ifNull().failWith(() -> 
+                new NotFoundException("Company not found for manager: " + managerEmail)
+            );
+    }
+    
+    /**
+     * Busca Benefit por ID.
+     * 
+     * Pattern: Busca + validação de null encapsulada.
+     * Mensagem de erro clara e específica.
+     */
+    private Uni<Benefit> getBenefitById(Long benefitId) {
+        return benefitRepository.findById(benefitId)
+            .onItem().ifNull().failWith(() -> 
+                new NotFoundException("Benefit not found with id: " + benefitId)
+            );
+    }
+    
+    // ============================================================================
+    // VALIDAÇÕES - Retornam Uni<Void> (passa ou falha, sem valor)
+    // ============================================================================
+    
+    /**
+     * Valida que a partnership NÃO existe ainda.
+     * 
+     * Pattern: Uni<Void> para validações.
+     * - Se existir: emite IllegalStateException
+     * - Se não existir: retorna Uni.voidItem() (validação passou)
+     */
+    private Uni<Void> validatePartnershipDoesNotExist(Long companyId, Long benefitId) {
+        return partnershipRepository.findExistingPartnership(companyId, benefitId)
+            .flatMap(exists -> {
+                if (exists) {
+                    return Uni.createFrom().failure(
+                        new IllegalStateException(
+                            "Partnership already exists between company " + 
+                            companyId + " and benefit " + benefitId
+                        )
+                    );
+                }
+                return Uni.createFrom().voidItem();
+            });
+    }
+    
+    /**
+     * Valida que a Company NÃO está tentando ser seu próprio provider.
+     * 
+     * Pattern: Validação síncrona (sem I/O).
+     * - Se for self-provider: emite IllegalArgumentException
+     * - Se for válido: retorna Uni.voidItem()
+     */
+    private Uni<Void> validateCompanyIsNotOwnProvider(Company client, Benefit benefit) {
+        // Validação síncrona - apenas comparação em memória
+        if (client.id.equals(benefit.getProvider().id)) {
+            return Uni.createFrom().failure(
+                new IllegalArgumentException(
+                    "Company " + client.getName() + 
+                    " cannot request a benefit from itself"
+                )
+            );
+        }
+        return Uni.createFrom().voidItem();
+    }
+    
+    // ============================================================================
+    // CONVERSÕES - Transformações síncronas (Entity → DTO)
+    // ============================================================================
+    
+    /**
+     * Converte Partnership entity para DTO de resposta.
+     * 
+     * Pattern: Transformação síncrona - usa map() no método principal.
+     * Apenas copia campos, sem I/O.
+     */
+    private PartnershipResponse toPartnershipResponse(Partnership partnership) {
+        return new PartnershipResponse(
+            partnership.id,
+            partnership.getClientCompany().id,
+            partnership.getBenefit().id,
+            partnership.getStatus(),
+            partnership.getCreatedAt()
+        );
+    }
+}
+```
+
+### 📊 Análise do Código Refatorado
+
+#### ✅ **Benefícios Conquistados**
+
+| Aspecto | Antes | Depois |
+|---------|-------|--------|
+| **Aninhamento** | 5 níveis | 0 níveis |
+| **Legibilidade do método principal** | ⭐ | ⭐⭐⭐⭐⭐ |
+| **Testabilidade** | Difícil | Fácil (cada método privado pode ser testado) |
+| **Performance** | Sequencial | Paralelo (Company + Benefit) |
+| **Manutenibilidade** | Difícil adicionar validações | Fácil (adiciona um `.call()`) |
+| **Debugging** | Stack trace confusa | Stack trace clara |
+| **Reutilização** | Impossível | Métodos podem ser reutilizados |
+
+#### 🎯 **Como Ler o Código**
+
+**O método principal conta uma HISTÓRIA:**
+
+```java
+public Uni<PartnershipResponse> requestPartnership(String managerEmail, Long benefitId) {
+    return validateManagerExists(managerEmail)           // 1. Manager existe?
+        .flatMap(ignored -> fetchCompanyAndBenefit(...)) // 2. Busca dados (paralelo!)
+        .call(this::validateBusinessRules)               // 3. Valida regras de negócio
+        .flatMap(this::createAndPersistPartnership)      // 4. Cria e salva
+        .map(this::toPartnershipResponse);               // 5. Converte para DTO
+}
+```
+
+**Cada linha é AUTO-EXPLICATIVA!** Você NÃO precisa ler os métodos privados para entender o fluxo.
+
+#### 🔍 **Detalhes de Implementação**
+
+**1. Por que `replaceWithVoid()`?**
+
+```java
+private Uni<Void> validateManagerExists(String email) {
+    return managerRepository.findByEmail(email)
+        .onItem().ifNull().failWith(...)
+        .replaceWithVoid();  // ← Converte Uni<Manager> → Uni<Void>
+}
+```
+
+- Manager não é usado depois, apenas validamos que existe
+- `replaceWithVoid()` descarta o valor mas mantém a chain reativa
+- Semântica clara: "Esta operação valida, não retorna dados"
+
+**2. Por que `Uni.combine().all()`?**
+
+```java
+private Uni<Tuple2<Company, Benefit>> fetchCompanyAndBenefit(...) {
+    return Uni.combine().all()
+        .unis(
+            getCompanyByManagerEmail(managerEmail),  // Query 1
+            getBenefitById(benefitId)                // Query 2
+        )
+        .asTuple();  // Executa SIMULTANEAMENTE!
+}
+```
+
+- Company e Benefit são **independentes**
+- Execução paralela: 100ms em vez de 200ms
+- `asTuple()` retorna `Tuple2<Company, Benefit>` para acessar depois
+
+**3. Por que `.call()` para validações?**
+
+```java
+.call(this::validateBusinessRules)  // ← call(), não flatMap()
+```
+
+- `call()` executa o Uni mas **MANTÉM o valor original** (Tuple2)
+- Se validação passar: continua com a Tuple2
+- Se validação falhar: chain é interrompida
+- Perfeito para side-effects que não mudam o tipo de retorno
+
+**4. Por que `Uni<Void>` nas validações?**
+
+```java
+private Uni<Void> validatePartnershipDoesNotExist(...) {
+    return partnershipRepository.findExistingPartnership(...)
+        .flatMap(exists -> exists
+            ? Uni.createFrom().failure(new IllegalStateException())
+            : Uni.createFrom().voidItem()  // ← Sucesso = void
+        );
+}
+```
+
+- Validações não produzem valores, apenas **passam ou falham**
+- `Uni<Void>` deixa isso explícito na assinatura
+- Semântica clara: "Ou emite erro, ou não faz nada"
+
+#### 📝 **Quando Usar Cada Operador**
+
+| Operador | Quando Usar | Exemplo no Código |
+|----------|-------------|-------------------|
+| `.flatMap()` | Operação assíncrona que **muda o tipo** | `fetchCompanyAndBenefit()` → muda de Void para Tuple2 |
+| `.call()` | Operação assíncrona que **mantém o tipo** | `validateBusinessRules()` → mantém Tuple2 |
+| `.map()` | Transformação síncrona (sem I/O) | `toPartnershipResponse()` → Entity para DTO |
+| `Uni.combine()` | Múltiplas operações **independentes** | Buscar Company e Benefit ao mesmo tempo |
+
+#### 🧪 **Como Testar**
+
+```java
+@QuarkusTest
+class PartnershipServiceTest {
+    
+    @Inject
+    PartnershipService service;
+    
+    @Test
+    void shouldCreatePartnership() {
+        // ✅ Código limpo é fácil de testar
+        PartnershipResponse response = service
+            .requestPartnership("manager@company.com", 1L)
+            .await().indefinitely();
+            
+        assertNotNull(response);
+        assertEquals(PartnershipStatus.PENDING, response.status());
+    }
+    
+    @Test
+    void shouldFailWhenManagerNotFound() {
+        // ✅ Testa validação específica
+        assertThrows(NotFoundException.class, () -> {
+            service.requestPartnership("invalid@email.com", 1L)
+                .await().indefinitely();
+        });
+    }
+    
+    @Test
+    void shouldFailWhenPartnershipAlreadyExists() {
+        // ✅ Testa regra de negócio específica
+        assertThrows(IllegalStateException.class, () -> {
+            service.requestPartnership("manager@company.com", 1L)
+                .await().indefinitely();
+        });
+    }
+}
+```
+
+#### 💡 **Dicas para Aplicar no Seu Código**
+
+1. **Comece pelo método principal:** Escreva como uma história
+2. **Extraia métodos privados:** Cada flatMap/call vira um método
+3. **Nomeie descritivamente:** `getUserById()`, não `getUser()`
+4. **Use Uni<Void> para validações:** Deixa semântica clara
+5. **Identifique operações paralelas:** Use `Uni.combine()` quando possível
+6. **Teste cada método isoladamente:** Facilita debugging
+
+---
+
 ## 7. Testing Reactive Code
 
 ### 7.1 Testando com `await()`
