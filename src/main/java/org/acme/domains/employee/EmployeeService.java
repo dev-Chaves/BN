@@ -1,5 +1,6 @@
 package org.acme.domains.employee;
 
+import io.quarkus.elytron.security.common.BcryptUtil;
 import io.quarkus.hibernate.reactive.panache.common.WithTransaction;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -37,10 +38,12 @@ public class EmployeeService {
 
     public Uni<EmployeeResponse> createEmployee(CreateEmployeeRequest request, String managerEmail) {
 
+        String hashPassword = BcryptUtil.bcryptHash(request.password());
+
         Account account = Account.builder(
                 request.name(),
                 CPF.of(request.cpf()),
-                request.password(),
+                hashPassword,
                 request.email(),
                 Role.USER).build();
 
