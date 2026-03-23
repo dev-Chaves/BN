@@ -1282,7 +1282,7 @@ private Uni<Company> getCompanyByManagerEmail(String email) {
 private Uni<Benefit> getBenefitById(Long id) {
     return benefitRepository.findById(id)
         .onItem().ifNull().failWith(() -> 
-            new NotFoundException("Benefit not found with id: " + id)
+            new NotFoundException("Benefit not found with profileId: " + id)
         );
 }
 ```
@@ -1593,7 +1593,7 @@ public class PartnershipService {
     private Uni<Benefit> getBenefitById(Long benefitId) {
         return benefitRepository.findById(benefitId)
             .onItem().ifNull().failWith(() -> 
-                new NotFoundException("Benefit not found with id: " + benefitId)
+                new NotFoundException("Benefit not found with profileId: " + benefitId)
             );
     }
     
