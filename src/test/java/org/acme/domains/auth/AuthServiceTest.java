@@ -5,12 +5,11 @@ import io.smallrye.mutiny.Uni;
 import jakarta.ws.rs.NotFoundException;
 import org.acme.domains.account.Account;
 import org.acme.domains.account.AccountRepository;
+import org.acme.domains.auth.dto.LoginContextData;
 import org.acme.domains.auth.dto.LoginRequest;
-import org.acme.domains.employee.Employee;
-import org.acme.domains.employee.EmployeeRepository;
-import org.acme.domains.employee.EmployeeStatus;
-import org.acme.domains.manager.Manager;
-import org.acme.domains.manager.ManagerRepository;
+import org.acme.domains.auth.logincontext.EmployeeLoginContext;
+import org.acme.domains.auth.logincontext.LoginContextResolver;
+import org.acme.domains.auth.logincontext.ManagerLoginContext;
 import org.acme.domains.shared.domain.CPF;
 import org.acme.domains.shared.enums.Role;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,7 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import java.lang.reflect.Field;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -27,20 +26,25 @@ import static org.mockito.Mockito.when;
 class AuthServiceTest {
 
     @Mock
-    private EmployeeRepository employeeRepository;
-
-    @Mock
     private AccountRepository accountRepository;
 
-    @Mock
-    private ManagerRepository managerRepository;
-
     private AuthService authService;
+
+    private Map<Role, LoginContextResolver> loginContextResolvers;
+
+    @Mock
+    private EmployeeLoginContext employeeLoginContext;
+
+    @Mock
+    private ManagerLoginContext managerLoginContext;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        authService = new AuthService(employeeRepository, accountRepository, managerRepository);
+        loginContextResolvers = Map.of(
+                Role.USER, employeeLoginContext,
+                Role.MANAGER, managerLoginContext);
+        authService = new AuthService(accountRepository, loginContextResolvers);
     }
 
     @Test
@@ -63,13 +67,13 @@ class AuthServiceTest {
     @Test
     void shouldFailWhenEmployeeIsDisabled() {
         Account account = buildAccount("user@acme.com", "123456", Role.USER);
-        Employee employee = buildEmployee(account, EmployeeStatus.DISABLED);
         LoginRequest request = new LoginRequest(account.getEmail(), "123456");
 
         when(accountRepository.findByEmail(request.email())).thenReturn(Uni.createFrom().item(account));
-        when(employeeRepository.findByAccountId(account.id)).thenReturn(Uni.createFrom().item(employee));
+        when(employeeLoginContext.resolve(account))
+                .thenReturn(Uni.createFrom().failure(new IllegalStateException("Employee is disabled")));
 
-        assertThrows(NotFoundException.class, () -> authService.login(request).await().indefinitely());
+        assertThrows(IllegalStateException.class, () -> authService.login(request).await().indefinitely());
     }
 
     @Test
@@ -78,7 +82,8 @@ class AuthServiceTest {
         LoginRequest request = new LoginRequest(account.getEmail(), "123456");
 
         when(accountRepository.findByEmail(request.email())).thenReturn(Uni.createFrom().item(account));
-        when(managerRepository.findByAccountId(account.id)).thenReturn(Uni.createFrom().nullItem());
+        when(managerLoginContext.resolve(account))
+                .thenReturn(Uni.createFrom().failure(new NotFoundException("Manager not found")));
 
         assertThrows(NotFoundException.class, () -> authService.login(request).await().indefinitely());
     }
@@ -93,21 +98,5 @@ class AuthServiceTest {
         ).build();
         account.id = UUID.randomUUID();
         return account;
-    }
-
-    private Employee buildEmployee(Account account, EmployeeStatus status) {
-        Employee employee = Employee.builder("Employee", null, account).build();
-        setField(employee, "active", status);
-        return employee;
-    }
-
-    private void setField(Object target, String fieldName, Object value) {
-        try {
-            Field field = target.getClass().getDeclaredField(fieldName);
-            field.setAccessible(true);
-            field.set(target, value);
-        } catch (ReflectiveOperationException e) {
-            throw new IllegalStateException("Failed to set test field: " + fieldName, e);
-        }
     }
 }
