@@ -10,11 +10,11 @@ import jakarta.enterprise.context.ApplicationScoped;
 public class EmployeeRepository implements PanacheRepository<Employee> {
 
     public Uni<List<Employee>> findByCompanyId(Long companyId) {
-        return list("company.id", companyId);
+        return list("company.profileId", companyId);
     }
 
     public Uni<Employee> findByAccountId(java.util.UUID accountId) {
-        return find("account.id", accountId).firstResult();
+        return find("account.profileId", accountId).firstResult();
     }
 
 }

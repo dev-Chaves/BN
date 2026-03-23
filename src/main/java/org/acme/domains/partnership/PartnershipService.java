@@ -88,7 +88,7 @@ public class PartnershipService {
     private Uni<Benefit> getBenefitById(Long benefitId) {
         return benefitRepository.findById(benefitId)
             .onItem().ifNull().failWith(() -> 
-                new NotFoundException("Benefit not found with id: " + benefitId)
+                new NotFoundException("Benefit not found with profileId: " + benefitId)
             );
     }
     

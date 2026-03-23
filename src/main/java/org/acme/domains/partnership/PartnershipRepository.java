@@ -10,11 +10,11 @@ import jakarta.enterprise.context.ApplicationScoped;
 public class PartnershipRepository implements PanacheRepository<Partnership> {
 
     public Uni<List<Partnership>> findByClientCompanyId(Long companyId) {
-        return list("clientCompany.id", companyId);
+        return list("clientCompany.profileId", companyId);
     }
 
     public Uni<List<Partnership>> findByBenefitId(Long benefitId) {
-        return list("benefit.id", benefitId);
+        return list("benefit.profileId", benefitId);
     }
 
     public Uni<List<Partnership>> findByStatus(PartnershipStatus status) {
@@ -22,7 +22,7 @@ public class PartnershipRepository implements PanacheRepository<Partnership> {
     }
 
     public Uni<Boolean> findExistingPartnership(Long clientCompanyId, Long benefitId) {
-        return find("select count(p) from Partnership p where p.clientCompany.id = ?1 and p.benefit.id = ?2", clientCompanyId, benefitId).count().map(count -> count > 0);
+        return find("select count(p) from Partnership p where p.clientCompany.profileId = ?1 and p.benefit.profileId = ?2", clientCompanyId, benefitId).count().map(count -> count > 0);
     }
 
 }

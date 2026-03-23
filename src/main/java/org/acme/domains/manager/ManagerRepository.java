@@ -10,11 +10,11 @@ import jakarta.enterprise.context.ApplicationScoped;
 public class ManagerRepository implements PanacheRepository<Manager> {
 
     public Uni<List<Manager>> findByCompanyId(Long companyId) {
-        return list("company.id", companyId);
+        return list("company.profileId", companyId);
     }
 
     public Uni<Manager> findByAccountId(java.util.UUID accountId) {
-        return find("account.id", accountId).firstResult();
+        return find("account.profileId", accountId).firstResult();
     }
 
     public Uni<List<Manager>> findByCNPJ(String cnpj) {
