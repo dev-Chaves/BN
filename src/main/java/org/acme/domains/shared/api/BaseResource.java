@@ -20,6 +20,7 @@ public interface BaseResource {
                 .transform(result ->
                         Response
                                 .status(Response.Status.OK)
+                                .entity(result)
                                 .build());
     }
 
