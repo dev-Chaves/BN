@@ -16,7 +16,7 @@ public class Manager extends PanacheEntity {
     private String name;
 
     @OneToOne(cascade = CascadeType.ALL)
-    @JoinColumn(name = "account_id", referencedColumnName = "id", nullable = false)
+    @JoinColumn(name = "account_id", referencedColumnName = "profileId", nullable = false)
     private Account account;
 
     @ManyToOne(fetch = FetchType.LAZY)
