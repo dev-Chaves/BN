@@ -10,7 +10,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 public class AccountRepository implements PanacheRepository<Account> {
 
     public Uni<Account> findByCPF(String cpf){
-        return find("cpf", cpf).firstResult();
+        return find("cpf.value", cpf).firstResult();
     }
 
     public Uni<Account> findByEmail(String email){

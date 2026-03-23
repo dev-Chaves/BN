@@ -17,6 +17,7 @@ import io.quarkus.elytron.security.common.BcryptUtil;
 import io.quarkus.hibernate.reactive.panache.common.WithTransaction;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.ws.rs.BadRequestException;
 
 @ApplicationScoped
 public class OnboardingService {
@@ -34,29 +35,29 @@ public class OnboardingService {
 
     @WithTransaction
     public Uni<OnboardingResponse> onboardingCompany(OnboardingRequest request) {
-        
-        CNPJ cnpj = CNPJ.of(request.company().cnpj());
+        return validateCpfNotRegistered(request.manager().cpf())
+                .flatMap(unused -> {
+                    CNPJ cnpj = CNPJ.of(request.company().cnpj());
 
-        Account newAccount = Account.builder(
-            request.manager().name(), 
-            CPF.of(request.manager().cpf()), 
-            BcryptUtil.bcryptHash(request.manager().password()), 
-            request.manager().email(), 
-            Role.MANAGER).build();
+                    Account newAccount = Account.builder(
+                            request.manager().name(),
+                            CPF.of(request.manager().cpf()),
+                            BcryptUtil.bcryptHash(request.manager().password()),
+                            request.manager().email(),
+                            Role.MANAGER).build();
 
-        Company newCompany = Company.builder(request.company().name(), cnpj).build();
+                    Company newCompany = Company.builder(request.company().name(), cnpj).build();
+                    Manager manager = Manager.builder(request.manager().name(), newCompany, newAccount).build();
 
-        Manager manager = Manager.builder(request.manager().name(), newCompany, newAccount).build();
-
-        return persistManager(manager)
-                .call(() -> persistCompany(newCompany))
-                .call(() -> persistAccount(newAccount))
-                .replaceWith(
-                        new OnboardingResponse(
-                        newCompany.getCnpj().getValue(),
-                        newCompany.getName(),
-                        manager.getName()
-                ));
+                    return persistAccount(newAccount)
+                            .call(() -> persistCompany(newCompany))
+                            .call(() -> persistManager(manager))
+                            .replaceWith(new OnboardingResponse(
+                                    newCompany.getCnpj().getValue(),
+                                    newCompany.getName(),
+                                    manager.getName()
+                            ));
+                });
     }
 
     private Uni<Account> persistAccount(Account account) {
@@ -69,6 +70,16 @@ public class OnboardingService {
 
     private Uni<Company> persistCompany(Company company) {
         return companyRepository.persist(company).replaceWith(company);
+    }
+
+    private Uni<Void> validateCpfNotRegistered(String cpf) {
+        return accountRepository.findByCPF(cpf)
+                .flatMap(account -> {
+                    if (account != null) {
+                        return Uni.createFrom().failure(new BadRequestException("CPF already registered"));
+                    }
+                    return Uni.createFrom().voidItem();
+                });
     }
 
 }
