@@ -2,11 +2,13 @@ package org.acme.domains.employee;
 
 import io.quarkus.elytron.security.common.BcryptUtil;
 import io.quarkus.hibernate.reactive.panache.common.WithTransaction;
+import io.smallrye.jwt.build.Jwt;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.ws.rs.NotFoundException;
 import org.acme.domains.account.Account;
 import org.acme.domains.account.AccountRepository;
+import org.acme.domains.company.Company;
 import org.acme.domains.company.CompanyRepository;
 import org.acme.domains.employee.dto.CreateEmployeeRequest;
 import org.acme.domains.employee.dto.EmployeeResponse;
@@ -15,6 +17,7 @@ import org.acme.domains.manager.Manager;
 import org.acme.domains.manager.ManagerRepository;
 import org.acme.domains.shared.domain.CPF;
 import org.acme.domains.shared.enums.Role;
+import org.acme.domains.shared.security.TenantGuard;
 
 import static org.acme.domains.employee.EmployeeStatus.DISABLED;
 
@@ -29,11 +32,14 @@ public class EmployeeService {
 
     private final EmployeeRepository employeeRepository;
 
-    public EmployeeService(CompanyRepository companyRepository, AccountRepository accountRepository, ManagerRepository managerRepository, EmployeeRepository employeeRepository) {
+    private final TenantGuard tenantGuard;
+
+    public EmployeeService(CompanyRepository companyRepository, AccountRepository accountRepository, ManagerRepository managerRepository, EmployeeRepository employeeRepository, TenantGuard tenantGuard) {
         this.companyRepository = companyRepository;
         this.accountRepository = accountRepository;
         this.managerRepository = managerRepository;
         this.employeeRepository = employeeRepository;
+        this.tenantGuard = tenantGuard;
     }
 
     public Uni<EmployeeResponse> createEmployee(CreateEmployeeRequest request, String managerEmail, Long companyId) {
@@ -47,24 +53,16 @@ public class EmployeeService {
                 request.email(),
                 Role.USER).build();
 
-        return companyRepository.findById(companyId)
-                .onItem()
-                .transform(companySalva -> {
-                    return Employee.builder(request.name(), companySalva,  account).build();
-                })
-
+        return validateManager(managerEmail)
+                .flatMap(manager -> tenantGuard.verifyTenant(manager.getCompany().id, companyId))
+                .onItem().transform((company) -> Employee.builder(request.name(), company,  account).build())
                 .call(() -> accountRepository.persist(account))
-
-                .call(employeeRepository::persist)
-
-                .onItem().transform(employee -> new EmployeeResponse(
+                .call(employeeRepository::persist).onItem().transform(employee -> new EmployeeResponse(
                         employee.id,
                         employee.getName(),
                         employee.getCompany().id,
                         employee.getActive(),
                         employee.getCreatedAt()));
-
-
     }
 
     @WithTransaction
@@ -88,6 +86,10 @@ public class EmployeeService {
                                 ))
                 );
 
+    }
+
+    private Uni<Manager> validateManager(String managerEmail) {
+        return managerRepository.findByEmail(managerEmail).onItem().ifNull().failWith(()-> new NotFoundException("Manager not Found"));
     }
 
     private Uni<Employee> validateSameCompany(Manager manager, Employee employee) {
