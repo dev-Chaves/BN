@@ -91,7 +91,7 @@ class EmployeeServiceTest {
         ).build();
 
         when(managerRepository.findByEmail("manager@acme.com")).thenReturn(Uni.createFrom().item(manager));
-        when(tenantGuard.verifyTenant(10L, 99L)).thenReturn(Uni.createFrom().failure(new SecurityException("Unauthorized access: Tenant mismatch")));
+        when(tenantGuard.verifyManagerCompanyAccess(manager, 99L)).thenReturn(Uni.createFrom().failure(new SecurityException("Unauthorized access: Tenant mismatch")));
 
         assertThrows(SecurityException.class, () ->
                 employeeService.createEmployee(request, "manager@acme.com", 99L).await().indefinitely());
@@ -117,7 +117,7 @@ class EmployeeServiceTest {
         ).build();
 
         when(managerRepository.findByEmail("manager@acme.com")).thenReturn(Uni.createFrom().item(manager));
-        when(tenantGuard.verifyTenant(10L, 10L)).thenReturn(Uni.createFrom().item(company));
+        when(tenantGuard.verifyManagerCompanyAccess(manager, 10L)).thenReturn(Uni.createFrom().item(company));
         when(accountRepository.persist(any(Account.class))).thenAnswer(invocation -> {
             Account account = invocation.getArgument(0);
             account.id = UUID.randomUUID();

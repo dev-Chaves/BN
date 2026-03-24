@@ -9,6 +9,7 @@ import org.acme.domains.benefit.Benefit;
 import org.acme.domains.benefit.BenefitRepository;
 import org.acme.domains.employee.Employee;
 import org.acme.domains.employee.EmployeeRepository;
+import org.acme.domains.shared.security.TenantGuard;
 import org.acme.domains.subscription.dto.CreateSubscriptionRequest;
 import org.acme.domains.subscription.dto.SubscriptionResponse;
 
@@ -19,12 +20,14 @@ public class SubscriptionService {
     private final EmployeeRepository employeeRepository;
     private final SubscriptionRepository subscriptionRepository;
     private final AccountRepository accountRepository;
+    private final TenantGuard tenantGuard;
 
-    public SubscriptionService(BenefitRepository benefitRepository, EmployeeRepository employeeRepository, SubscriptionRepository subscriptionRepository, AccountRepository accountRepository) {
+    public SubscriptionService(BenefitRepository benefitRepository, EmployeeRepository employeeRepository, SubscriptionRepository subscriptionRepository, AccountRepository accountRepository, TenantGuard tenantGuard) {
         this.benefitRepository = benefitRepository;
         this.employeeRepository = employeeRepository;
         this.subscriptionRepository = subscriptionRepository;
         this.accountRepository = accountRepository;
+        this.tenantGuard = tenantGuard;
     }
 
     @WithTransaction
@@ -32,7 +35,8 @@ public class SubscriptionService {
 
         return benefitRepository.findById(request.benefitId()).onItem().ifNull().failWith(new NotFoundException("Benefit not found"))
                 .flatMap(benefit -> findEmployeeByAccountEmail(email)
-                        .flatMap(employee -> createSubscription(benefit, employee)))
+                        .flatMap(employee -> tenantGuard.verifyEmployeeBenefitAccess(employee, benefit)
+                                .flatMap(allowedBenefit -> createSubscription(allowedBenefit, employee))))
                 .call(subscriptionRepository::persist)
                 .map(subscription -> new SubscriptionResponse(
                         subscription.id,
