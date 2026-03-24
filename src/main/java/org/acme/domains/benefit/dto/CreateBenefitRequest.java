@@ -8,7 +8,7 @@ public record CreateBenefitRequest(
         String name,
         @NotEmpty(message = "Description cannot be null")
         String description,
-        @NotNull(message = "Provider CNPJ cannot be null")
-        String providerCNPJ
+        @NotNull(message = "Provider ID cannot be null")
+        Long companyId
 ) {
 }

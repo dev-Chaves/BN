@@ -13,4 +13,8 @@ public class BenefitRepository implements PanacheRepository<Benefit> {
         return list("provider.cnpj", cnpj);
     }
 
+    public Uni<List<Benefit>> findByCompanyId(Long companyId) {
+        return list("provider.id", companyId);
+    }
+
 }
