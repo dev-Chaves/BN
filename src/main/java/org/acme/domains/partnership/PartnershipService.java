@@ -42,6 +42,34 @@ public class PartnershipService {
             .map(this::toPartnershipResponse);
     }
 
+    public Uni<PartnershipResponse> acceptPartnership(String managerEmail, Long partnershipId) {
+        return validateManagerExists(managerEmail)
+                .flatMap(manager -> tenantGuard.verifyManagerCompanyAccess(manager, manager.getCompany().id).replaceWith(manager))
+                .flatMap(manager -> validatePartnershipStatus(partnershipId)
+                .flatMap(partnership -> partnership.updateStatus(PartnershipStatus.ACTIVE)).replaceWith(partnership))
+    }
+
+    private Uni<Partnership> getPartnership(Long partnershipId) {
+        return partnershipRepository.findById(partnershipId)
+                .onItem().ifNull().failWith(() -> new NotFoundException("Partnership not found with id: " + partnershipId));
+    }
+
+    private Uni<Partnership> validatePartnershipStatus(Long partnershipId) {
+        return partnershipRepository.findById(partnershipId).onItem().ifNull().failWith(() -> new NotFoundException("Partnership not found with id: " + partnershipId))
+                .flatMap(partnership -> {
+                    if (partnership.getStatus().equals(PartnershipStatus.ACTIVE) ||
+                            partnership.getStatus().equals(PartnershipStatus.DISABLED) ||
+                            partnership.getStatus().equals(PartnershipStatus.REJECTED)) {
+                        return Uni.createFrom().failure(
+                                new IllegalStateException(
+                                        "Partnership with benefit " + partnershipId + " is already in status: " + partnership.getStatus()
+                                )
+                        );
+                    }
+                    return Uni.createFrom().item(partnership);
+                });
+    }
+
     private Uni<Manager> validateManagerExists(String email) {
         return managerRepository.findByEmail(email)
             .onItem().ifNull().failWith(() -> 
