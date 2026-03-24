@@ -3,6 +3,8 @@ package org.acme.domains.auth;
 import io.quarkus.elytron.security.common.BcryptUtil;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Instance;
+import jakarta.inject.Inject;
 import jakarta.ws.rs.NotFoundException;
 import org.acme.domains.account.Account;
 import org.acme.domains.account.AccountRepository;
@@ -23,7 +25,12 @@ public class AuthService {
     private final AccountRepository accountRepository;
     private final Map<Role, LoginContextResolver> resolvers;
 
-    public AuthService(AccountRepository accountRepository, List<LoginContextResolver> resolverList) {
+    @Inject
+    public AuthService(AccountRepository accountRepository, Instance<LoginContextResolver> resolverList) {
+        this(accountRepository, resolverList.stream().toList());
+    }
+
+    AuthService(AccountRepository accountRepository, List<LoginContextResolver> resolverList) {
         this.accountRepository = accountRepository;
         this.resolvers = resolverList.stream()
                 .collect(Collectors.toMap(LoginContextResolver::supports, Function.identity()));
