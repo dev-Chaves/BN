@@ -5,10 +5,8 @@ import io.smallrye.mutiny.Uni;
 import jakarta.ws.rs.NotFoundException;
 import org.acme.domains.account.Account;
 import org.acme.domains.account.AccountRepository;
-import org.acme.domains.auth.dto.LoginContextData;
 import org.acme.domains.auth.dto.LoginRequest;
 import org.acme.domains.auth.logincontext.EmployeeLoginContext;
-import org.acme.domains.auth.logincontext.LoginContextResolver;
 import org.acme.domains.auth.logincontext.ManagerLoginContext;
 import org.acme.domains.shared.domain.CPF;
 import org.acme.domains.shared.enums.Role;
@@ -17,10 +15,11 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import java.util.Map;
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 class AuthServiceTest {
@@ -29,8 +28,6 @@ class AuthServiceTest {
     private AccountRepository accountRepository;
 
     private AuthService authService;
-
-    private Map<Role, LoginContextResolver> loginContextResolvers;
 
     @Mock
     private EmployeeLoginContext employeeLoginContext;
@@ -41,10 +38,9 @@ class AuthServiceTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        loginContextResolvers = Map.of(
-                Role.USER, employeeLoginContext,
-                Role.MANAGER, managerLoginContext);
-        authService = new AuthService(accountRepository, loginContextResolvers);
+        lenient().when(employeeLoginContext.supports()).thenReturn(Role.USER);
+        lenient().when(managerLoginContext.supports()).thenReturn(Role.MANAGER);
+        authService = new AuthService(accountRepository, List.of(employeeLoginContext, managerLoginContext));
     }
 
     @Test
