@@ -33,7 +33,7 @@ public class EmployeeResource implements BaseResource {
 
            String email = jwt.getName();
 
-           return toCreated(employeeService.createEmployee(request,email));
+           return toCreated(employeeService.createEmployee(request,email, jwt.getClaim("companyId")));
 
     }
 

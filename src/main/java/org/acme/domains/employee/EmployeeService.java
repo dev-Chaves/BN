@@ -36,7 +36,7 @@ public class EmployeeService {
         this.employeeRepository = employeeRepository;
     }
 
-    public Uni<EmployeeResponse> createEmployee(CreateEmployeeRequest request, String managerEmail) {
+    public Uni<EmployeeResponse> createEmployee(CreateEmployeeRequest request, String managerEmail, Long companyId) {
 
         String hashPassword = BcryptUtil.bcryptHash(request.password());
 
@@ -47,7 +47,7 @@ public class EmployeeService {
                 request.email(),
                 Role.USER).build();
 
-        return companyRepository.findByManagerEmail(managerEmail)
+        return companyRepository.findById(companyId)
                 .onItem()
                 .transform(companySalva -> {
                     return Employee.builder(request.name(), companySalva,  account).build();
