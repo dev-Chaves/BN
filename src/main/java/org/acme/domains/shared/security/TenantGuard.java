@@ -9,6 +9,7 @@ import org.acme.domains.company.Company;
 import org.acme.domains.company.CompanyRepository;
 import org.acme.domains.employee.Employee;
 import org.acme.domains.manager.Manager;
+import org.acme.domains.partnership.Partnership;
 import org.acme.domains.partnership.PartnershipRepository;
 
 @ApplicationScoped
@@ -46,6 +47,22 @@ public class TenantGuard {
         }
 
         return Uni.createFrom().item(employee);
+    }
+
+    public Uni<Partnership> verifyManagerPartnershipProviderAccess(Manager manager, Partnership partnership) {
+        if (manager.getCompany() == null || manager.getCompany().id == null) {
+            return Uni.createFrom().failure(new NotFoundException("Unauthorized access: Manager company not found"));
+        }
+
+        if (partnership.getBenefit() == null || partnership.getBenefit().getProvider() == null || partnership.getBenefit().getProvider().id == null) {
+            return Uni.createFrom().failure(new NotFoundException("Unauthorized access: Partnership provider not found"));
+        }
+
+        if (!manager.getCompany().id.equals(partnership.getBenefit().getProvider().id)) {
+            return Uni.createFrom().failure(new SecurityException("Unauthorized access: Only provider company manager can manage partnership"));
+        }
+
+        return Uni.createFrom().item(partnership);
     }
 
     public Uni<Benefit> verifyEmployeeBenefitAccess(Employee employee, Benefit benefit) {

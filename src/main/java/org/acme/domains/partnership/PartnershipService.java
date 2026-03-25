@@ -45,8 +45,8 @@ public class PartnershipService {
     @WithTransaction
     public Uni<PartnershipResponse> acceptPartnership(String managerEmail, Long partnershipId) {
         return validateManagerExists(managerEmail)
-                .flatMap(manager -> tenantGuard.verifyManagerCompanyAccess(manager, manager.getCompany().id).replaceWith(manager))
-                .flatMap(ignore -> getPartnership(partnershipId))
+                .flatMap(manager -> getPartnership(partnershipId)
+                        .flatMap(partnership -> tenantGuard.verifyManagerPartnershipProviderAccess(manager, partnership)))
                 .flatMap(partnership -> transactionPartnershipStatus(partnership, PartnershipStatus.ACTIVE)
                 .map(this::toPartnershipResponse));
     }
@@ -54,8 +54,8 @@ public class PartnershipService {
     @WithTransaction
     public Uni<PartnershipResponse> rejectPartnership(String managerEmail, Long partnershipId) {
         return validateManagerExists(managerEmail)
-                .flatMap(manager -> tenantGuard.verifyManagerCompanyAccess(manager, manager.getCompany().id).replaceWith(manager))
-                .flatMap(ignore -> getPartnership(partnershipId))
+                .flatMap(manager -> getPartnership(partnershipId)
+                        .flatMap(partnership -> tenantGuard.verifyManagerPartnershipProviderAccess(manager, partnership)))
                 .flatMap(partnership -> transactionPartnershipStatus(partnership, PartnershipStatus.REJECTED))
                 .map(this::toPartnershipResponse);
     }
@@ -63,8 +63,8 @@ public class PartnershipService {
     @WithTransaction
     public Uni<PartnershipResponse> disablePartnership(String managerEmail, Long partnershipId) {
         return validateManagerExists(managerEmail)
-                .call(manager -> tenantGuard.verifyManagerCompanyAccess(manager, manager.getCompany().id))
-                .flatMap(ignore -> getPartnership(partnershipId))
+                .flatMap(manager -> getPartnership(partnershipId)
+                        .flatMap(partnership -> tenantGuard.verifyManagerPartnershipProviderAccess(manager, partnership)))
                 .flatMap(partnership -> transactionPartnershipStatus(partnership, PartnershipStatus.DISABLED))
                 .map(this::toPartnershipResponse);
     }
