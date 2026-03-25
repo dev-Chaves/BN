@@ -42,16 +42,25 @@ public class PartnershipService {
             .map(this::toPartnershipResponse);
     }
 
+    @WithTransaction
     public Uni<PartnershipResponse> acceptPartnership(String managerEmail, Long partnershipId) {
         return validateManagerExists(managerEmail)
                 .flatMap(manager -> tenantGuard.verifyManagerCompanyAccess(manager, manager.getCompany().id).replaceWith(manager))
                 .flatMap(manager -> validatePartnershipStatus(partnershipId)
-                .flatMap(partnership -> partnership.updateStatus(PartnershipStatus.ACTIVE)).replaceWith(partnership))
+                .flatMap(this::activePartnership))
+                .map(this::toPartnershipResponse);
     }
 
     private Uni<Partnership> getPartnership(Long partnershipId) {
         return partnershipRepository.findById(partnershipId)
                 .onItem().ifNull().failWith(() -> new NotFoundException("Partnership not found with id: " + partnershipId));
+    }
+
+    private Uni<Partnership> activePartnership(Partnership partnership) {
+
+        partnership.updateStatus(PartnershipStatus.ACTIVE);
+
+        return Uni.createFrom().item(partnership);
     }
 
     private Uni<Partnership> validatePartnershipStatus(Long partnershipId) {
