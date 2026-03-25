@@ -9,6 +9,8 @@ import org.acme.domains.benefit.Benefit;
 import org.acme.domains.benefit.BenefitRepository;
 import org.acme.domains.employee.Employee;
 import org.acme.domains.employee.EmployeeRepository;
+import org.acme.domains.partnership.Partnership;
+import org.acme.domains.partnership.PartnershipRepository;
 import org.acme.domains.shared.security.TenantGuard;
 import org.acme.domains.subscription.dto.CreateSubscriptionRequest;
 import org.acme.domains.subscription.dto.SubscriptionResponse;
@@ -21,13 +23,15 @@ public class SubscriptionService {
     private final SubscriptionRepository subscriptionRepository;
     private final AccountRepository accountRepository;
     private final TenantGuard tenantGuard;
+    private final PartnershipRepository partnershipRepository;
 
-    public SubscriptionService(BenefitRepository benefitRepository, EmployeeRepository employeeRepository, SubscriptionRepository subscriptionRepository, AccountRepository accountRepository, TenantGuard tenantGuard) {
+    public SubscriptionService(BenefitRepository benefitRepository, EmployeeRepository employeeRepository, SubscriptionRepository subscriptionRepository, AccountRepository accountRepository, TenantGuard tenantGuard, PartnershipRepository partnershipRepository) {
         this.benefitRepository = benefitRepository;
         this.employeeRepository = employeeRepository;
         this.subscriptionRepository = subscriptionRepository;
         this.accountRepository = accountRepository;
         this.tenantGuard = tenantGuard;
+        this.partnershipRepository = partnershipRepository;
     }
 
     @WithTransaction
@@ -47,11 +51,19 @@ public class SubscriptionService {
 
     }
 
+    private Uni<Partnership> verifyActivePartnership(Benefit benefit){
+
+    }
+
     private Uni<Employee> findEmployeeByAccountEmail(String email) {
         return accountRepository.findByEmail(email)
                 .onItem().ifNull().failWith(() -> new NotFoundException("Account not found"))
                 .flatMap(account -> employeeRepository.findByAccountId(account.id))
                 .onItem().ifNull().failWith(() -> new NotFoundException("Employee not found"));
+    }
+
+    private Uni<Benefit> getPartnershipByBenefit(Long benefitId) {
+        return partnershipRepository.findByBenefitId(benefitId).onItem().ifNull().failWith(() -> new NotFoundException("Partnership not found"));
     }
 
     private Uni<Subscription> createSubscription(Benefit benefit, Employee employee){

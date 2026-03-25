@@ -25,4 +25,6 @@ public class PartnershipRepository implements PanacheRepository<Partnership> {
         return find("select count(p) from Partnership p where p.clientCompany.profileId = ?1 and p.benefit.profileId = ?2", clientCompanyId, benefitId).count().map(count -> count > 0);
     }
 
+    public Uni<Partnership> find
+
 }
