@@ -46,37 +46,54 @@ public class PartnershipService {
     public Uni<PartnershipResponse> acceptPartnership(String managerEmail, Long partnershipId) {
         return validateManagerExists(managerEmail)
                 .flatMap(manager -> tenantGuard.verifyManagerCompanyAccess(manager, manager.getCompany().id).replaceWith(manager))
-                .flatMap(manager -> validatePartnershipStatus(partnershipId)
-                .flatMap(this::activePartnership))
+                .flatMap(ignore -> getPartnership(partnershipId))
+                .flatMap(partnership -> transactionPartnershipStatus(partnership, PartnershipStatus.ACTIVE)
+                .map(this::toPartnershipResponse));
+    }
+
+    @WithTransaction
+    public Uni<PartnershipResponse> rejectPartnership(String managerEmail, Long partnershipId) {
+        return validateManagerExists(managerEmail)
+                .flatMap(manager -> tenantGuard.verifyManagerCompanyAccess(manager, manager.getCompany().id).replaceWith(manager))
+                .flatMap(ignore -> getPartnership(partnershipId))
+                .flatMap(partnership -> transactionPartnershipStatus(partnership, PartnershipStatus.REJECTED))
                 .map(this::toPartnershipResponse);
     }
+
+    @WithTransaction
+    public Uni<PartnershipResponse> disablePartnership(String managerEmail, Long partnershipId) {
+        return validateManagerExists(managerEmail)
+                .call(manager -> tenantGuard.verifyManagerCompanyAccess(manager, manager.getCompany().id))
+                .flatMap(ignore -> getPartnership(partnershipId))
+                .flatMap(partnership -> transactionPartnershipStatus(partnership, PartnershipStatus.DISABLED))
+                .map(this::toPartnershipResponse);
+    }
+
 
     private Uni<Partnership> getPartnership(Long partnershipId) {
         return partnershipRepository.findById(partnershipId)
                 .onItem().ifNull().failWith(() -> new NotFoundException("Partnership not found with id: " + partnershipId));
     }
 
-    private Uni<Partnership> activePartnership(Partnership partnership) {
+    private Uni<Partnership> transactionPartnershipStatus(Partnership partnership, PartnershipStatus status) {
 
-        partnership.updateStatus(PartnershipStatus.ACTIVE);
+        if(partnership.getStatus().equals(PartnershipStatus.PENDING) && status.equals(PartnershipStatus.ACTIVE)) {
+            partnership.updateStatus(status);
+            return Uni.createFrom().item(partnership);
+        }
 
-        return Uni.createFrom().item(partnership);
-    }
+        if(partnership.getStatus().equals(PartnershipStatus.PENDING) && status.equals(PartnershipStatus.REJECTED)) {
+            partnership.updateStatus(status);
+            return Uni.createFrom().item(partnership);
+        }
 
-    private Uni<Partnership> validatePartnershipStatus(Long partnershipId) {
-        return partnershipRepository.findById(partnershipId).onItem().ifNull().failWith(() -> new NotFoundException("Partnership not found with id: " + partnershipId))
-                .flatMap(partnership -> {
-                    if (partnership.getStatus().equals(PartnershipStatus.ACTIVE) ||
-                            partnership.getStatus().equals(PartnershipStatus.DISABLED) ||
-                            partnership.getStatus().equals(PartnershipStatus.REJECTED)) {
-                        return Uni.createFrom().failure(
-                                new IllegalStateException(
-                                        "Partnership with benefit " + partnershipId + " is already in status: " + partnership.getStatus()
-                                )
-                        );
-                    }
-                    return Uni.createFrom().item(partnership);
-                });
+        if (partnership.getStatus().equals(PartnershipStatus.ACTIVE) && status.equals(PartnershipStatus.DISABLED)) {
+            partnership.updateStatus(status);
+            return Uni.createFrom().item(partnership);
+        }
+
+        return Uni.createFrom().failure(new IllegalStateException("Invalid partnership status transition from " + partnership.getStatus() + " to " + status));
+
     }
 
     private Uni<Manager> validateManagerExists(String email) {
