@@ -23,6 +23,7 @@ public class Partnership extends PanacheEntity {
     @Enumerated(EnumType.STRING)
     private PartnershipStatus status;
 
+    @Column(name = "created_at")
     private LocalDateTime createdAt;
 
     protected Partnership() {}

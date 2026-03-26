@@ -9,6 +9,8 @@ public class CNPJ {
 
     private String value;
 
+    protected CNPJ() {}
+
     protected CNPJ(String value) {
         this.value = value;
     }

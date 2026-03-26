@@ -28,6 +28,7 @@ public class Benefit extends PanacheEntity {
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "benefit")
     private List<Subscription> subscriptions;
 
+    @Column(name = "created_at")
     private LocalDateTime createdAt;
 
     protected Benefit() {}

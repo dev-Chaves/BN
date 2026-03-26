@@ -14,6 +14,7 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import jakarta.json.JsonNumber;
 import org.acme.domains.benefit.dto.CreateBenefitRequest;
 import org.acme.domains.benefit.dto.UpdateBenefitRequest;
 import org.acme.domains.shared.api.BaseResource;
@@ -46,7 +47,7 @@ public class BenefitResource implements BaseResource {
     @Path("/tenant")
     @RolesAllowed("MANAGER")
     public Uni<Response> listBenefitsByTenant() {
-        return toOk(benefitService.listBenefitsByTenant(jwt.getClaim("companyId"), jwt.getName()));
+        return toOk(benefitService.listBenefitsByTenant(claimCompanyId(), jwt.getName()));
     }
 
     @GET
@@ -94,5 +95,23 @@ public class BenefitResource implements BaseResource {
 
     public <T> Uni<Response> delete(Uni<T> useCaseResult) {
         return BaseResource.super.delete(useCaseResult);
+    }
+
+    private Long claimCompanyId() {
+        try {
+            return jwt.getClaim("companyId");
+        } catch (ClassCastException ignored) {
+            Object claim = jwt.claim("companyId").orElse(null);
+            if (claim instanceof Number number) {
+                return number.longValue();
+            }
+            if (claim instanceof JsonNumber jsonNumber) {
+                return jsonNumber.longValue();
+            }
+            if (claim instanceof String value) {
+                return Long.parseLong(value);
+            }
+        }
+        throw new IllegalStateException("Invalid companyId claim type");
     }
 }

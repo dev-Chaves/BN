@@ -7,7 +7,6 @@ import org.acme.domains.shared.domain.CNPJ;
 
 import io.quarkus.hibernate.reactive.panache.PanacheEntity;
 import jakarta.persistence.*;
-import org.hibernate.annotations.EmbeddedColumnNaming;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
@@ -22,9 +21,10 @@ public class Company extends PanacheEntity {
     private String name;
 
     @Embedded
-    @EmbeddedColumnNaming("")
+    @AttributeOverride(name = "value", column = @Column(name = "value"))
     private CNPJ cnpj;
 
+    @Column(name = "employee_count")
     private Integer employeeCount;
 
     @OneToMany(mappedBy = "company", cascade = CascadeType.ALL, orphanRemoval = true)

@@ -1,11 +1,13 @@
 package org.acme.domains.auth;
 
+import io.quarkus.hibernate.reactive.panache.common.WithSession;
 import io.quarkus.elytron.security.common.BcryptUtil;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.NotFoundException;
+import org.jboss.logging.Logger;
 import org.acme.domains.account.Account;
 import org.acme.domains.account.AccountRepository;
 import org.acme.domains.auth.dto.LoginContextData;
@@ -21,6 +23,7 @@ import java.util.stream.Collectors;
 
 @ApplicationScoped
 public class AuthService {
+    private static final Logger LOG = Logger.getLogger(AuthService.class);
 
     private final AccountRepository accountRepository;
     private final Map<Role, LoginContextResolver> resolvers;
@@ -36,6 +39,7 @@ public class AuthService {
                 .collect(Collectors.toMap(LoginContextResolver::supports, Function.identity()));
     }
 
+    @WithSession
     public Uni<LoginResponse> login(LoginRequest req) {
         return validateAccount(req.email())
                 .flatMap(acc -> validatePassword(req.password(), acc).replaceWith(acc)
@@ -46,6 +50,7 @@ public class AuthService {
     private Uni<LoginContextData> resolveByRole(Account account) {
         LoginContextResolver resolver = resolvers.get(account.getRole());
         if (resolver == null) {
+            LOG.errorf("Login resolver not found role=%s email=%s", account.getRole(), account.getEmail());
             return Uni.createFrom().failure(new IllegalStateException("No login resolver for role: " + account.getRole()));
         }
         return resolver.resolve(account);
@@ -58,6 +63,7 @@ public class AuthService {
     private Uni<Void> validatePassword(String password, Account account) {
 
         if(!BcryptUtil.matches(password, account.getPassword())){
+            LOG.warnf("Invalid login credentials email=%s", account.getEmail());
             return Uni.createFrom().failure(new IllegalStateException("Invalid credentials"));
         }
         return Uni.createFrom().voidItem();

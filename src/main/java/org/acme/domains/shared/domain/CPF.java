@@ -7,6 +7,8 @@ public class CPF {
 
     private String value;
 
+    protected CPF() {}
+
     protected CPF(String value){
         this.value = value;
     }

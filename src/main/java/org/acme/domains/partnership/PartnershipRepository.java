@@ -33,6 +33,11 @@ public class PartnershipRepository implements PanacheRepository<Partnership> {
         return find("clientCompany.id = ?1 and benefit.id = ?2 and status = ?3", clientCompanyId, benefitId, status).firstResult();
     }
 
+    public Uni<Partnership> findByIdWithProvider(Long id) {
+        return find("select p from Partnership p join fetch p.benefit b join fetch b.provider where p.id = ?1", id)
+                .firstResult();
+    }
+
     public Uni<Boolean> existsActivePartnership(Long clientCompanyId, Long benefitId) {
         return findByClientCompanyBenefitAndStatus(clientCompanyId, benefitId, PartnershipStatus.ACTIVE)
                 .onItem().transform(partnership -> partnership != null);

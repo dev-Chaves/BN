@@ -13,9 +13,11 @@ import org.acme.domains.manager.Manager;
 import org.acme.domains.manager.ManagerRepository;
 import org.acme.domains.partnership.dto.PartnershipResponse;
 import org.acme.domains.shared.security.TenantGuard;
+import org.jboss.logging.Logger;
 
 @ApplicationScoped
 public class PartnershipService {
+    private static final Logger LOG = Logger.getLogger(PartnershipService.class);
 
     private final CompanyRepository companyRepository;
     private final ManagerRepository managerRepository;
@@ -71,7 +73,7 @@ public class PartnershipService {
 
 
     private Uni<Partnership> getPartnership(Long partnershipId) {
-        return partnershipRepository.findById(partnershipId)
+        return partnershipRepository.findByIdWithProvider(partnershipId)
                 .onItem().ifNull().failWith(() -> new NotFoundException("Partnership not found with id: " + partnershipId));
     }
 
@@ -92,6 +94,12 @@ public class PartnershipService {
             return Uni.createFrom().item(partnership);
         }
 
+        LOG.warnf(
+                "Invalid partnership transition partnershipId=%d current=%s target=%s",
+                partnership.id,
+                partnership.getStatus(),
+                status
+        );
         return Uni.createFrom().failure(new IllegalStateException("Invalid partnership status transition from " + partnership.getStatus() + " to " + status));
 
     }

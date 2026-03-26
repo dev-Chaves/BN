@@ -16,6 +16,7 @@ import org.acme.domains.manager.ManagerRepository;
 import org.acme.domains.shared.domain.CPF;
 import org.acme.domains.shared.enums.Role;
 import org.acme.domains.shared.security.TenantGuard;
+import org.jboss.logging.Logger;
 
 import java.util.List;
 
@@ -24,6 +25,7 @@ import static org.acme.domains.employee.EmployeeStatus.DISABLED;
 
 @ApplicationScoped
 public class EmployeeService {
+    private static final Logger LOG = Logger.getLogger(EmployeeService.class);
 
     private final CompanyRepository companyRepository;
 
@@ -43,6 +45,7 @@ public class EmployeeService {
         this.tenantGuard = tenantGuard;
     }
 
+    @WithTransaction
     public Uni<EmployeeResponse> createEmployee(CreateEmployeeRequest request, String managerEmail, Long companyId) {
 
         String hashPassword = BcryptUtil.bcryptHash(request.password());
@@ -116,11 +119,15 @@ public class EmployeeService {
     }
 
     private Uni<Manager> validateManager(String managerEmail) {
-        return managerRepository.findByEmail(managerEmail).onItem().ifNull().failWith(()-> new NotFoundException("Manager not Found"));
+        return managerRepository.findByEmail(managerEmail).onItem().ifNull().failWith(() -> {
+            LOG.warnf("Manager not found managerEmail=%s", managerEmail);
+            return new NotFoundException("Manager not Found");
+        });
     }
 
     private Uni<Employee> validateNotDisabled(Employee employee) {
         if(employee.getActive().equals(DISABLED)){
+            LOG.warnf("Disable employee skipped employeeId=%d status=%s", employee.id, employee.getActive());
             return Uni.createFrom().failure(new NotFoundException("Employee is already disabled"));
         }
         return Uni.createFrom().item(employee);
@@ -128,6 +135,7 @@ public class EmployeeService {
 
     private Uni<Employee> validateNotActive(Employee employee) {
         if(employee.getActive().equals(ACTIVE)){
+            LOG.warnf("Activate employee skipped employeeId=%d status=%s", employee.id, employee.getActive());
             return Uni.createFrom().failure(new IllegalStateException("Employee is already active"));
         }
         return Uni.createFrom().item(employee);

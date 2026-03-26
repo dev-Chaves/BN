@@ -15,9 +15,11 @@ import org.acme.domains.partnership.PartnershipRepository;
 import org.acme.domains.shared.security.TenantGuard;
 import org.acme.domains.subscription.dto.CreateSubscriptionRequest;
 import org.acme.domains.subscription.dto.SubscriptionResponse;
+import org.jboss.logging.Logger;
 
 @ApplicationScoped
 public class SubscriptionService {
+    private static final Logger LOG = Logger.getLogger(SubscriptionService.class);
 
     private final BenefitRepository benefitRepository;
     private final EmployeeRepository employeeRepository;
@@ -62,7 +64,15 @@ public class SubscriptionService {
                         benefit.id,
                         PartnershipStatus.ACTIVE
                 )
-                .onItem().ifNull().failWith(() -> new IllegalStateException("No active partnership found for this benefit and company"));
+                .onItem().ifNull().failWith(() -> {
+                    LOG.warnf(
+                            "Active partnership not found employeeId=%d companyId=%d benefitId=%d",
+                            employee.id,
+                            employee.getCompany().id,
+                            benefit.id
+                    );
+                    return new IllegalStateException("No active partnership found for this benefit and company");
+                });
     }
 
     private Uni<Employee> findEmployeeByAccountEmail(String email) {
@@ -80,6 +90,11 @@ public class SubscriptionService {
         return subscriptionRepository.existsByEmployeeAndBenefit(employee.id, benefit.id)
                 .flatMap(exists -> {
                     if (exists) {
+                        LOG.warnf(
+                                "Duplicate subscription blocked employeeId=%d benefitId=%d",
+                                employee.id,
+                                benefit.id
+                        );
                         return Uni.createFrom().failure(new IllegalStateException("Employee already has an active subscription for this benefit"));
                     }
                     return Uni.createFrom().voidItem();

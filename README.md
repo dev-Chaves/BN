@@ -4,6 +4,138 @@ This project uses Quarkus, the Supersonic Subatomic Java Framework.
 
 If you want to learn more about Quarkus, please visit its website: <https://quarkus.io/>.
 
+## Deployment (AWS Free Tier + Supabase)
+
+For low-cost cloud deployment, follow:
+
+- `AWS_FREE_TIER_DEPLOY.md`
+
+## Local DEV environment (API + integration tests)
+
+### Prerequisites
+
+- Java 21
+- Docker Desktop or OrbStack running
+- Port `5432` available
+
+### 1) Start PostgreSQL locally
+
+```shell
+docker compose up -d
+docker compose ps
+```
+
+The project expects:
+- database: `benefix`
+- user: `postgres`
+- password: `password`
+- host/port: `localhost:5432`
+
+### 2) Run API in dev mode
+
+```shell
+./mvnw quarkus:dev
+```
+
+Useful URLs:
+- API base: `http://localhost:8080`
+- Dev UI: `http://localhost:8080/q/dev`
+- Swagger UI: `http://localhost:8080/q/swagger-ui`
+
+The project uses local JWT key files in `src/main/resources`:
+- `privateKey.pem` (token signing)
+- `publicKey.pem` (token verification)
+
+### 3) Run tests
+
+```shell
+# Unit tests
+./mvnw test
+
+# Critical integration test
+./mvnw -Dtest=CriticalIntegrationTest test
+
+# Full pipeline
+./mvnw verify
+```
+
+### 4) Quick API smoke (optional)
+
+```shell
+curl -i http://localhost:8080/q/health
+```
+
+### 5) Test accounts for manual API testing (dev local)
+
+Use these fixed credentials:
+
+- Manager
+  - email: `manager.dev@bn.local`
+  - password: `manager-pass-123`
+- Employee
+  - email: `employee.dev@bn.local`
+  - password: `employee-pass-123`
+
+Bootstrap them in local dev:
+
+```shell
+# 1) Onboard tenant + manager
+curl -i -X POST http://localhost:8080/onboarding \
+  -H "Content-Type: application/json" \
+  -d '{
+    "company": {
+      "name": "BN Dev Company",
+      "cnpj": "10000000700120"
+    },
+    "manager": {
+      "name": "Manager Dev",
+      "cpf": "00000700177",
+      "email": "manager.dev@bn.local",
+      "password": "manager-pass-123"
+    }
+  }'
+
+# 2) Login manager and copy token from response
+curl -i -X POST http://localhost:8080/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "manager.dev@bn.local",
+    "password": "manager-pass-123"
+  }'
+
+# 3) Fetch company id (replace <MANAGER_TOKEN>)
+curl -i http://localhost:8080/companies/me \
+  -H "Authorization: Bearer <MANAGER_TOKEN>"
+
+# 4) Create employee (replace <MANAGER_TOKEN> and <COMPANY_ID>)
+curl -i -X POST http://localhost:8080/employees \
+  -H "Authorization: Bearer <MANAGER_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Employee Dev",
+    "cpf": "00000700258",
+    "email": "employee.dev@bn.local",
+    "password": "employee-pass-123",
+    "companyId": <COMPANY_ID>
+  }'
+
+# 5) Activate employee (replace <MANAGER_TOKEN> and <EMPLOYEE_ID>)
+curl -i -X PUT "http://localhost:8080/employees/activate?employeeId=<EMPLOYEE_ID>" \
+  -H "Authorization: Bearer <MANAGER_TOKEN>"
+```
+
+If records already exist (email/CPF/CNPJ already used), reset local DB:
+
+```shell
+docker compose down -v && docker compose up -d
+```
+
+### 5) Stop local infra
+
+```shell
+docker compose down
+```
+
 ## Running the application in dev mode
 
 You can run your application in dev mode that enables live coding using:

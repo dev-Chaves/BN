@@ -25,7 +25,7 @@ public class Manager extends PanacheEntity {
 
     private Boolean active;
 
-    @Column(nullable = false)
+    @Column(nullable = false, name = "created_at")
     private LocalDateTime createdAt;
 
     protected Manager() {}

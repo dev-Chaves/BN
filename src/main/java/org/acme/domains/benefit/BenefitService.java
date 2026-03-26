@@ -1,5 +1,7 @@
 package org.acme.domains.benefit;
 
+import io.quarkus.hibernate.reactive.panache.common.WithSession;
+import io.quarkus.hibernate.reactive.panache.common.WithTransaction;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.ws.rs.NotFoundException;
@@ -11,11 +13,13 @@ import org.acme.domains.company.CompanyRepository;
 import org.acme.domains.manager.Manager;
 import org.acme.domains.manager.ManagerRepository;
 import org.acme.domains.shared.security.TenantGuard;
+import org.jboss.logging.Logger;
 
 import java.util.List;
 
 @ApplicationScoped
 public class BenefitService {
+    private static final Logger LOG = Logger.getLogger(BenefitService.class);
 
     private final ManagerRepository managerRepository;
 
@@ -32,6 +36,7 @@ public class BenefitService {
         this.tenantGuard = tenantGuard;
     }
 
+    @WithTransaction
     public Uni<BenefitResponse> createBenefit(CreateBenefitRequest request, String managerEmail){
 
         return validateManager(managerEmail)
@@ -42,6 +47,7 @@ public class BenefitService {
 
     }
 
+    @WithSession
     public Uni<List<BenefitResponse>> listBenefitsByTenant(Long companyId, String email){
 
         return validateManager(email)
@@ -50,6 +56,7 @@ public class BenefitService {
                 .map(benefits -> benefits.stream().map(this::toResponse).toList());
     }
 
+    @WithSession
     public Uni<List<BenefitResponse>> managerMarketplace(String managerEmail) {
         return validateManager(managerEmail)
                 .flatMap(manager -> tenantGuard.verifyManagerCompanyAccess(manager, manager.getCompany().id))
@@ -57,6 +64,7 @@ public class BenefitService {
                 .map(benefits -> benefits.stream().map(this::toResponse).toList());
     }
 
+    @WithTransaction
     public Uni<BenefitResponse> updateBenefit(Long benefitId, UpdateBenefitRequest request, String managerEmail) {
         return validateManager(managerEmail)
                 .flatMap(manager -> getBenefitById(benefitId)
@@ -69,14 +77,17 @@ public class BenefitService {
                 .map(this::toResponse);
     }
 
+    @WithTransaction
     public Uni<BenefitResponse> activateBenefit(Long benefitId, String managerEmail) {
         return changeBenefitStatus(benefitId, managerEmail, true);
     }
 
+    @WithTransaction
     public Uni<BenefitResponse> deactivateBenefit(Long benefitId, String managerEmail) {
         return changeBenefitStatus(benefitId, managerEmail, false);
     }
 
+    @WithTransaction
     public Uni<Void> deleteBenefit(Long benefitId, String managerEmail) {
         return validateManager(managerEmail)
                 .flatMap(manager -> getBenefitById(benefitId)
@@ -101,7 +112,10 @@ public class BenefitService {
 
     private Uni<Manager> validateManager(String email){
         return managerRepository.findByEmail(email).onItem()
-                .ifNull().failWith(new RuntimeException("Manager not found"));
+                .ifNull().failWith(() -> {
+                    LOG.warnf("Manager not found managerEmail=%s", email);
+                    return new RuntimeException("Manager not found");
+                });
     }
 
     private Uni<Benefit> create(CreateBenefitRequest request, Company company) {

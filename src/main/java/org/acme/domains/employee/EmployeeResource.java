@@ -8,6 +8,7 @@ import jakarta.ws.rs.GET;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import jakarta.json.JsonNumber;
 import org.acme.domains.employee.dto.CreateEmployeeRequest;
 import org.acme.domains.employee.dto.UpdateEmployeeRequest;
 import org.acme.domains.shared.api.BaseResource;
@@ -34,7 +35,7 @@ public class EmployeeResource implements BaseResource {
 
            String email = jwt.getName();
 
-           return toCreated(employeeService.createEmployee(request,email, jwt.getClaim("companyId")));
+           return toCreated(employeeService.createEmployee(request,email, request.companyId()));
 
     }
 
@@ -65,7 +66,25 @@ public class EmployeeResource implements BaseResource {
     @GET
     @RolesAllowed("MANAGER")
     public Uni<Response> listByTenant() {
-        return toOk(employeeService.listByTenant(jwt.getName(), jwt.getClaim("companyId")));
+        return toOk(employeeService.listByTenant(jwt.getName(), claimCompanyId()));
+    }
+
+    private Long claimCompanyId() {
+        try {
+            return jwt.getClaim("companyId");
+        } catch (ClassCastException ignored) {
+            Object claim = jwt.claim("companyId").orElse(null);
+            if (claim instanceof Number number) {
+                return number.longValue();
+            }
+            if (claim instanceof JsonNumber jsonNumber) {
+                return jsonNumber.longValue();
+            }
+            if (claim instanceof String value) {
+                return Long.parseLong(value);
+            }
+        }
+        throw new IllegalStateException("Invalid companyId claim type");
     }
 
     public <T> Uni<Response> toCreated(Uni<T> useCaseResult) {

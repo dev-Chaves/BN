@@ -1,6 +1,7 @@
 package org.acme.domains.company;
 
 import io.smallrye.mutiny.Uni;
+import io.quarkus.hibernate.reactive.panache.common.WithSession;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.ws.rs.NotFoundException;
 import org.acme.domains.company.dto.CompanyResponse;
@@ -14,6 +15,7 @@ public class CompanyService {
         this.companyRepository = companyRepository;
     }
 
+    @WithSession
     public Uni<CompanyResponse> getByManagerEmail(String managerEmail) {
         return companyRepository.findByManagerEmail(managerEmail)
                 .onItem().ifNull().failWith(() -> new NotFoundException("Company not found"))

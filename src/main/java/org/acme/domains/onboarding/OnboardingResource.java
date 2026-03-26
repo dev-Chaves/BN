@@ -1,6 +1,7 @@
 package org.acme.domains.onboarding;
 
 import jakarta.ws.rs.core.Response;
+import jakarta.validation.Valid;
 import org.acme.domains.onboarding.dto.OnboardingRequest;
 import org.acme.domains.onboarding.dto.OnboardingResponse;
 
@@ -26,7 +27,7 @@ public class OnboardingResource implements BaseResource {
     }
 
     @POST
-    public Uni<Response> onboardingCompany(OnboardingRequest request) {
+    public Uni<Response> onboardingCompany(@Valid OnboardingRequest request) {
         return toCreated(onboardingService.onboardingCompany(request));
     }
 

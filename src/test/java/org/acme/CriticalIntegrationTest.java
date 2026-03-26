@@ -13,7 +13,7 @@ import static org.hamcrest.Matchers.notNullValue;
 @QuarkusTest
 class CriticalIntegrationTest {
 
-    private static final AtomicInteger SEQUENCE = new AtomicInteger(1000);
+    private static final AtomicInteger SEQUENCE = new AtomicInteger((int) (System.currentTimeMillis() % 1_000_000));
 
     @Test
     void shouldOnboardAndLoginManager() {
