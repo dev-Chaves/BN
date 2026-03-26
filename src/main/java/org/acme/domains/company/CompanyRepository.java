@@ -23,11 +23,11 @@ public class CompanyRepository implements PanacheRepository<Company> {
     }
 
     public Uni<Company> findByBenefitId(Long benefitId) {
-        return find("select distinct c from Company c join c.offeredBenefits b where b.profileId = ?1 ", benefitId).firstResult();
+        return find("select distinct c from Company c join c.offeredBenefits b where b.id = ?1 ", benefitId).firstResult();
     }
 
     public Uni<Company> findByAccountId(UUID accountId) {
-        return find("select distinct c from Company c join c.employees e where e.account.profileId = ?1", accountId).firstResult();
+        return find("select distinct c from Company c join c.employees e where e.account.id = ?1", accountId).firstResult();
     }
 
 }

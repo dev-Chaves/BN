@@ -17,4 +17,15 @@ public class BenefitRepository implements PanacheRepository<Benefit> {
         return list("provider.id", companyId);
     }
 
+    public Uni<List<Benefit>> findActiveByProviderNot(Long companyId) {
+        return find("provider.id <> ?1 and active = true", companyId).list();
+    }
+
+    public Uni<List<Benefit>> findActiveByIds(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return Uni.createFrom().item(List.of());
+        }
+        return find("id in ?1 and active = true", ids).list();
+    }
+
 }

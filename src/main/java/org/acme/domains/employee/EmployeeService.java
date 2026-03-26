@@ -10,12 +10,16 @@ import org.acme.domains.account.AccountRepository;
 import org.acme.domains.company.CompanyRepository;
 import org.acme.domains.employee.dto.CreateEmployeeRequest;
 import org.acme.domains.employee.dto.EmployeeResponse;
+import org.acme.domains.employee.dto.UpdateEmployeeRequest;
 import org.acme.domains.manager.Manager;
 import org.acme.domains.manager.ManagerRepository;
 import org.acme.domains.shared.domain.CPF;
 import org.acme.domains.shared.enums.Role;
 import org.acme.domains.shared.security.TenantGuard;
 
+import java.util.List;
+
+import static org.acme.domains.employee.EmployeeStatus.ACTIVE;
 import static org.acme.domains.employee.EmployeeStatus.DISABLED;
 
 @ApplicationScoped
@@ -54,12 +58,7 @@ public class EmployeeService {
                 .flatMap(manager -> tenantGuard.verifyManagerCompanyAccess(manager, companyId))
                 .onItem().transform((company) -> Employee.builder(request.name(), company,  account).build())
                 .call(() -> accountRepository.persist(account))
-                .call(employeeRepository::persist).onItem().transform(employee -> new EmployeeResponse(
-                        employee.id,
-                        employee.getName(),
-                        employee.getCompany().id,
-                        employee.getActive(),
-                        employee.getCreatedAt()));
+                .call(employeeRepository::persist).onItem().transform(this::toResponse);
     }
 
     @WithTransaction
@@ -74,15 +73,46 @@ public class EmployeeService {
                                     employee.disableEmployee(DISABLED);
                                     return employeeRepository.persist(employee);
                                 })
-                                .map(employee -> new EmployeeResponse(
-                                        employee.id,
-                                        employee.getName(),
-                                        employee.getCompany().id,
-                                        employee.getActive(),
-                                        employee.getCreatedAt()
-                                ))
+                                .map(this::toResponse)
                 );
 
+    }
+
+    @WithTransaction
+    public Uni<EmployeeResponse> activateEmployee(Long id, String managerEmail) {
+        return validateManager(managerEmail)
+                .flatMap(manager ->
+                        employeeRepository.findById(id).onItem().ifNull().failWith(() -> new NotFoundException("Employee not Found"))
+                                .flatMap(employee -> tenantGuard.verifyManagerEmployeeAccess(manager, employee))
+                                .flatMap(this::validateNotActive)
+                                .flatMap(employee -> {
+                                    employee.activeEmployee(ACTIVE);
+                                    return employeeRepository.persist(employee);
+                                })
+                                .map(this::toResponse)
+                );
+    }
+
+    @WithTransaction
+    public Uni<EmployeeResponse> updateEmployee(Long id, UpdateEmployeeRequest request, String managerEmail) {
+        return validateManager(managerEmail)
+                .flatMap(manager ->
+                        employeeRepository.findById(id).onItem().ifNull().failWith(() -> new NotFoundException("Employee not Found"))
+                                .flatMap(employee -> tenantGuard.verifyManagerEmployeeAccess(manager, employee))
+                                .map(employee -> {
+                                    employee.update(request.name());
+                                    return employee;
+                                })
+                                .flatMap(employeeRepository::persist)
+                                .map(this::toResponse)
+                );
+    }
+
+    public Uni<List<EmployeeResponse>> listByTenant(String managerEmail, Long companyId) {
+        return validateManager(managerEmail)
+                .flatMap(manager -> tenantGuard.verifyManagerCompanyAccess(manager, companyId))
+                .flatMap(company -> employeeRepository.findByCompanyId(company.id))
+                .map(employees -> employees.stream().map(this::toResponse).toList());
     }
 
     private Uni<Manager> validateManager(String managerEmail) {
@@ -94,6 +124,23 @@ public class EmployeeService {
             return Uni.createFrom().failure(new NotFoundException("Employee is already disabled"));
         }
         return Uni.createFrom().item(employee);
+    }
+
+    private Uni<Employee> validateNotActive(Employee employee) {
+        if(employee.getActive().equals(ACTIVE)){
+            return Uni.createFrom().failure(new IllegalStateException("Employee is already active"));
+        }
+        return Uni.createFrom().item(employee);
+    }
+
+    private EmployeeResponse toResponse(Employee employee) {
+        return new EmployeeResponse(
+                employee.id,
+                employee.getName(),
+                employee.getCompany().id,
+                employee.getActive(),
+                employee.getCreatedAt()
+        );
     }
 
 

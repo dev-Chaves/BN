@@ -10,21 +10,32 @@ import jakarta.enterprise.context.ApplicationScoped;
 public class PartnershipRepository implements PanacheRepository<Partnership> {
 
     public Uni<List<Partnership>> findByClientCompanyId(Long companyId) {
-        return list("clientCompany.profileId", companyId);
+        return list("clientCompany.id", companyId);
     }
 
     public Uni<List<Partnership>> findByBenefitId(Long benefitId) {
-        return list("benefit.profileId", benefitId);
+        return list("benefit.id", benefitId);
     }
 
     public Uni<List<Partnership>> findByStatus(PartnershipStatus status) {
         return list("status", status);
     }
 
-    public Uni<Boolean> findExistingPartnership(Long clientCompanyId, Long benefitId) {
-        return find("select count(p) from Partnership p where p.clientCompany.profileId = ?1 and p.benefit.profileId = ?2", clientCompanyId, benefitId).count().map(count -> count > 0);
+    public Uni<List<Partnership>> findByClientCompanyIdAndStatus(Long companyId, PartnershipStatus status) {
+        return list("clientCompany.id = ?1 and status = ?2", companyId, status);
     }
 
-    public Uni<Partnership> find
+    public Uni<Boolean> findExistingPartnership(Long clientCompanyId, Long benefitId) {
+        return find("select count(p) from Partnership p where p.clientCompany.id = ?1 and p.benefit.id = ?2", clientCompanyId, benefitId).count().map(count -> count > 0);
+    }
+
+    public Uni<Partnership> findByClientCompanyBenefitAndStatus(Long clientCompanyId, Long benefitId, PartnershipStatus status) {
+        return find("clientCompany.id = ?1 and benefit.id = ?2 and status = ?3", clientCompanyId, benefitId, status).firstResult();
+    }
+
+    public Uni<Boolean> existsActivePartnership(Long clientCompanyId, Long benefitId) {
+        return findByClientCompanyBenefitAndStatus(clientCompanyId, benefitId, PartnershipStatus.ACTIVE)
+                .onItem().transform(partnership -> partnership != null);
+    }
 
 }

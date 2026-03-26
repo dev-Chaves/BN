@@ -6,8 +6,10 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.POST;
+import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.acme.domains.partnership.dto.CreatePartnershipRequest;
@@ -32,6 +34,27 @@ public class PartnershipResource implements BaseResource {
     @RolesAllowed("MANAGER")
     public Uni<Response> request(@Valid CreatePartnershipRequest request) {
         return toCreated(partnershipService.requestPartnership(jwt.getName(), request.benefitId()));
+    }
+
+    @PUT
+    @Path("/accept")
+    @RolesAllowed("MANAGER")
+    public Uni<Response> accept(@QueryParam("partnershipId") Long partnershipId) {
+        return toOk(partnershipService.acceptPartnership(jwt.getName(), partnershipId));
+    }
+
+    @PUT
+    @Path("/reject")
+    @RolesAllowed("MANAGER")
+    public Uni<Response> reject(@QueryParam("partnershipId") Long partnershipId) {
+        return toOk(partnershipService.rejectPartnership(jwt.getName(), partnershipId));
+    }
+
+    @PUT
+    @Path("/disable")
+    @RolesAllowed("MANAGER")
+    public Uni<Response> disable(@QueryParam("partnershipId") Long partnershipId) {
+        return toOk(partnershipService.disablePartnership(jwt.getName(), partnershipId));
     }
 
     public <T> Uni<Response> toCreated(Uni<T> useCaseResult) {

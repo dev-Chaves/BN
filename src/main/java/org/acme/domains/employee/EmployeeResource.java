@@ -4,11 +4,12 @@ import io.smallrye.mutiny.Uni;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.validation.Valid;
+import jakarta.ws.rs.GET;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import org.acme.domains.auth.dto.LoginRequest;
 import org.acme.domains.employee.dto.CreateEmployeeRequest;
+import org.acme.domains.employee.dto.UpdateEmployeeRequest;
 import org.acme.domains.shared.api.BaseResource;
 import org.eclipse.microprofile.jwt.JsonWebToken;
 
@@ -38,12 +39,33 @@ public class EmployeeResource implements BaseResource {
     }
 
     @PUT
+    @Path("/disable")
     @RolesAllowed("MANAGER")
     public Uni<Response> disabledEmployee(@QueryParam("employeeId") Long employeeId){
 
         String email = jwt.getName();
 
         return toOk(employeeService.disabledEmployee(employeeId, email));
+    }
+
+    @PUT
+    @Path("/activate")
+    @RolesAllowed("MANAGER")
+    public Uni<Response> activateEmployee(@QueryParam("employeeId") Long employeeId){
+        return toOk(employeeService.activateEmployee(employeeId, jwt.getName()));
+    }
+
+    @PUT
+    @Path("/{employeeId}")
+    @RolesAllowed("MANAGER")
+    public Uni<Response> updateEmployee(@PathParam("employeeId") Long employeeId, @Valid UpdateEmployeeRequest request){
+        return toOk(employeeService.updateEmployee(employeeId, request, jwt.getName()));
+    }
+
+    @GET
+    @RolesAllowed("MANAGER")
+    public Uni<Response> listByTenant() {
+        return toOk(employeeService.listByTenant(jwt.getName(), jwt.getClaim("companyId")));
     }
 
     public <T> Uni<Response> toCreated(Uni<T> useCaseResult) {

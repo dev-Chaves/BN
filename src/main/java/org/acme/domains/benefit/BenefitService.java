@@ -5,6 +5,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.ws.rs.NotFoundException;
 import org.acme.domains.benefit.dto.BenefitResponse;
 import org.acme.domains.benefit.dto.CreateBenefitRequest;
+import org.acme.domains.benefit.dto.UpdateBenefitRequest;
 import org.acme.domains.company.Company;
 import org.acme.domains.company.CompanyRepository;
 import org.acme.domains.manager.Manager;
@@ -49,6 +50,42 @@ public class BenefitService {
                 .map(benefits -> benefits.stream().map(this::toResponse).toList());
     }
 
+    public Uni<List<BenefitResponse>> managerMarketplace(String managerEmail) {
+        return validateManager(managerEmail)
+                .flatMap(manager -> tenantGuard.verifyManagerCompanyAccess(manager, manager.getCompany().id))
+                .flatMap(company -> benefitRepository.findActiveByProviderNot(company.id))
+                .map(benefits -> benefits.stream().map(this::toResponse).toList());
+    }
+
+    public Uni<BenefitResponse> updateBenefit(Long benefitId, UpdateBenefitRequest request, String managerEmail) {
+        return validateManager(managerEmail)
+                .flatMap(manager -> getBenefitById(benefitId)
+                        .flatMap(benefit -> tenantGuard.verifyManagerCompanyAccess(manager, benefit.getProvider().id)
+                                .replaceWith(benefit)))
+                .map(benefit -> {
+                    benefit.update(request.name(), request.description());
+                    return benefit;
+                })
+                .map(this::toResponse);
+    }
+
+    public Uni<BenefitResponse> activateBenefit(Long benefitId, String managerEmail) {
+        return changeBenefitStatus(benefitId, managerEmail, true);
+    }
+
+    public Uni<BenefitResponse> deactivateBenefit(Long benefitId, String managerEmail) {
+        return changeBenefitStatus(benefitId, managerEmail, false);
+    }
+
+    public Uni<Void> deleteBenefit(Long benefitId, String managerEmail) {
+        return validateManager(managerEmail)
+                .flatMap(manager -> getBenefitById(benefitId)
+                        .flatMap(benefit -> tenantGuard.verifyManagerCompanyAccess(manager, benefit.getProvider().id)
+                                .replaceWith(benefit)))
+                .flatMap(benefit -> benefitRepository.deleteById(benefit.id))
+                .replaceWithVoid();
+    }
+
     private BenefitResponse toResponse (Benefit benefit){
         return new BenefitResponse(
                 benefit.id,
@@ -68,7 +105,28 @@ public class BenefitService {
     }
 
     private Uni<Benefit> create(CreateBenefitRequest request, Company company) {
-        return Uni.createFrom().item(Benefit.builder(request.name(), company).build());
+        return Uni.createFrom().item(Benefit.builder(request.name(), company).description(request.description()).build());
+    }
+
+    private Uni<Benefit> getBenefitById(Long benefitId) {
+        return benefitRepository.findById(benefitId)
+                .onItem().ifNull().failWith(() -> new NotFoundException("Benefit not found"));
+    }
+
+    private Uni<BenefitResponse> changeBenefitStatus(Long benefitId, String managerEmail, boolean activate) {
+        return validateManager(managerEmail)
+                .flatMap(manager -> getBenefitById(benefitId)
+                        .flatMap(benefit -> tenantGuard.verifyManagerCompanyAccess(manager, benefit.getProvider().id)
+                                .replaceWith(benefit)))
+                .map(benefit -> {
+                    if (activate) {
+                        benefit.activeBenefit();
+                    } else {
+                        benefit.deactivateBenefit();
+                    }
+                    return benefit;
+                })
+                .map(this::toResponse);
     }
 
 }

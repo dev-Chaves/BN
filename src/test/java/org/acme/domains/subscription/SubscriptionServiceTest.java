@@ -9,6 +9,9 @@ import org.acme.domains.benefit.BenefitRepository;
 import org.acme.domains.company.Company;
 import org.acme.domains.employee.Employee;
 import org.acme.domains.employee.EmployeeRepository;
+import org.acme.domains.partnership.Partnership;
+import org.acme.domains.partnership.PartnershipRepository;
+import org.acme.domains.partnership.PartnershipStatus;
 import org.acme.domains.shared.domain.CNPJ;
 import org.acme.domains.shared.domain.CPF;
 import org.acme.domains.shared.enums.Role;
@@ -44,12 +47,15 @@ class SubscriptionServiceTest {
     @Mock
     private TenantGuard tenantGuard;
 
+    @Mock
+    private PartnershipRepository partnershipRepository;
+
     private SubscriptionService subscriptionService;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        subscriptionService = new SubscriptionService(benefitRepository, employeeRepository, subscriptionRepository, accountRepository, tenantGuard);
+        subscriptionService = new SubscriptionService(benefitRepository, employeeRepository, subscriptionRepository, accountRepository, tenantGuard, partnershipRepository);
     }
 
     @Test
@@ -79,6 +85,11 @@ class SubscriptionServiceTest {
         when(accountRepository.findByEmail("user@acme.com")).thenReturn(Uni.createFrom().item(employeeAccount));
         when(employeeRepository.findByAccountId(employeeAccount.id)).thenReturn(Uni.createFrom().item(employee));
         when(tenantGuard.verifyEmployeeBenefitAccess(employee, benefit)).thenReturn(Uni.createFrom().item(benefit));
+        Partnership partnership = Partnership.builder(company, benefit).build();
+        partnership.updateStatus(PartnershipStatus.ACTIVE);
+        when(partnershipRepository.findByClientCompanyBenefitAndStatus(company.id, benefit.id, PartnershipStatus.ACTIVE))
+                .thenReturn(Uni.createFrom().item(partnership));
+        when(subscriptionRepository.existsByEmployeeAndBenefit(employee.id, benefit.id)).thenReturn(Uni.createFrom().item(false));
         when(subscriptionRepository.persist(any(Subscription.class))).thenAnswer(invocation -> {
             Subscription subscription = invocation.getArgument(0);
             subscription.id = 50L;

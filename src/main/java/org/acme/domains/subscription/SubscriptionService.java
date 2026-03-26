@@ -10,6 +10,7 @@ import org.acme.domains.benefit.BenefitRepository;
 import org.acme.domains.employee.Employee;
 import org.acme.domains.employee.EmployeeRepository;
 import org.acme.domains.partnership.Partnership;
+import org.acme.domains.partnership.PartnershipStatus;
 import org.acme.domains.partnership.PartnershipRepository;
 import org.acme.domains.shared.security.TenantGuard;
 import org.acme.domains.subscription.dto.CreateSubscriptionRequest;
@@ -40,6 +41,10 @@ public class SubscriptionService {
         return benefitRepository.findById(request.benefitId()).onItem().ifNull().failWith(new NotFoundException("Benefit not found"))
                 .flatMap(benefit -> findEmployeeByAccountEmail(email)
                         .flatMap(employee -> tenantGuard.verifyEmployeeBenefitAccess(employee, benefit)
+                                .flatMap(allowedBenefit -> verifyActivePartnership(employee, allowedBenefit)
+                                        .replaceWith(allowedBenefit))
+                                .flatMap(allowedBenefit -> validateNoActiveSubscription(employee, allowedBenefit)
+                                        .replaceWith(allowedBenefit))
                                 .flatMap(allowedBenefit -> createSubscription(allowedBenefit, employee))))
                 .call(subscriptionRepository::persist)
                 .map(subscription -> new SubscriptionResponse(
@@ -51,8 +56,13 @@ public class SubscriptionService {
 
     }
 
-    private Uni<Partnership> verifyActivePartnership(Benefit benefit){
-
+    private Uni<Partnership> verifyActivePartnership(Employee employee, Benefit benefit){
+        return partnershipRepository.findByClientCompanyBenefitAndStatus(
+                        employee.getCompany().id,
+                        benefit.id,
+                        PartnershipStatus.ACTIVE
+                )
+                .onItem().ifNull().failWith(() -> new IllegalStateException("No active partnership found for this benefit and company"));
     }
 
     private Uni<Employee> findEmployeeByAccountEmail(String email) {
@@ -62,11 +72,17 @@ public class SubscriptionService {
                 .onItem().ifNull().failWith(() -> new NotFoundException("Employee not found"));
     }
 
-    private Uni<Benefit> getPartnershipByBenefit(Long benefitId) {
-        return partnershipRepository.findByBenefitId(benefitId).onItem().ifNull().failWith(() -> new NotFoundException("Partnership not found"));
-    }
-
     private Uni<Subscription> createSubscription(Benefit benefit, Employee employee){
         return Uni.createFrom().item(Subscription.builder(benefit, employee).build());
+    }
+
+    private Uni<Void> validateNoActiveSubscription(Employee employee, Benefit benefit) {
+        return subscriptionRepository.existsByEmployeeAndBenefit(employee.id, benefit.id)
+                .flatMap(exists -> {
+                    if (exists) {
+                        return Uni.createFrom().failure(new IllegalStateException("Employee already has an active subscription for this benefit"));
+                    }
+                    return Uni.createFrom().voidItem();
+                });
     }
 }
