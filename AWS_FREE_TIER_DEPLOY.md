@@ -68,7 +68,121 @@ Para não sobrecarregar a EC2 micro, faça o build no CI (GitHub Actions) e só 
 - Publica imagem no GHCR (ou ECR)
 - Deploy via SSH na EC2
 
-### Exemplo de comandos no pipeline
+### 6.1 Pré-requisitos no GitHub
+
+No repositório, configure:
+
+- `Settings -> Actions -> General -> Workflow permissions`: habilite `Read and write permissions`
+- `Settings -> Secrets and variables -> Actions`: adicione os secrets abaixo
+
+Secrets obrigatórios:
+
+- `EC2_HOST`: IP ou DNS da instância
+- `EC2_USER`: usuário SSH (ex.: `ubuntu`)
+- `EC2_SSH_KEY`: chave privada completa (conteúdo do `.pem`)
+- `EC2_PORT`: porta SSH (normalmente `22`)
+- `GHCR_USERNAME`: seu usuário/org do GitHub
+- `GHCR_TOKEN`: token com permissão para `write:packages`
+- `IMAGE_NAME`: ex.: `ghcr.io/SEU_USER/bn-api`
+
+### 6.2 Pré-requisitos no servidor EC2
+
+No servidor, garanta:
+
+- Docker instalado e funcional
+- arquivo `/opt/bn/.env` pronto
+- chaves JWT em `/opt/bn/secrets/`
+- usuário SSH com permissão de executar Docker
+
+### 6.3 Workflow pronto (GitHub Actions)
+
+Crie o arquivo `.github/workflows/deploy-free-tier.yml`:
+
+```yaml
+name: Deploy BN Free Tier
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Setup GraalVM
+        uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: "21"
+          distribution: graalvm
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build native binary
+        run: ./mvnw -B -DskipTests -Dnative package
+
+      - name: Login GHCR
+        run: echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ secrets.GHCR_USERNAME }}" --password-stdin
+
+      - name: Build and push image
+        env:
+          IMAGE_NAME: ${{ secrets.IMAGE_NAME }}
+        run: |
+          docker build -f src/main/docker/Dockerfile.native -t ${IMAGE_NAME}:${GITHUB_SHA} .
+          docker tag ${IMAGE_NAME}:${GITHUB_SHA} ${IMAGE_NAME}:latest
+          docker push ${IMAGE_NAME}:${GITHUB_SHA}
+          docker push ${IMAGE_NAME}:latest
+
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: ${{ secrets.EC2_PORT }}
+          script: |
+            set -e
+            IMAGE_NAME="${{ secrets.IMAGE_NAME }}"
+            docker login ghcr.io -u "${{ secrets.GHCR_USERNAME }}" -p "${{ secrets.GHCR_TOKEN }}"
+            docker pull ${IMAGE_NAME}:${GITHUB_SHA}
+            docker stop bn-api || true
+            docker rm bn-api || true
+            docker run -d \
+              --name bn-api \
+              --restart unless-stopped \
+              --env-file /opt/bn/.env \
+              -p 127.0.0.1:8080:8080 \
+              ${IMAGE_NAME}:${GITHUB_SHA}
+            docker image prune -f
+```
+
+### 6.4 Fluxo de branches recomendado
+
+- `main`: deploy automático em produção
+- `develop`: opcional para validar build sem deploy
+- Pull Request: rodar apenas testes/build
+
+### 6.5 Versão simplificada (sem native)
+
+Se o build native ficar demorado no início:
+
+- troque `./mvnw -B -DskipTests -Dnative package` por `./mvnw -B -DskipTests package`
+- use `src/main/docker/Dockerfile.jvm` no build da imagem
+
+### Exemplo de comandos no pipeline (referência rápida)
 
 ```bash
 # Build nativo (GraalVM)
