@@ -6,7 +6,7 @@ WORKDIR /app
 COPY pom.xml .
 RUN mvn dependency:go-offline -B
 
-# 2. Compilação: Copia o src e gera o jar offline
+# 2. Compilação: Copia o src e gera o pacote Quarkus (fast-jar) offline
 COPY src ./src
 RUN mvn clean package -DskipTests -o
 
@@ -18,15 +18,18 @@ WORKDIR /app
 RUN addgroup -S spring && adduser -S spring -G spring
 USER spring:spring
 
-# 4. Copia apenas o executável do estágio anterior
-COPY --from=build /app/target/*.jar app.jar
+# 4. Copia artefatos Quarkus (fast-jar)
+COPY --from=build /app/target/quarkus-app/lib/ /app/lib/
+COPY --from=build /app/target/quarkus-app/*.jar /app/
+COPY --from=build /app/target/quarkus-app/app/ /app/app/
+COPY --from=build /app/target/quarkus-app/quarkus/ /app/quarkus/
 
 EXPOSE 8080
 
 # 5. Flags de enxugamento da JVM:
 # -XX:+UseSerialGC: GC mais leve para apps pequenos
 # -Xss512k: Reduz custo de memória por Thread
-# -Xmx128m: Limite de 128MB de Heap
+# -Xmx384m: Limite de 384MB de Heap
 # -XX:MaxMetaspaceSize=72m: Evita que o uso de classes cresça indefinidamente
 ENTRYPOINT ["java", \
             "-XX:+UseSerialGC", \
@@ -34,4 +37,4 @@ ENTRYPOINT ["java", \
             "-Xmx384m", \
             "-XX:MaxMetaspaceSize=72m", \
             "-XX:+UseContainerSupport", \
-            "-jar", "app.jar"]
+            "-jar", "/app/quarkus-run.jar"]

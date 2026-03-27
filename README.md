@@ -95,7 +95,7 @@ curl -i -X POST http://localhost:8080/onboarding \
     }
   }'
 
-# 2) Login manager and copy token from response
+# 2) Login manager (token no body + cookie jwt HttpOnly)
 curl -i -X POST http://localhost:8080/auth/login \
   -H "Content-Type: application/json" \
   -d '{
@@ -103,9 +103,20 @@ curl -i -X POST http://localhost:8080/auth/login \
     "password": "manager-pass-123"
   }'
 
-# 3) Fetch company id (replace <MANAGER_TOKEN>)
+# 2.1) Opcional: salvar cookie JWT em arquivo para chamadas autenticadas por cookie
+curl -i -c cookies.txt -X POST http://localhost:8080/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "manager.dev@bn.local",
+    "password": "manager-pass-123"
+  }'
+
+# 3) Fetch company id via Authorization header (replace <MANAGER_TOKEN>)
 curl -i http://localhost:8080/companies/me \
   -H "Authorization: Bearer <MANAGER_TOKEN>"
+
+# 3.1) Fetch company id via cookie JWT (sem Authorization header)
+curl -i -b cookies.txt http://localhost:8080/companies/me
 
 # 4) Create employee (replace <MANAGER_TOKEN> and <COMPANY_ID>)
 curl -i -X POST http://localhost:8080/employees \

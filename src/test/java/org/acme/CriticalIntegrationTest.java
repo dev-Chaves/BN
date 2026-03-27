@@ -6,9 +6,11 @@ import org.junit.jupiter.api.Test;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.startsWith;
 
 @QuarkusTest
 class CriticalIntegrationTest {
@@ -18,10 +20,26 @@ class CriticalIntegrationTest {
     @Test
     void shouldOnboardAndLoginManager() {
         OnboardedTenant tenant = onboardTenant("onboard");
-        String managerToken = login(tenant.managerEmail, tenant.managerPassword);
+        LoginSession managerSession = loginSession(tenant.managerEmail, tenant.managerPassword);
 
         given()
-                .header("Authorization", "Bearer " + managerToken)
+                .header("Authorization", "Bearer " + managerSession.token())
+                .when()
+                .get("/companies/me")
+                .then()
+                .statusCode(200)
+                .body("id", equalTo(tenant.companyId.intValue()))
+                .body("name", equalTo(tenant.companyName))
+                .body("cnpj", equalTo(tenant.companyCnpj));
+    }
+
+    @Test
+    void shouldAuthenticateUsingJwtCookieWithoutAuthorizationHeader() {
+        OnboardedTenant tenant = onboardTenant("cookie-auth");
+        LoginSession managerSession = loginSession(tenant.managerEmail, tenant.managerPassword);
+
+        given()
+                .header("Cookie", managerSession.cookiePair())
                 .when()
                 .get("/companies/me")
                 .then()
@@ -221,7 +239,11 @@ class CriticalIntegrationTest {
     }
 
     private String login(String email, String password) {
-        return given()
+        return loginSession(email, password).token();
+    }
+
+    private LoginSession loginSession(String email, String password) {
+        io.restassured.response.Response response = given()
                 .contentType("application/json")
                 .body("""
                         {
@@ -233,9 +255,20 @@ class CriticalIntegrationTest {
                 .post("/auth/login")
                 .then()
                 .statusCode(200)
+                .body("token", notNullValue())
+                .header("Set-Cookie", allOf(
+                        containsString("jwt="),
+                        containsString("HttpOnly"),
+                        containsString("Secure"),
+                        containsString("SameSite=Strict"),
+                        startsWith("jwt=")
+                ))
                 .extract()
-                .jsonPath()
-                .getString("token");
+                .response();
+        String token = response.jsonPath().getString("token");
+        String setCookie = response.getHeader("Set-Cookie");
+        String cookiePair = setCookie.split(";", 2)[0];
+        return new LoginSession(token, cookiePair);
     }
 
     private long createBenefit(String managerToken, long companyId, String benefitName) {
@@ -349,6 +382,12 @@ class CriticalIntegrationTest {
             String companyCnpj,
             String managerEmail,
             String managerPassword
+    ) {
+    }
+
+    private record LoginSession(
+            String token,
+            String cookiePair
     ) {
     }
 }

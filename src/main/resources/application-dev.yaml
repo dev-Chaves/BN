@@ -22,3 +22,7 @@ quarkus:
 
   swagger-ui:
     always-include: true
+
+app:
+  cookie:
+    secure: false

@@ -4,13 +4,21 @@ quarkus:
 
 mp:
   jwt:
+    token:
+      header: Cookie
+      cookie: jwt
     verify:
       publickey:
         location: publicKey.pem
       issuer: bn-api
 
+app:
+  cookie:
+    secure: true
+
 smallrye:
   jwt:
+    always-check-authorization: true
     sign:
       key:
         location: privateKey.pem
