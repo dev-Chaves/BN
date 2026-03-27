@@ -1,24 +1,19 @@
-spring:
-  application:
-    name: benefix
-  datasource:
-    url: jdbc:postgresql://localhost:5432/benefix
-    username: postgres
-    password: password
-    driver-class-name: org.postgresql.Driver
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    properties:
-      hibernate:
-        format_sql: true
-        dialect: org.hibernate.dialect.PostgreSQLDialect
+quarkus:
+  smallrye-jwt:
+    enabled: true
 
-api:
-  security:
-    token:
-      secret: ${JWT_SECRET:my-secret-key}
+mp:
+  jwt:
+    verify:
+      publickey:
+        location: publicKey.pem
+      issuer: bn-api
 
-springdoc:
+smallrye:
+  jwt:
+    sign:
+      key:
+        location: privateKey.pem
+
   swagger-ui:
-    path: /docs
+    always-include: true
