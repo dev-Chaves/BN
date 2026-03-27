@@ -1,36 +1,21 @@
 services:
-  app:
-    build: .
-    container_name: benefix-api
-    ports:
-      - "8080:8080"
+  postgres:
+    image: postgres:16-alpine
+    container_name: bn-postgres
+    restart: unless-stopped
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/benefix
-      - SPRING_DATASOURCE_USERNAME=postgres
-      - SPRING_DATASOURCE_PASSWORD=password
-      - JWT_SECRET=my-secret-key
-    depends_on:
-      - db
-    networks:
-      - benefix-network
-
-  db:
-    image: postgres:18-alpine
-    container_name: benefix-db
-    environment:
-      - POSTGRES_DB=benefix
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=password
+      POSTGRES_DB: benefix
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
     ports:
       - "5432:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d benefix" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - benefix-network
+      - bn_postgres_data:/var/lib/postgresql/data
 
 volumes:
-  postgres_data:
-
-networks:
-  benefix-network:
-    driver: bridge
+  bn_postgres_data:

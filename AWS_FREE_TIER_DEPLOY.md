@@ -1,0 +1,347 @@
+# Deploy AWS Free Tier + Supabase (BN API)
+
+Este guia sobe a API na AWS com custo mínimo (free-tier) e banco no Supabase Postgres (512MB).
+
+## 1) Arquitetura alvo (low-cost)
+
+- API: `EC2 t3.micro` (ou `t2.micro`) com Docker
+- Banco: Supabase Postgres (externo), com SSL obrigatório
+- HTTPS: Nginx + Let's Encrypt
+- Logs: Docker + `journalctl`
+
+Fluxo:
+
+`Client -> Nginx (443) -> container bn-api (localhost:8080) -> Supabase Postgres`
+
+## 2) Pré-requisitos
+
+- Conta AWS com free-tier ativo
+- Conta Supabase com projeto criado
+- Domínio (recomendado para HTTPS)
+- AWS CLI configurado (`aws configure`)
+- Chave SSH local (`.pem`)
+
+## 3) Criar EC2 (free-tier)
+
+### Security Group
+
+Liberar:
+
+- `22` (SSH) apenas para seu IP
+- `80` (HTTP) público
+- `443` (HTTPS) público
+
+### Instância
+
+- AMI: Ubuntu 22.04 LTS
+- Tipo: `t3.micro` (ou `t2.micro`)
+- Storage: 20GB gp3
+- Vincular o Security Group acima
+
+## 4) Preparar servidor
+
+```bash
+ssh -i /caminho/sua-chave.pem ubuntu@SEU_IP
+
+sudo apt update && sudo apt install -y docker.io nginx certbot python3-certbot-nginx git
+sudo usermod -aG docker $USER
+newgrp docker
+```
+
+## 5) Subir código e buildar imagem (manual)
+
+```bash
+git clone <URL_DO_REPO> bn
+cd bn
+./mvnw -DskipTests package
+docker build -f src/main/docker/Dockerfile.jvm -t bn-api:1.0.0 .
+```
+
+## 6) CI/CD + GraalVM (recomendado)
+
+Para não sobrecarregar a EC2 micro, faça o build no CI (GitHub Actions) e só faça deploy da imagem pronta.
+
+### Estratégia
+
+- CI faz build/test
+- Build nativo com GraalVM (`-Dnative`)
+- Publica imagem no GHCR (ou ECR)
+- Deploy via SSH na EC2
+
+### 6.1 Pré-requisitos no GitHub
+
+No repositório, configure:
+
+- `Settings -> Actions -> General -> Workflow permissions`: habilite `Read and write permissions`
+- `Settings -> Secrets and variables -> Actions`: adicione os secrets abaixo
+
+Secrets obrigatórios:
+
+- `EC2_HOST`: IP ou DNS da instância
+- `EC2_USER`: usuário SSH (ex.: `ubuntu`)
+- `EC2_SSH_KEY`: chave privada completa (conteúdo do `.pem`)
+- `EC2_PORT`: porta SSH (normalmente `22`)
+- `GHCR_USERNAME`: seu usuário/org do GitHub
+- `GHCR_TOKEN`: token com permissão para `write:packages`
+- `IMAGE_NAME`: ex.: `ghcr.io/SEU_USER/bn-api`
+
+### 6.2 Pré-requisitos no servidor EC2
+
+No servidor, garanta:
+
+- Docker instalado e funcional
+- arquivo `/opt/bn/.env` pronto
+- chaves JWT em `/opt/bn/secrets/`
+- usuário SSH com permissão de executar Docker
+
+### 6.3 Workflow pronto (GitHub Actions)
+
+Crie o arquivo `.github/workflows/deploy-free-tier.yml`:
+
+```yaml
+name: Deploy BN Free Tier
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Setup GraalVM
+        uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: "21"
+          distribution: graalvm
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build native binary
+        run: ./mvnw -B -DskipTests -Dnative package
+
+      - name: Login GHCR
+        run: echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ secrets.GHCR_USERNAME }}" --password-stdin
+
+      - name: Build and push image
+        env:
+          IMAGE_NAME: ${{ secrets.IMAGE_NAME }}
+        run: |
+          docker build -f src/main/docker/Dockerfile.native -t ${IMAGE_NAME}:${GITHUB_SHA} .
+          docker tag ${IMAGE_NAME}:${GITHUB_SHA} ${IMAGE_NAME}:latest
+          docker push ${IMAGE_NAME}:${GITHUB_SHA}
+          docker push ${IMAGE_NAME}:latest
+
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: ${{ secrets.EC2_PORT }}
+          script: |
+            set -e
+            IMAGE_NAME="${{ secrets.IMAGE_NAME }}"
+            docker login ghcr.io -u "${{ secrets.GHCR_USERNAME }}" -p "${{ secrets.GHCR_TOKEN }}"
+            docker pull ${IMAGE_NAME}:${GITHUB_SHA}
+            docker stop bn-api || true
+            docker rm bn-api || true
+            docker run -d \
+              --name bn-api \
+              --restart unless-stopped \
+              --env-file /opt/bn/.env \
+              -p 127.0.0.1:8080:8080 \
+              ${IMAGE_NAME}:${GITHUB_SHA}
+            docker image prune -f
+```
+
+### 6.4 Fluxo de branches recomendado
+
+- `main`: deploy automático em produção
+- `develop`: opcional para validar build sem deploy
+- Pull Request: rodar apenas testes/build
+
+### 6.5 Versão simplificada (sem native)
+
+Se o build native ficar demorado no início:
+
+- troque `./mvnw -B -DskipTests -Dnative package` por `./mvnw -B -DskipTests package`
+- use `src/main/docker/Dockerfile.jvm` no build da imagem
+
+### Exemplo de comandos no pipeline (referência rápida)
+
+```bash
+# Build nativo (GraalVM)
+./mvnw -Dnative -DskipTests package
+
+# Build de imagem nativa
+docker build -f src/main/docker/Dockerfile.native -t ghcr.io/SEU_USER/bn-api:${GITHUB_SHA} .
+docker push ghcr.io/SEU_USER/bn-api:${GITHUB_SHA}
+```
+
+### Deploy no servidor (passo do CI)
+
+```bash
+ssh ubuntu@SEU_IP "docker pull ghcr.io/SEU_USER/bn-api:${GITHUB_SHA} && \
+docker stop bn-api || true && docker rm bn-api || true && \
+docker run -d --name bn-api --restart unless-stopped \
+  --env-file /opt/bn/.env -p 127.0.0.1:8080:8080 \
+  ghcr.io/SEU_USER/bn-api:${GITHUB_SHA}"
+```
+
+> Se preferir simplificar no início, mantenha imagem JVM no deploy e evolua para native no CI depois.
+
+## 7) Configurar segredos e conexão Supabase
+
+Crie diretórios:
+
+```bash
+sudo mkdir -p /opt/bn/secrets
+sudo chown -R $USER:$USER /opt/bn
+```
+
+### JWT keys (produção)
+
+Crie arquivos:
+
+- `/opt/bn/secrets/privateKey.pem`
+- `/opt/bn/secrets/publicKey.pem`
+
+> Não use as chaves de dev do repositório em produção.
+
+### Arquivo `/opt/bn/.env`
+
+```env
+QUARKUS_PROFILE=prod
+QUARKUS_HTTP_HOST=0.0.0.0
+QUARKUS_HTTP_PORT=8080
+
+QUARKUS_DATASOURCE_DB_KIND=postgresql
+QUARKUS_DATASOURCE_USERNAME=SEU_USER_SUPABASE
+QUARKUS_DATASOURCE_PASSWORD=SUA_SENHA_SUPABASE
+QUARKUS_DATASOURCE_JDBC_URL=jdbc:postgresql://SEU_HOST_SUPABASE:5432/postgres?sslmode=require
+QUARKUS_DATASOURCE_REACTIVE_URL=postgresql://SEU_HOST_SUPABASE:5432/postgres?sslmode=require
+
+# Limites conservadores para Supabase 512MB
+QUARKUS_DATASOURCE_REACTIVE_MAX_SIZE=5
+QUARKUS_DATASOURCE_JDBC_MAX_SIZE=3
+
+QUARKUS_FLYWAY_MIGRATE_AT_START=true
+QUARKUS_HIBERNATE_ORM_DATABASE_GENERATION=validate
+QUARKUS_HIBERNATE_ORM_LOG_SQL=false
+QUARKUS_SWAGGER_UI_ALWAYS_INCLUDE=false
+
+MP_JWT_VERIFY_PUBLICKEY_LOCATION=file:/opt/bn/secrets/publicKey.pem
+MP_JWT_VERIFY_ISSUER=bn-api
+SMALLRYE_JWT_SIGN_KEY_LOCATION=file:/opt/bn/secrets/privateKey.pem
+```
+
+## 8) Rodar container
+
+```bash
+docker run -d \
+  --name bn-api \
+  --restart unless-stopped \
+  --env-file /opt/bn/.env \
+  -p 127.0.0.1:8080:8080 \
+  bn-api:1.0.0
+```
+
+Verificar:
+
+```bash
+docker ps
+docker logs --tail 200 bn-api
+curl -i http://127.0.0.1:8080/q/health
+```
+
+## 9) Configurar Nginx (reverse proxy)
+
+Arquivo `/etc/nginx/sites-available/bn-api`:
+
+```nginx
+server {
+    listen 80;
+    server_name api.seudominio.com;
+
+    location / {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+Aplicar:
+
+```bash
+sudo ln -s /etc/nginx/sites-available/bn-api /etc/nginx/sites-enabled/bn-api
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+## 10) HTTPS com Let's Encrypt
+
+```bash
+sudo certbot --nginx -d api.seudominio.com
+sudo certbot renew --dry-run
+```
+
+## 11) Smoke test pós-deploy
+
+```bash
+curl -i https://api.seudominio.com/q/health
+
+curl -i -X POST https://api.seudominio.com/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"manager.dev@bn.local","password":"manager-pass-123"}'
+```
+
+## 12) Operação diária
+
+```bash
+docker logs -f bn-api
+docker restart bn-api
+docker image ls
+```
+
+## 13) Rollback rápido
+
+```bash
+docker stop bn-api && docker rm bn-api
+docker run -d \
+  --name bn-api \
+  --restart unless-stopped \
+  --env-file /opt/bn/.env \
+  -p 127.0.0.1:8080:8080 \
+  bn-api:IMAGEM_ANTERIOR
+```
+
+## 14) Troubleshooting comum
+
+- `FATAL: too many connections`: reduza `QUARKUS_DATASOURCE_REACTIVE_MAX_SIZE` para `3`.
+- Erro SSL no banco: confirme `sslmode=require` nas URLs JDBC e reactive.
+- `Flyway` falhando no boot: veja logs do container e ajuste migration pendente.
+- 502 no Nginx: validar se `bn-api` está ativo e ouvindo `127.0.0.1:8080`.
+
+## 15) Upgrade futuro (quando sair do free-tier)
+
+- Migrar de EC2 único para ECS/Fargate + ALB
+- Mover segredos para AWS Secrets Manager
+- Adicionar CloudWatch alarms (5xx, CPU, memória, restart)
