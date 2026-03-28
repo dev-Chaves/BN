@@ -16,11 +16,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Test SSH connectivity
-        run: |
-          nc -zv ec2-18-221-189-80.us-east-2.compute.amazonaws.com 22 -w 10 || echo "PORTA 22 INACESSIVEL"
-          curl -sv telnet://ec2-18-221-189-80.us-east-2.compute.amazonaws.com:22 --max-time 10 || true
-
       - name: Setup GraalVM 21
         uses: graalvm/setup-graalvm@v1
         with:
@@ -53,7 +48,7 @@ jobs:
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.2.0
         with:
-          host: ec2-18-221-189-80.us-east-2.compute.amazonaws.com
+          host: ec2-18-222-189-80.us-east-2.compute.amazonaws.com
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
           port: 22
