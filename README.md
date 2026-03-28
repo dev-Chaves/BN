@@ -4,12 +4,6 @@ This project uses Quarkus, the Supersonic Subatomic Java Framework.
 
 If you want to learn more about Quarkus, please visit its website: <https://quarkus.io/>.
 
-## Deployment (AWS Free Tier + Supabase)
-
-For low-cost cloud deployment, follow:
-
-- `AWS_FREE_TIER_DEPLOY.md`
-
 ## Local DEV environment (API + integration tests)
 
 ### Prerequisites
