@@ -11,7 +11,6 @@ jobs:
     permissions:
       contents: read
       packages: write
-      id-token: write
 
     steps:
       - name: Checkout
@@ -30,20 +29,21 @@ jobs:
         run: ./mvnw -B -DskipTests package -Dnative
 
       - name: Login no GHCR
-        run: |
-          echo "${{ secrets.GHCR_TOKEN }}" | \
-          docker login ghcr.io -u "${{ secrets.GHCR_USERNAME }}" --password-stdin
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build e push da imagem
-        env:
-          IMAGE_NAME: ${{ secrets.IMAGE_NAME }}
         run: |
+          IMAGE=ghcr.io/dev-chaves/bn
           docker build -f src/main/docker/Dockerfile.native-micro \
-            -t ${IMAGE_NAME}:${GITHUB_SHA} \
-            -t ${IMAGE_NAME}:latest \
+            -t ${IMAGE}:${GITHUB_SHA} \
+            -t ${IMAGE}:latest \
             .
-          docker push ${IMAGE_NAME}:${GITHUB_SHA}
-          docker push ${IMAGE_NAME}:latest
+          docker push ${IMAGE}:${GITHUB_SHA}
+          docker push ${IMAGE}:latest
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.2.0
@@ -54,11 +54,12 @@ jobs:
           port: ${{ secrets.EC2_PORT }}
           script: |
             set -e
-            IMAGE="${{ secrets.IMAGE_NAME }}"
+            IMAGE="ghcr.io/dev-chaves/bn"
             SHA="${{ github.sha }}"
 
             echo "${{ secrets.GHCR_TOKEN }}" | \
-              docker login ghcr.io -u "${{ secrets.GHCR_USERNAME }}" --password-stdin
+              docker login ghcr.io -u "dev-chaves" --password-stdin
+
             docker pull ${IMAGE}:${SHA}
 
             docker stop bn-api || true
