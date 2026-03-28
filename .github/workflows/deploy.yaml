@@ -2,7 +2,7 @@ name: Build & Deploy — Benefix (Native)
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   workflow_dispatch:
 
 jobs:
@@ -16,15 +16,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # ─── MUDANÇA 1: Usar GraalVM no lugar do Temurin JDK ─────────
       - name: Setup GraalVM 21
-        uses: actions/setup-java@v4
+        uses: graalvm/setup-graalvm@v1
         with:
-          distribution: 'graalvm-community'
           java-version: '21'
+          distribution: 'graalvm-community'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           cache: 'maven'
+          native-image-job-reports: 'true'
 
-      # ─── MUDANÇA 2: Adicionar a flag -Dnative ────────────────────
       - name: Build Native Executable
         run: ./mvnw -B -DskipTests package -Dnative
 
@@ -33,7 +33,6 @@ jobs:
           echo "${{ secrets.GHCR_TOKEN }}" | \
           docker login ghcr.io -u "${{ secrets.GHCR_USERNAME }}" --password-stdin
 
-      # ─── MUDANÇA 3: Usar o Dockerfile.native-micro ───────────────
       - name: Build e push da imagem
         env:
           IMAGE_NAME: ${{ secrets.IMAGE_NAME }}
@@ -61,9 +60,9 @@ jobs:
               docker login ghcr.io -u "${{ secrets.GHCR_USERNAME }}" --password-stdin
             docker pull ${IMAGE}:${SHA}
 
-            docker stop bn-api  || true
-            docker rm   bn-api  || true
-            
+            docker stop bn-api || true
+            docker rm   bn-api || true
+
             docker run -d \
               --name bn-api \
               --restart unless-stopped \
