@@ -48,10 +48,10 @@ jobs:
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.2.0
         with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
+          host: ec2-18-221-189-80.us-east-2.compute.amazonaws.com
+          username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
-          port: ${{ secrets.EC2_PORT }}
+          port: 22
           script: |
             set -e
             IMAGE="ghcr.io/dev-chaves/bn"
