@@ -238,3 +238,5 @@ Native build em container:
 - REST + Jackson: <https://quarkus.io/guides/rest#json-serialisation>
 - JWT: <https://quarkus.io/guides/security-jwt>
 - Reactive SQL Client: <https://quarkus.io/guides/reactive-sql-clients>
+
+*just one more thing...*
