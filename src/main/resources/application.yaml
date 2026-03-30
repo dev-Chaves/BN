@@ -1,4 +1,6 @@
 quarkus:
+  datasource:
+    db-kind: postgresql
   smallrye-jwt:
     enabled: true
 
