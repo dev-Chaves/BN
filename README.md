@@ -1,79 +1,96 @@
-# bn
+# BN API
 
-This project uses Quarkus, the Supersonic Subatomic Java Framework.
+API REST reativa para gestão de benefícios corporativos, construída com Quarkus.
 
-If you want to learn more about Quarkus, please visit its website: <https://quarkus.io/>.
-
-## Local DEV environment (API + integration tests)
-
-### Prerequisites
+## Stack e versões
 
 - Java 21
-- Docker Desktop or OrbStack running
-- Port `5432` available
+- Quarkus 3.32.2
+- Hibernate Reactive + Panache
+- PostgreSQL (JDBC + Reactive Client)
+- Flyway (migração automática no startup)
+- JWT com SmallRye (`Authorization` e cookie `jwt`)
+- OpenAPI/Swagger UI
 
-### 1) Start PostgreSQL locally
+## Arquitetura do projeto
 
-```shell
+Estrutura de domínio em `src/main/java/org/acme/domains`:
+
+- `account`, `auth`, `benefit`, `company`, `employee`, `manager`, `onboarding`, `partnership`, `subscription`
+- `shared` para componentes comuns (por exemplo, `BaseResource`)
+
+Padrão arquitetural predominante:
+
+- `Resource`: contrato HTTP (JAX-RS)
+- `Service`: regra de negócio
+- `Repository`: acesso a dados com Panache reativo
+- `dto/`: payloads de entrada e saída
+
+## Pré-requisitos para desenvolvimento local
+
+- Java 21
+- Docker Desktop ou OrbStack
+- Porta `5432` livre para PostgreSQL
+
+## Configuração de ambiente
+
+O ambiente local está definido em `application-dev.yaml` e `docker-compose.yml`.
+
+Parâmetros padrão:
+
+- Banco: `benefix`
+- Usuário: `postgres`
+- Senha: `password`
+- JDBC URL: `jdbc:postgresql://localhost:5432/benefix`
+- Reactive URL: `postgresql://localhost:5432/benefix`
+
+JWT:
+
+- Chave privada: `src/main/resources/privateKey.pem`
+- Chave pública: `src/main/resources/publicKey.pem`
+- Issuer esperado: `bn-api`
+- Cookie de autenticação: `jwt`
+
+## Subindo infraestrutura local
+
+```bash
 docker compose up -d
 docker compose ps
 ```
 
-The project expects:
-- database: `benefix`
-- user: `postgres`
-- password: `password`
-- host/port: `localhost:5432`
+Parar infraestrutura:
 
-### 2) Run API in dev mode
+```bash
+docker compose down
+```
 
-```shell
+Reset completo do banco local:
+
+```bash
+docker compose down -v && docker compose up -d
+```
+
+## Executando a aplicação
+
+Modo desenvolvimento com hot reload:
+
+```bash
 ./mvnw quarkus:dev
 ```
 
-Useful URLs:
+URLs úteis:
+
 - API base: `http://localhost:8080`
-- Dev UI: `http://localhost:8080/q/dev`
+- Quarkus Dev UI: `http://localhost:8080/q/dev`
 - Swagger UI: `http://localhost:8080/q/swagger-ui`
+- OpenAPI: `http://localhost:8080/q/openapi`
+- Health: `http://localhost:8080/q/health`
 
-The project uses local JWT key files in `src/main/resources`:
-- `privateKey.pem` (token signing)
-- `publicKey.pem` (token verification)
+## Fluxo manual de autenticação e onboarding (curl)
 
-### 3) Run tests
+### 1) Criar tenant e manager
 
-```shell
-# Unit tests
-./mvnw test
-
-# Critical integration test
-./mvnw -Dtest=CriticalIntegrationTest test
-
-# Full pipeline
-./mvnw verify
-```
-
-### 4) Quick API smoke (optional)
-
-```shell
-curl -i http://localhost:8080/q/health
-```
-
-### 5) Test accounts for manual API testing (dev local)
-
-Use these fixed credentials:
-
-- Manager
-  - email: `manager.dev@bn.local`
-  - password: `manager-pass-123`
-- Employee
-  - email: `employee.dev@bn.local`
-  - password: `employee-pass-123`
-
-Bootstrap them in local dev:
-
-```shell
-# 1) Onboard tenant + manager
+```bash
 curl -i -X POST http://localhost:8080/onboarding \
   -H "Content-Type: application/json" \
   -d '{
@@ -88,31 +105,48 @@ curl -i -X POST http://localhost:8080/onboarding \
       "password": "manager-pass-123"
     }
   }'
+```
 
-# 2) Login manager (token no body + cookie jwt HttpOnly)
+### 2) Login manager (token no body + cookie HttpOnly)
+
+```bash
 curl -i -X POST http://localhost:8080/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "manager.dev@bn.local",
     "password": "manager-pass-123"
   }'
+```
 
-# 2.1) Opcional: salvar cookie JWT em arquivo para chamadas autenticadas por cookie
+Salvar cookie para chamadas autenticadas sem header `Authorization`:
+
+```bash
 curl -i -c cookies.txt -X POST http://localhost:8080/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "manager.dev@bn.local",
     "password": "manager-pass-123"
   }'
+```
 
-# 3) Fetch company id via Authorization header (replace <MANAGER_TOKEN>)
+### 3) Buscar dados da empresa do manager
+
+Via Bearer token:
+
+```bash
 curl -i http://localhost:8080/companies/me \
   -H "Authorization: Bearer <MANAGER_TOKEN>"
+```
 
-# 3.1) Fetch company id via cookie JWT (sem Authorization header)
+Via cookie JWT:
+
+```bash
 curl -i -b cookies.txt http://localhost:8080/companies/me
+```
 
-# 4) Create employee (replace <MANAGER_TOKEN> and <COMPANY_ID>)
+### 4) Criar funcionário
+
+```bash
 curl -i -X POST http://localhost:8080/employees \
   -H "Authorization: Bearer <MANAGER_TOKEN>" \
   -H "Content-Type: application/json" \
@@ -123,87 +157,92 @@ curl -i -X POST http://localhost:8080/employees \
     "password": "employee-pass-123",
     "companyId": <COMPANY_ID>
   }'
+```
 
-# 5) Activate employee (replace <MANAGER_TOKEN> and <EMPLOYEE_ID>)
+### 5) Ativar funcionário
+
+```bash
 curl -i -X PUT "http://localhost:8080/employees/activate?employeeId=<EMPLOYEE_ID>" \
   -H "Authorization: Bearer <MANAGER_TOKEN>"
 ```
 
-If records already exist (email/CPF/CNPJ already used), reset local DB:
+## Principais endpoints
 
-```shell
-docker compose down -v && docker compose up -d
+- `POST /onboarding` (público)
+- `POST /auth/login` (público)
+- `GET /companies/me` (`MANAGER`)
+- `GET /managers/me` (`MANAGER`)
+- `POST /managers` (`ADMIN`)
+- `POST /employees` (`MANAGER`)
+- `PUT /employees/activate` (`MANAGER`)
+- `PUT /employees/disable` (`MANAGER`)
+- `GET /employees` (`MANAGER`)
+- `POST /benefits` (`MANAGER`)
+- `GET /benefits/tenant` (`MANAGER`)
+- `GET /benefits/marketplace` (`MANAGER`)
+- `PUT /benefits/{benefitId}` (`MANAGER`)
+- `PUT /benefits/{benefitId}/activate` (`MANAGER`)
+- `PUT /benefits/{benefitId}/deactivate` (`MANAGER`)
+- `DELETE /benefits/{benefitId}` (`MANAGER`)
+- `POST /partnerships` (`MANAGER`)
+- `PUT /partnerships/accept` (`MANAGER`)
+- `PUT /partnerships/reject` (`MANAGER`)
+- `PUT /partnerships/disable` (`MANAGER`)
+- `POST /subscriptions` (`USER`)
+
+## Testes
+
+```bash
+# Todos os testes unitários + cenários Quarkus test
+./mvnw test
+
+# Teste crítico de integração
+./mvnw -Dtest=CriticalIntegrationTest test
+
+# Pipeline completo (inclui failsafe/verify)
+./mvnw verify
 ```
 
-### 5) Stop local infra
+Observações:
 
-```shell
-docker compose down
-```
+- O projeto usa Flyway com `migrate-at-start: true`, então o banco deve estar acessível no bootstrap de testes.
+- Se variáveis de ambiente do Quarkus estiverem sobrescrevendo datasource local, os testes podem falhar por conexão com host externo.
 
-## Running the application in dev mode
+## Build e execução em produção
 
-You can run your application in dev mode that enables live coding using:
+Pacote padrão (`fast-jar`):
 
-```shell script
-./mvnw quarkus:dev
-```
-
-> **_NOTE:_**  Quarkus now ships with a Dev UI, which is available in dev mode only at <http://localhost:8080/q/dev/>.
-
-## Packaging and running the application
-
-The application can be packaged using:
-
-```shell script
+```bash
 ./mvnw package
+java -jar target/quarkus-app/quarkus-run.jar
 ```
 
-It produces the `quarkus-run.jar` file in the `target/quarkus-app/` directory.
-Be aware that it’s not an _über-jar_ as the dependencies are copied into the `target/quarkus-app/lib/` directory.
+Uber JAR:
 
-The application is now runnable using `java -jar target/quarkus-app/quarkus-run.jar`.
-
-If you want to build an _über-jar_, execute the following command:
-
-```shell script
+```bash
 ./mvnw package -Dquarkus.package.jar.type=uber-jar
+java -jar target/*-runner.jar
 ```
 
-The application, packaged as an _über-jar_, is now runnable using `java -jar target/*-runner.jar`.
+Native build:
 
-## Creating a native executable
-
-You can create a native executable using:
-
-```shell script
+```bash
 ./mvnw package -Dnative
 ```
 
-Or, if you don't have GraalVM installed, you can run the native executable build in a container using:
+Native build em container:
 
-```shell script
+```bash
 ./mvnw package -Dnative -Dquarkus.native.container-build=true
 ```
 
-You can then execute your native executable with: `./target/bn-1.0.0-SNAPSHOT-runner`
+## Documentação e guias Quarkus relacionados
 
-If you want to learn more about building native executables, please consult <https://quarkus.io/guides/maven-tooling>.
-
-## Related Guides
-
-- Flyway ([guide](https://quarkus.io/guides/flyway)): Handle your database schema migrations
-- Hibernate Validator ([guide](https://quarkus.io/guides/validation)): Validate object properties (field, getter) and method parameters for your beans (REST, CDI, Jakarta Persistence)
-- SmallRye OpenAPI ([guide](https://quarkus.io/guides/openapi-swaggerui)): Document your REST APIs with OpenAPI - comes with Swagger UI
-- REST Jackson ([guide](https://quarkus.io/guides/rest#json-serialisation)): Jackson serialization support for Quarkus REST. This extension is not compatible with the quarkus-resteasy extension, or any of the extensions that depend on it
-- SmallRye JWT ([guide](https://quarkus.io/guides/security-jwt)): Secure your applications with JSON Web Token
-- Reactive PostgreSQL client ([guide](https://quarkus.io/guides/reactive-sql-clients)): Connect to the PostgreSQL database using the reactive pattern
-- SmallRye JWT Build ([guide](https://quarkus.io/guides/security-jwt-build)): Create JSON Web Token with SmallRye JWT Build API
-
-## Provided Code
-
-### REST
-
-Easily start your REST Web Services
-
-[Related guide section...](https://quarkus.io/guides/getting-started-reactive#reactive-jax-rs-resources)
+- Site oficial: <https://quarkus.io/>
+- Maven tooling: <https://quarkus.io/guides/maven-tooling>
+- Flyway: <https://quarkus.io/guides/flyway>
+- Validation: <https://quarkus.io/guides/validation>
+- OpenAPI/Swagger UI: <https://quarkus.io/guides/openapi-swaggerui>
+- REST + Jackson: <https://quarkus.io/guides/rest#json-serialisation>
+- JWT: <https://quarkus.io/guides/security-jwt>
+- Reactive SQL Client: <https://quarkus.io/guides/reactive-sql-clients>
