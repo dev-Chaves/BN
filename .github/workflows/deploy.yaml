@@ -62,6 +62,10 @@ jobs:
 
             docker pull ${IMAGE}:${SHA}
 
+            test -f /opt/bn/.env || { echo "Arquivo /opt/bn/.env não encontrado"; exit 1; }
+            test -f /opt/bn/secrets/publicKey.pem || { echo "Arquivo /opt/bn/secrets/publicKey.pem não encontrado"; exit 1; }
+            test -f /opt/bn/secrets/privateKey.pem || { echo "Arquivo /opt/bn/secrets/privateKey.pem não encontrado"; exit 1; }
+
             docker stop bn-api || true
             docker rm   bn-api || true
 
