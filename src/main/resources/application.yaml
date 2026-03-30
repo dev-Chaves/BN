@@ -1,6 +1,8 @@
 quarkus:
   datasource:
     db-kind: postgresql
+    reactive:
+      trust-all: true
   smallrye-jwt:
     enabled: true
 
