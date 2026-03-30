@@ -9,7 +9,7 @@ API REST reativa para gestão de benefícios corporativos, construída com Quark
 - Hibernate Reactive + Panache
 - PostgreSQL (JDBC + Reactive Client)
 - Flyway (migração automática no startup)
-- JWT com SmallRye (`Authorization` e cookie `jwt`)
+- JWT com SmallRye (cookie `jwt`)
 - OpenAPI/Swagger UI
 
 ## Arquitetura do projeto
@@ -118,7 +118,7 @@ curl -i -X POST http://localhost:8080/auth/login \
   }'
 ```
 
-Salvar cookie para chamadas autenticadas sem header `Authorization`:
+Salvar cookie para chamadas autenticadas:
 
 ```bash
 curl -i -c cookies.txt -X POST http://localhost:8080/auth/login \
@@ -129,16 +129,7 @@ curl -i -c cookies.txt -X POST http://localhost:8080/auth/login \
   }'
 ```
 
-### 3) Buscar dados da empresa do manager
-
-Via Bearer token:
-
-```bash
-curl -i http://localhost:8080/companies/me \
-  -H "Authorization: Bearer <MANAGER_TOKEN>"
-```
-
-Via cookie JWT:
+### 3) Buscar dados da empresa do manager (via cookie JWT)
 
 ```bash
 curl -i -b cookies.txt http://localhost:8080/companies/me
@@ -148,7 +139,7 @@ curl -i -b cookies.txt http://localhost:8080/companies/me
 
 ```bash
 curl -i -X POST http://localhost:8080/employees \
-  -H "Authorization: Bearer <MANAGER_TOKEN>" \
+  -b cookies.txt \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Employee Dev",
@@ -163,7 +154,7 @@ curl -i -X POST http://localhost:8080/employees \
 
 ```bash
 curl -i -X PUT "http://localhost:8080/employees/activate?employeeId=<EMPLOYEE_ID>" \
-  -H "Authorization: Bearer <MANAGER_TOKEN>"
+  -b cookies.txt
 ```
 
 ## Principais endpoints
@@ -207,6 +198,7 @@ Observações:
 
 - O projeto usa Flyway com `migrate-at-start: true`, então o banco deve estar acessível no bootstrap de testes.
 - Se variáveis de ambiente do Quarkus estiverem sobrescrevendo datasource local, os testes podem falhar por conexão com host externo.
+- No IntelliJ/IDE, evite injetar variáveis de produção (`QUARKUS_DATASOURCE_*`) ao rodar `@QuarkusTest`; os testes locais devem usar `localhost:5432`.
 
 ## Build e execução em produção
 

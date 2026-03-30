@@ -18,7 +18,6 @@ app:
 
 smallrye:
   jwt:
-    always-check-authorization: true
     sign:
       key:
         location: privateKey.pem

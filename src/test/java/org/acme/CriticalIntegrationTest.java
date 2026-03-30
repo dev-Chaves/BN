@@ -1,6 +1,7 @@
 package org.acme;
 
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.TestProfile;
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.atomic.AtomicInteger;
@@ -13,6 +14,7 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.startsWith;
 
 @QuarkusTest
+@TestProfile(LocalDatabaseTestProfile.class)
 class CriticalIntegrationTest {
 
     private static final AtomicInteger SEQUENCE = new AtomicInteger((int) (System.currentTimeMillis() % 1_000_000));
@@ -23,7 +25,7 @@ class CriticalIntegrationTest {
         LoginSession managerSession = loginSession(tenant.managerEmail, tenant.managerPassword);
 
         given()
-                .header("Authorization", "Bearer " + managerSession.token())
+                .header("Cookie", managerSession.cookiePair())
                 .when()
                 .get("/companies/me")
                 .then()
@@ -31,6 +33,13 @@ class CriticalIntegrationTest {
                 .body("id", equalTo(tenant.companyId.intValue()))
                 .body("name", equalTo(tenant.companyName))
                 .body("cnpj", equalTo(tenant.companyCnpj));
+
+        given()
+                .header("Authorization", "Bearer " + managerSession.token())
+                .when()
+                .get("/companies/me")
+                .then()
+                .statusCode(401);
     }
 
     @Test
@@ -54,15 +63,15 @@ class CriticalIntegrationTest {
         OnboardedTenant provider = onboardTenant("provider");
         OnboardedTenant client = onboardTenant("client");
 
-        String providerToken = login(provider.managerEmail, provider.managerPassword);
-        String clientToken = login(client.managerEmail, client.managerPassword);
+        String providerCookie = login(provider.managerEmail, provider.managerPassword);
+        String clientCookie = login(client.managerEmail, client.managerPassword);
 
-        long firstBenefitId = createBenefit(providerToken, provider.companyId, "Gym Plan");
-        long secondBenefitId = createBenefit(providerToken, provider.companyId, "Meal Plan");
+        long firstBenefitId = createBenefit(providerCookie, provider.companyId, "Gym Plan");
+        long secondBenefitId = createBenefit(providerCookie, provider.companyId, "Meal Plan");
 
-        long partnershipToDisable = requestPartnership(clientToken, firstBenefitId);
+        long partnershipToDisable = requestPartnership(clientCookie, firstBenefitId);
         given()
-                .header("Authorization", "Bearer " + providerToken)
+                .header("Cookie", providerCookie)
                 .queryParam("partnershipId", partnershipToDisable)
                 .when()
                 .put("/partnerships/accept")
@@ -71,7 +80,7 @@ class CriticalIntegrationTest {
                 .body("status", equalTo("ACTIVE"));
 
         given()
-                .header("Authorization", "Bearer " + providerToken)
+                .header("Cookie", providerCookie)
                 .queryParam("partnershipId", partnershipToDisable)
                 .when()
                 .put("/partnerships/disable")
@@ -79,9 +88,9 @@ class CriticalIntegrationTest {
                 .statusCode(200)
                 .body("status", equalTo("DISABLED"));
 
-        long partnershipToReject = requestPartnership(clientToken, secondBenefitId);
+        long partnershipToReject = requestPartnership(clientCookie, secondBenefitId);
         given()
-                .header("Authorization", "Bearer " + providerToken)
+                .header("Cookie", providerCookie)
                 .queryParam("partnershipId", partnershipToReject)
                 .when()
                 .put("/partnerships/reject")
@@ -95,19 +104,19 @@ class CriticalIntegrationTest {
         OnboardedTenant provider = onboardTenant("provider-subscription");
         OnboardedTenant client = onboardTenant("client-subscription");
 
-        String providerToken = login(provider.managerEmail, provider.managerPassword);
-        String clientToken = login(client.managerEmail, client.managerPassword);
+        String providerCookie = login(provider.managerEmail, provider.managerPassword);
+        String clientCookie = login(client.managerEmail, client.managerPassword);
 
-        long benefitId = createBenefit(providerToken, provider.companyId, "Transport Benefit");
-        long partnershipId = requestPartnership(clientToken, benefitId);
+        long benefitId = createBenefit(providerCookie, provider.companyId, "Transport Benefit");
+        long partnershipId = requestPartnership(clientCookie, benefitId);
         String employeeEmail = "employee-sub+" + SEQUENCE.incrementAndGet() + "@bn.dev";
         String employeePassword = "employee-pass-123";
-        long employeeId = createEmployee(clientToken, client.companyId, employeeEmail, employeePassword);
-        activateEmployee(clientToken, employeeId);
-        String employeeToken = login(employeeEmail, employeePassword);
+        long employeeId = createEmployee(clientCookie, client.companyId, employeeEmail, employeePassword);
+        activateEmployee(clientCookie, employeeId);
+        String employeeCookie = login(employeeEmail, employeePassword);
 
         given()
-                .header("Authorization", "Bearer " + employeeToken)
+                .header("Cookie", employeeCookie)
                 .contentType("application/json")
                 .body("""
                         {
@@ -121,7 +130,7 @@ class CriticalIntegrationTest {
                 .body("message", containsString("No active partnership"));
 
         given()
-                .header("Authorization", "Bearer " + providerToken)
+                .header("Cookie", providerCookie)
                 .queryParam("partnershipId", partnershipId)
                 .when()
                 .put("/partnerships/accept")
@@ -130,7 +139,7 @@ class CriticalIntegrationTest {
                 .body("status", equalTo("ACTIVE"));
 
         given()
-                .header("Authorization", "Bearer " + employeeToken)
+                .header("Cookie", employeeCookie)
                 .contentType("application/json")
                 .body("""
                         {
@@ -149,19 +158,19 @@ class CriticalIntegrationTest {
         OnboardedTenant provider = onboardTenant("provider-authz");
         OnboardedTenant client = onboardTenant("client-authz");
 
-        String providerToken = login(provider.managerEmail, provider.managerPassword);
-        String clientToken = login(client.managerEmail, client.managerPassword);
+        String providerCookie = login(provider.managerEmail, provider.managerPassword);
+        String clientCookie = login(client.managerEmail, client.managerPassword);
 
         String employeeEmail = "employee-role+" + SEQUENCE.incrementAndGet() + "@bn.dev";
         String employeePassword = "employee-pass-123";
-        long employeeId = createEmployee(clientToken, client.companyId, employeeEmail, employeePassword);
-        activateEmployee(clientToken, employeeId);
-        String employeeToken = login(employeeEmail, employeePassword);
+        long employeeId = createEmployee(clientCookie, client.companyId, employeeEmail, employeePassword);
+        activateEmployee(clientCookie, employeeId);
+        String employeeCookie = login(employeeEmail, employeePassword);
 
-        long benefitId = createBenefit(providerToken, provider.companyId, "Dental Plan");
+        long benefitId = createBenefit(providerCookie, provider.companyId, "Dental Plan");
 
         given()
-                .header("Authorization", "Bearer " + employeeToken)
+                .header("Cookie", employeeCookie)
                 .contentType("application/json")
                 .body("""
                         {
@@ -174,7 +183,7 @@ class CriticalIntegrationTest {
                 .statusCode(403);
 
         given()
-                .header("Authorization", "Bearer " + clientToken)
+                .header("Cookie", clientCookie)
                 .contentType("application/json")
                 .body("""
                         {
@@ -226,7 +235,7 @@ class CriticalIntegrationTest {
 
         String token = login(managerEmail, managerPassword);
         Long companyId = given()
-                .header("Authorization", "Bearer " + token)
+                .header("Cookie", token)
                 .when()
                 .get("/companies/me")
                 .then()
@@ -239,7 +248,7 @@ class CriticalIntegrationTest {
     }
 
     private String login(String email, String password) {
-        return loginSession(email, password).token();
+        return loginSession(email, password).cookiePair();
     }
 
     private LoginSession loginSession(String email, String password) {
@@ -271,9 +280,9 @@ class CriticalIntegrationTest {
         return new LoginSession(token, cookiePair);
     }
 
-    private long createBenefit(String managerToken, long companyId, String benefitName) {
+    private long createBenefit(String managerCookie, long companyId, String benefitName) {
         return given()
-                .header("Authorization", "Bearer " + managerToken)
+                .header("Cookie", managerCookie)
                 .contentType("application/json")
                 .body("""
                         {
@@ -291,9 +300,9 @@ class CriticalIntegrationTest {
                 .getLong("id");
     }
 
-    private long requestPartnership(String managerToken, long benefitId) {
+    private long requestPartnership(String managerCookie, long benefitId) {
         return given()
-                .header("Authorization", "Bearer " + managerToken)
+                .header("Cookie", managerCookie)
                 .contentType("application/json")
                 .body("""
                         {
@@ -309,10 +318,10 @@ class CriticalIntegrationTest {
                 .getLong("id");
     }
 
-    private long createEmployee(String managerToken, long companyId, String email, String password) {
+    private long createEmployee(String managerCookie, long companyId, String email, String password) {
         int id = SEQUENCE.incrementAndGet();
         return given()
-                .header("Authorization", "Bearer " + managerToken)
+                .header("Cookie", managerCookie)
                 .contentType("application/json")
                 .body("""
                         {
@@ -332,9 +341,9 @@ class CriticalIntegrationTest {
                 .getLong("id");
     }
 
-    private void activateEmployee(String managerToken, long employeeId) {
+    private void activateEmployee(String managerCookie, long employeeId) {
         given()
-                .header("Authorization", "Bearer " + managerToken)
+                .header("Cookie", managerCookie)
                 .queryParam("employeeId", employeeId)
                 .when()
                 .put("/employees/activate")
