@@ -52,6 +52,7 @@ jobs:
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
           port: 22
+          envs: JWT_PUBLIC_KEY
           script: |
             set -e
             IMAGE="ghcr.io/dev-chaves/bn"
@@ -61,6 +62,9 @@ jobs:
               docker login ghcr.io -u "dev-chaves" --password-stdin
 
             docker pull ${IMAGE}:${SHA}
+
+            mkdir -p /opt/bn/secrets
+            printf '%s\n' "$JWT_PUBLIC_KEY" > /opt/bn/secrets/publicKey.pem
 
             test -f /opt/bn/.env || { echo "Arquivo /opt/bn/.env não encontrado"; exit 1; }
             test -f /opt/bn/secrets/publicKey.pem || { echo "Arquivo /opt/bn/secrets/publicKey.pem não encontrado"; exit 1; }
@@ -72,7 +76,7 @@ jobs:
             docker run -d \
               --name bn-api \
               --restart unless-stopped \
-                --env-file /opt/bn/.env \
+              --env-file /opt/bn/.env \
               -v /opt/bn/secrets:/opt/bn/secrets:ro \
               -p 127.0.0.1:8080:8080 \
               ${IMAGE}:${SHA}
@@ -95,3 +99,5 @@ jobs:
             fi
 
             docker image prune -f
+        env:
+          JWT_PUBLIC_KEY: ${{ secrets.JWT_PUBLIC_KEY }}
