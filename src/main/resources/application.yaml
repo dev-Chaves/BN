@@ -11,18 +11,19 @@ mp:
       cookie: jwt
     verify:
       publickey:
-        location: publicKey.pem
+        location: /opt/bn/secrets/publicKey.pem
       issuer: bn-api
 
 app:
   cookie:
     secure: true
 
+
 smallrye:
   jwt:
     sign:
       key:
-        location: privateKey.pem
+        location: /opt/bn/secrets/privateKey.pem
 
   swagger-ui:
     always-include: true
