@@ -72,18 +72,26 @@ jobs:
             docker run -d \
               --name bn-api \
               --restart unless-stopped \
-              --env-file /opt/bn/.env \
+                --env-file /opt/bn/.env \
               -v /opt/bn/secrets:/opt/bn/secrets:ro \
               -p 127.0.0.1:8080:8080 \
               ${IMAGE}:${SHA}
 
             echo "Aguardando a API subir..."
+            up=0
             for i in $(seq 1 30); do
               if curl -sf http://127.0.0.1:8080/q/health > /dev/null; then
                 echo "API no ar!"
+                up=1
                 break
               fi
               sleep 2
             done
+
+            if [ "$up" -ne 1 ]; then
+              echo "API não ficou saudável após 60s. Últimos logs:"
+              docker logs --tail 200 bn-api || true
+              exit 1
+            fi
 
             docker image prune -f
