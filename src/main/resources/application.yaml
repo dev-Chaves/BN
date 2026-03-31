@@ -19,6 +19,10 @@ mp:
 app:
   cookie:
     secure: true
+  swagger:
+    auth:
+      username: ${SWAGGER_BASIC_AUTH_USERNAME:}
+      password: ${SWAGGER_BASIC_AUTH_PASSWORD:}
 
 
 smallrye:
@@ -29,3 +33,13 @@ smallrye:
 
   swagger-ui:
     always-include: true
+
+"%prod":
+  quarkus:
+    http:
+      auth:
+        basic: true
+        permission:
+          docs:
+            paths: /q/swagger-ui/*,/q/openapi*
+            policy: authenticated

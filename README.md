@@ -228,6 +228,33 @@ Native build em container:
 ./mvnw package -Dnative -Dquarkus.native.container-build=true
 ```
 
+### Swagger protegido com Basic Auth em produção
+
+Em produção (`%prod`), a documentação exige Basic Auth nos endpoints:
+
+- `GET /q/swagger-ui/*`
+- `GET /q/openapi*`
+
+Configurar no `.env` da EC2 (ou variáveis do container):
+
+```bash
+SWAGGER_BASIC_AUTH_USERNAME=seu_usuario_docs
+SWAGGER_BASIC_AUTH_PASSWORD=sua_senha_docs_forte
+```
+
+Exemplo de acesso ao OpenAPI em produção:
+
+```bash
+curl -i -u "$SWAGGER_BASIC_AUTH_USERNAME:$SWAGGER_BASIC_AUTH_PASSWORD" \
+  https://SEU_HOST/q/openapi
+```
+
+Notas operacionais:
+
+- A proteção Basic Auth é aplicada apenas na documentação; a API de negócio continua com JWT via cookie.
+- Se `SWAGGER_BASIC_AUTH_USERNAME`/`SWAGGER_BASIC_AUTH_PASSWORD` não estiverem definidas em produção, o bootstrap falha por configuração ausente.
+- Use HTTPS no ambiente público para proteger credenciais Basic Auth em trânsito.
+
 ## Documentação e guias Quarkus relacionados
 
 - Site oficial: <https://quarkus.io/>
