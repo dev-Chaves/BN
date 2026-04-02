@@ -38,6 +38,7 @@ nb-configuration.xml
 
 # Local environment
 .env
+REVIEW_MELHORIAS_REPOSITORIO.md
 
 # Plugin directory
 /.quarkus/cli/plugins/

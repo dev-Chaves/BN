@@ -3,6 +3,7 @@ quarkus:
     db-kind: postgresql
     reactive:
       trust-certificates-pem: /certs/global-bundle.pem
+      hostname-verification-algorithm: HTTPS
       postgresql:
         ssl-mode: verify-full
   smallrye-jwt:
