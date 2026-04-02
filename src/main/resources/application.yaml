@@ -2,7 +2,8 @@ quarkus:
   datasource:
     db-kind: postgresql
     reactive:
-      trust-certificates-pem: /certs/global-bundle.pem
+      trust-certificate-pem:
+        certs: /certs/global-bundle.pem
       hostname-verification-algorithm: HTTPS
       postgresql:
         ssl-mode: verify-full
