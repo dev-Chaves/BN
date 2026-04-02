@@ -4,7 +4,7 @@ quarkus:
     reactive:
       trust-certificates-pem: /certs/global-bundle.pem
       postgresql:
-        ssl-mode: verify-ca
+        ssl-mode: verify-full
   smallrye-jwt:
     enabled: true
 
