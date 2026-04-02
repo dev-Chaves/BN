@@ -266,4 +266,4 @@ Notas operacionais:
 - JWT: <https://quarkus.io/guides/security-jwt>
 - Reactive SQL Client: <https://quarkus.io/guides/reactive-sql-clients>
 
-*just one more thing...*
+*one more word...*
