@@ -228,6 +228,14 @@ Native build em container:
 ./mvnw package -Dnative -Dquarkus.native.container-build=true
 ```
 
+### Observação sobre serialização JSON em native image
+
+Este projeto usa um registro central de reflection para payloads JSON da API em:
+
+- `src/main/java/org/acme/domains/shared/api/NativeJsonReflectionConfig.java`
+
+Sempre que adicionar novo DTO de request/response exposto por endpoint, inclua o tipo nesse registro para evitar falhas em runtime nativo (ex.: `InvalidDefinitionException: No serializer found ...`).
+
 ### Swagger protegido com Basic Auth em produção
 
 Em produção (`%prod`), a documentação exige Basic Auth nos endpoints:
