@@ -5,6 +5,9 @@ quarkus:
   smallrye-jwt:
     enabled: true
 
+  swagger-ui:
+    always-include: true
+
 mp:
   jwt:
     token:
@@ -29,9 +32,6 @@ smallrye:
     sign:
       key:
         location: /opt/bn/secrets/privateKey.pem
-
-  swagger-ui:
-    always-include: true
 
 "%prod":
   quarkus:
