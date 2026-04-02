@@ -73,6 +73,7 @@ jobs:
               --name bn-api \
               --restart unless-stopped \
               --env-file /opt/bn/.env \
+              -v /home/ec2-user/certs:/certs:ro \
               -v /opt/bn/secrets:/opt/bn/secrets:ro \
               -p 127.0.0.1:8080:8080 \
               ${IMAGE}:${SHA}

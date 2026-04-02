@@ -20,6 +20,30 @@ quarkus:
   smallrye-jwt:
     enabled: true
 
+  server:
+    port: 9090
+
+  http:
+    auth:
+      basic: true
+      permission:
+        docs:
+          paths: /q/swagger-ui/*,/q/openapi*
+          policy: authenticated
+
+mp:
+  jwt:
+    verify:
+      publickey:
+        location: publicKey.pem
+      issuer: bn-api
+
+smallrye:
+  jwt:
+    sign:
+      key:
+        location: privateKey.pem
+
   swagger-ui:
     always-include: true
 

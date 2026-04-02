@@ -2,7 +2,9 @@ quarkus:
   datasource:
     db-kind: postgresql
     reactive:
-      trust-all: true
+      trust-certificates-pem: /certs/global-bundle.pem
+      postgresql:
+        ssl-mode: verify-ca
   smallrye-jwt:
     enabled: true
 
