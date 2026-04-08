@@ -16,23 +16,23 @@ public class IpResolver implements IdentityResolver {
     @Override
     public String getIdentityKey() {
 
-        String ip = extractIp(request.getHeader("X-Forwarded-For"));
+        String ip = request.getHeader("X-Forwarded-For");
 
-        if(ip != null) {
-            return ip;
+        String host = request.getHeader("X-Real-IP");
+
+        if(ip != null && !ip.isBlank()){
+            return normalize(ip);
         }
 
-        ip = extractIp(request.getHeader("Proxy-Client-IP"));
-
-        if(!ip.isBlank()) {
-            return ip;
+        if(host != null && !host.isBlank()){
+            return normalize(host);
         }
 
-        return extractIp(request.remoteAddress().host());
+        return normalize(request.remoteAddress().host());
 
     }
 
-    private String extractIp(String ip){
+    private String normalize(String ip){
         if(ip == null || ip.isBlank()){
             return null;
         }

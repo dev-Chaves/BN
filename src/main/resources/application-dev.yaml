@@ -31,15 +31,6 @@ quarkus:
           paths: /q/swagger-ui/*,/q/openapi*
           policy: authenticated
 
-  rate-limiter:
-    buckets:
-      group1:
-        limits:
-          - permitted-uses: 10
-            period: 1S
-          - permitted-uses: 100
-            period: 5M
-
 mp:
   jwt:
     verify:
