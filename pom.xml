@@ -102,6 +102,11 @@
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-elytron-security</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.quarkiverse.bucket4j</groupId>
+            <artifactId>quarkus-bucket4j</artifactId>
+            <version>1.0.7</version>
+        </dependency>
     </dependencies>
 
     <build>

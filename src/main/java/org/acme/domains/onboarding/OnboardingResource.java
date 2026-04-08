@@ -1,5 +1,6 @@
 package org.acme.domains.onboarding;
 
+import io.quarkiverse.bucket4j.runtime.RateLimited;
 import jakarta.ws.rs.core.Response;
 import jakarta.validation.Valid;
 import org.acme.domains.onboarding.dto.OnboardingRequest;
@@ -27,6 +28,7 @@ public class OnboardingResource implements BaseResource {
     }
 
     @POST
+    @RateLimited(bucket = "onboarding-group")
     public Uni<Response> onboardingCompany(@Valid OnboardingRequest request) {
         return toCreated(onboardingService.onboardingCompany(request));
     }

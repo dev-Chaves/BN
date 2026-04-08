@@ -21,3 +21,12 @@ quarkus:
 
   smallrye-jwt:
     enabled: true
+
+  rate-limiter:
+    buckets:
+      group1:
+        limits:
+          - permitted-uses: 10
+            period: 1S
+          - permitted-uses: 100
+            period: 5M
