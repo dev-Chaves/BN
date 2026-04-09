@@ -12,6 +12,7 @@ import jakarta.ws.rs.core.Response;
 import org.acme.domains.auth.dto.LoginResponse;
 import org.acme.domains.auth.dto.LoginRequest;
 import org.acme.domains.shared.api.BaseResource;
+import org.acme.domains.shared.api.IpResolver;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 @ApplicationScoped
@@ -34,7 +35,7 @@ public class AuthResource implements BaseResource {
     @POST()
     @Path("/login")
     @PermitAll
-    @RateLimited(bucket = "auth-group")
+    @RateLimited(bucket = "auth-group", identityResolver = IpResolver.class)
     public Uni<Response> login(@Valid LoginRequest request) {
         return authService.login(request)
                 .map(this::toLoginResponseWithCookie);

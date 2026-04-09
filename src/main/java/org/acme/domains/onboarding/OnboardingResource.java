@@ -14,6 +14,7 @@ import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import org.acme.domains.shared.api.BaseResource;
+import org.acme.domains.shared.api.IpResolver;
 
 @Path("/onboarding")
 @ApplicationScoped
@@ -28,7 +29,7 @@ public class OnboardingResource implements BaseResource {
     }
 
     @POST
-    @RateLimited(bucket = "onboarding-group")
+    @RateLimited(bucket = "onboarding-group", identityResolver = IpResolver.class)
     public Uni<Response> onboardingCompany(@Valid OnboardingRequest request) {
         return toCreated(onboardingService.onboardingCompany(request));
     }
