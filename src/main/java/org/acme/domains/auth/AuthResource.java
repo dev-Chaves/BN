@@ -1,5 +1,6 @@
 package org.acme.domains.auth;
 
+import io.quarkiverse.bucket4j.runtime.RateLimited;
 import io.smallrye.mutiny.Uni;
 import jakarta.annotation.security.PermitAll;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -33,6 +34,7 @@ public class AuthResource implements BaseResource {
     @POST()
     @Path("/login")
     @PermitAll
+    @RateLimited(bucket = "auth-group")
     public Uni<Response> login(@Valid LoginRequest request) {
         return authService.login(request)
                 .map(this::toLoginResponseWithCookie);
