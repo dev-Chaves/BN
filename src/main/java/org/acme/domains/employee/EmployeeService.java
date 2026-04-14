@@ -73,7 +73,7 @@ public class EmployeeService {
                                 .flatMap(employee -> tenantGuard.verifyManagerEmployeeAccess(manager, employee))
                                 .flatMap(this::validateNotDisabled)
                                 .flatMap(employee -> {
-                                    employee.disableEmployee(DISABLED);
+                                    employee.disable();
                                     return employeeRepository.persist(employee);
                                 })
                                 .map(this::toResponse)
@@ -89,7 +89,7 @@ public class EmployeeService {
                                 .flatMap(employee -> tenantGuard.verifyManagerEmployeeAccess(manager, employee))
                                 .flatMap(this::validateNotActive)
                                 .flatMap(employee -> {
-                                    employee.activeEmployee(ACTIVE);
+                                    employee.active();
                                     return employeeRepository.persist(employee);
                                 })
                                 .map(this::toResponse)

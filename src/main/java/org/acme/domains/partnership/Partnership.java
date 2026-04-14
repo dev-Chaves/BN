@@ -3,14 +3,19 @@ package org.acme.domains.partnership;
 import org.acme.domains.benefit.Benefit;
 import org.acme.domains.company.Company;
 
-import io.quarkus.hibernate.reactive.panache.PanacheEntity;
+import io.quarkus.hibernate.reactive.panache.PanacheEntityBase;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "partnerships")
-public class Partnership extends PanacheEntity {
+public class Partnership extends PanacheEntityBase {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "partnershipsSeq")
+    @SequenceGenerator(name = "partnershipsSeq", sequenceName = "partnerships_SEQ", allocationSize = 50)
+    public Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "client_company_id")

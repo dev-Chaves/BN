@@ -3,7 +3,7 @@ package org.acme.domains.benefit;
 import org.acme.domains.company.Company;
 import org.acme.domains.subscription.Subscription;
 
-import io.quarkus.hibernate.reactive.panache.PanacheEntity;
+import io.quarkus.hibernate.reactive.panache.PanacheEntityBase;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
@@ -11,7 +11,12 @@ import java.util.List;
 
 @Entity
 @Table(name = "benefits")
-public class Benefit extends PanacheEntity {
+public class Benefit extends PanacheEntityBase {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "benefitsSeq")
+    @SequenceGenerator(name = "benefitsSeq", sequenceName = "benefits_SEQ", allocationSize = 50)
+    public Long id;
 
     @Column(nullable = false)
     private String name;

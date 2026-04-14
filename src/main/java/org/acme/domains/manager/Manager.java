@@ -3,14 +3,19 @@ package org.acme.domains.manager;
 import org.acme.domains.account.Account;
 import org.acme.domains.company.Company;
 
-import io.quarkus.hibernate.reactive.panache.PanacheEntity;
+import io.quarkus.hibernate.reactive.panache.PanacheEntityBase;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "managers")
-public class Manager extends PanacheEntity {
+public class Manager extends PanacheEntityBase {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "managersSeq")
+    @SequenceGenerator(name = "managersSeq", sequenceName = "managers_SEQ", allocationSize = 50)
+    public Long id;
 
     @Column(nullable = false)
     private String name;

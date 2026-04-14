@@ -3,14 +3,19 @@ package org.acme.domains.subscription;
 import org.acme.domains.benefit.Benefit;
 import org.acme.domains.employee.Employee;
 
-import io.quarkus.hibernate.reactive.panache.PanacheEntity;
+import io.quarkus.hibernate.reactive.panache.PanacheEntityBase;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "subscriptions")
-public class Subscription extends PanacheEntity {
+public class Subscription extends PanacheEntityBase {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "subscriptionsSeq")
+    @SequenceGenerator(name = "subscriptionsSeq", sequenceName = "subscriptions_SEQ", allocationSize = 50)
+    public Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "benefit_id", nullable = false)

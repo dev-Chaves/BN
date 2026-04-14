@@ -5,7 +5,7 @@ import org.acme.domains.employee.Employee;
 import org.acme.domains.manager.Manager;
 import org.acme.domains.shared.domain.CNPJ;
 
-import io.quarkus.hibernate.reactive.panache.PanacheEntity;
+import io.quarkus.hibernate.reactive.panache.PanacheEntityBase;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
@@ -15,7 +15,12 @@ import java.util.Set;
 
 @Entity
 @Table(name = "companies")
-public class Company extends PanacheEntity {
+public class Company extends PanacheEntityBase {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "companiesSeq")
+    @SequenceGenerator(name = "companiesSeq", sequenceName = "companies_SEQ", allocationSize = 50)
+    public Long id;
 
     @Column(nullable = false)
     private String name;

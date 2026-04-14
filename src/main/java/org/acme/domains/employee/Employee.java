@@ -4,7 +4,7 @@ import org.acme.domains.account.Account;
 import org.acme.domains.company.Company;
 import org.acme.domains.subscription.Subscription;
 
-import io.quarkus.hibernate.reactive.panache.PanacheEntity;
+import io.quarkus.hibernate.reactive.panache.PanacheEntityBase;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
@@ -12,7 +12,12 @@ import java.util.List;
 
 @Entity
 @Table(name = "employees")
-public class Employee extends PanacheEntity {
+public class Employee extends PanacheEntityBase {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "employeesSeq")
+    @SequenceGenerator(name = "employeesSeq", sequenceName = "employees_SEQ", allocationSize = 50)
+    public Long id;
 
     @Column(nullable = false)
     private String name;
@@ -40,6 +45,7 @@ public class Employee extends PanacheEntity {
         this.name = builder.name;
         this.company = builder.company;
         this.account = builder.account;
+        this.active = builder.active;
     }
 
     public String getName() { return name; }
@@ -59,7 +65,9 @@ public class Employee extends PanacheEntity {
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
-        this.active = EmployeeStatus.DISABLED;
+        if (this.active == null) {
+            this.active = EmployeeStatus.DISABLED;
+        }
     }
 
     public void update(String name) {
@@ -78,6 +86,8 @@ public class Employee extends PanacheEntity {
         private final Company company;
         private final Account account;
 
+        private EmployeeStatus active = EmployeeStatus.DISABLED;
+
         public Builder(String name, Company company, Account account) {
             this.name = name;
             this.company = company;
@@ -89,14 +99,14 @@ public class Employee extends PanacheEntity {
         }
     }
 
-    public void activeEmployee(EmployeeStatus val) {
-        if (val == EmployeeStatus.DISABLED) throw new IllegalArgumentException("This employee is disabled");
-        this.active = val;
+    public void active() {
+        if (this.active == EmployeeStatus.ACTIVE) throw new IllegalArgumentException("This employee is already activated");
+        this.active = EmployeeStatus.ACTIVE;
     }
 
-    public void disableEmployee(EmployeeStatus val) {
-        if (val == EmployeeStatus.ACTIVE) throw new IllegalArgumentException("This employee is activated");
-        this.active = val;
+    public void disable() {
+        if (this.active == EmployeeStatus.DISABLED) throw new IllegalArgumentException("This employee is already disabled");
+        this.active = EmployeeStatus.DISABLED;
     }
 
     public void defineCompany(Company company) {
