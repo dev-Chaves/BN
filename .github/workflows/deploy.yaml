@@ -52,7 +52,7 @@ jobs:
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
           port: 22
-          envs: JWT_PUBLIC_KEY
+          envs: JWT_PUBLIC_KEY,JWT_PRIVATE_KEY
           script: |
             set -e
             IMAGE="ghcr.io/dev-chaves/bn"
@@ -65,6 +65,7 @@ jobs:
 
             mkdir -p /opt/bn/secrets
             printf '%s\n' "$JWT_PUBLIC_KEY" > /opt/bn/secrets/publicKey.pem
+            printf '%s\n' "$JWT_PRIVATE_KEY" > /opt/bn/secrets/privateKey.pem
 
             docker stop bn-api || true
             docker rm   bn-api || true
@@ -90,3 +91,4 @@ jobs:
             docker image prune -f
         env:
           JWT_PUBLIC_KEY: ${{ secrets.JWT_PUBLIC_KEY }}
+          JWT_PRIVATE_KEY: ${{ secrets.JWT_PRIVATE_KEY }}
