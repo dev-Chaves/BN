@@ -209,7 +209,7 @@ Pacote padrão (`fast-jar`):
 java -jar target/quarkus-app/quarkus-run.jar
 ```
 
-Uber JAR:
+JAR:
 
 ```bash
 ./mvnw package -Dquarkus.package.jar.type=uber-jar
