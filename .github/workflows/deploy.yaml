@@ -64,8 +64,8 @@ jobs:
             docker pull ${IMAGE}:${SHA}
 
             mkdir -p /opt/bn/secrets
-            printf '%s\n' "$JWT_PUBLIC_KEY" > /opt/bn/secrets/publicKey.pem
-            printf '%s\n' "$JWT_PRIVATE_KEY" > /opt/bn/secrets/privateKey.pem
+            printf '%b\n' "$JWT_PUBLIC_KEY" > /opt/bn/secrets/publicKey.pem
+            printf '%b\n' "$JWT_PRIVATE_KEY" > /opt/bn/secrets/privateKey.pem
 
             docker stop bn-api || true
             docker rm   bn-api || true
