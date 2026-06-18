@@ -41,6 +41,11 @@ public class GlobalExceptionMapper implements ExceptionMapper<Throwable> {
             return response(Response.Status.NOT_FOUND, exception.getMessage());
         }
 
+        if (exception instanceof org.hibernate.exception.ConstraintViolationException hibernateConstraint) {
+            LOG.warnf("Database constraint violation: %s", hibernateConstraint.getMessage());
+            return response(Response.Status.CONFLICT, "Resource conflict: " + hibernateConstraint.getConstraintName());
+        }
+
         LOG.errorf(
                 exception,
                 "Unhandled application exception type=%s message=%s",

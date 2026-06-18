@@ -1,6 +1,7 @@
 package org.acme.domains.employee;
 
 import io.quarkus.elytron.security.common.BcryptUtil;
+import io.quarkus.hibernate.reactive.panache.common.WithSession;
 import io.quarkus.hibernate.reactive.panache.common.WithTransaction;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -57,7 +58,14 @@ public class EmployeeService {
                 request.email(),
                 Role.USER).build();
 
-        return validateManager(managerEmail)
+        return accountRepository.findByEmail(request.email())
+                .flatMap(existing -> {
+                    if (existing != null) {
+                        LOG.warnf("Email already exists email=%s", request.email());
+                        return Uni.createFrom().failure(new IllegalStateException("Email already in use"));
+                    }
+                    return validateManager(managerEmail);
+                })
                 .flatMap(manager -> tenantGuard.verifyManagerCompanyAccess(manager, companyId))
                 .onItem().transform((company) -> Employee.builder(request.name(), company,  account).build())
                 .call(() -> accountRepository.persist(account))
@@ -111,6 +119,7 @@ public class EmployeeService {
                 );
     }
 
+    @WithSession
     public Uni<List<EmployeeResponse>> listByTenant(String managerEmail, Long companyId) {
         return validateManager(managerEmail)
                 .flatMap(manager -> tenantGuard.verifyManagerCompanyAccess(manager, companyId))

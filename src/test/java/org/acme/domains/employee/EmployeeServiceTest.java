@@ -67,6 +67,7 @@ class EmployeeServiceTest {
                 10L
         );
 
+        when(accountRepository.findByEmail("employee@acme.com")).thenReturn(Uni.createFrom().nullItem());
         when(managerRepository.findByEmail("manager@acme.com")).thenReturn(Uni.createFrom().nullItem());
 
         assertThrows(NotFoundException.class, () ->
@@ -90,6 +91,7 @@ class EmployeeServiceTest {
                 Account.builder("Manager", CPF.of("52998224725"), "pwd", "manager@acme.com", Role.MANAGER).build()
         ).build();
 
+        when(accountRepository.findByEmail("employee@acme.com")).thenReturn(Uni.createFrom().nullItem());
         when(managerRepository.findByEmail("manager@acme.com")).thenReturn(Uni.createFrom().item(manager));
         when(tenantGuard.verifyManagerCompanyAccess(manager, 99L)).thenReturn(Uni.createFrom().failure(new SecurityException("Unauthorized access: Tenant mismatch")));
 
@@ -116,6 +118,7 @@ class EmployeeServiceTest {
                 Account.builder("Manager", CPF.of("52998224725"), "pwd", "manager@acme.com", Role.MANAGER).build()
         ).build();
 
+        when(accountRepository.findByEmail("employee@acme.com")).thenReturn(Uni.createFrom().nullItem());
         when(managerRepository.findByEmail("manager@acme.com")).thenReturn(Uni.createFrom().item(manager));
         when(tenantGuard.verifyManagerCompanyAccess(manager, 10L)).thenReturn(Uni.createFrom().item(company));
         when(accountRepository.persist(any(Account.class))).thenAnswer(invocation -> {
@@ -134,5 +137,22 @@ class EmployeeServiceTest {
         assertEquals(50L, response.id());
         assertEquals("Employee", response.name());
         assertEquals(10L, response.companyId());
+    }
+
+    @Test
+    void shouldFailWhenEmailAlreadyExists() {
+        CreateEmployeeRequest request = new CreateEmployeeRequest(
+                "Employee",
+                "52998224725",
+                "existing@acme.com",
+                "123456",
+                10L
+        );
+        Account existingAccount = Account.builder("Existing", CPF.of("52998224725"), "pwd", "existing@acme.com", Role.USER).build();
+
+        when(accountRepository.findByEmail("existing@acme.com")).thenReturn(Uni.createFrom().item(existingAccount));
+
+        assertThrows(IllegalStateException.class, () ->
+                employeeService.createEmployee(request, "manager@acme.com", 10L).await().indefinitely());
     }
 }
