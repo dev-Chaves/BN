@@ -1,5 +1,6 @@
 package org.acme.domains.benefit;
 
+import org.acme.domains.category.Category;
 import org.acme.domains.company.Company;
 import org.acme.domains.subscription.Subscription;
 
@@ -7,7 +8,9 @@ import io.quarkus.hibernate.reactive.panache.PanacheEntityBase;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Entity
 @Table(name = "benefits")
@@ -33,6 +36,14 @@ public class Benefit extends PanacheEntityBase {
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "benefit")
     private List<Subscription> subscriptions;
 
+    @ManyToMany
+    @JoinTable(
+            name = "benefit_categories",
+            joinColumns = @JoinColumn(name = "benefit_id"),
+            inverseJoinColumns = @JoinColumn(name = "category_id")
+    )
+    private Set<Category> categories = new HashSet<>();
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -46,6 +57,7 @@ public class Benefit extends PanacheEntityBase {
         this.name = builder.name;
         this.provider = builder.provider;
         this.description = builder.description;
+        this.categories = new HashSet<>(builder.categories);
     }
 
     public String getName() { return name; }
@@ -53,6 +65,7 @@ public class Benefit extends PanacheEntityBase {
     public Company getProvider() { return provider; }
     public Boolean getActive() { return active; }
     public List<Subscription> getSubscriptions() { return subscriptions; }
+    public Set<Category> getCategories() { return categories; }
     public LocalDateTime getCreatedAt() { return createdAt; }
 
     private void setName(String name) { this.name = name; }
@@ -60,6 +73,7 @@ public class Benefit extends PanacheEntityBase {
     private void setProvider(Company provider) { this.provider = provider; }
     private void setActive(Boolean active) { this.active = active; }
     private void setSubscriptions(List<Subscription> subscriptions) { this.subscriptions = subscriptions; }
+    private void setCategories(Set<Category> categories) { this.categories = categories; }
     private void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
     @PrePersist
@@ -77,11 +91,18 @@ public class Benefit extends PanacheEntityBase {
         }
     }
 
+    public void updateCategories(Set<Category> categories) {
+        if (categories != null) {
+            this.categories = new HashSet<>(categories);
+        }
+    }
+
     public static class Builder {
 
         private final String name;
         private final Company provider;
         private String description;
+        private final Set<Category> categories = new HashSet<>();
 
         public Builder(String name, Company provider) {
             this.name = name;
@@ -91,6 +112,16 @@ public class Benefit extends PanacheEntityBase {
         public Builder description(String val) {
             if (val.isBlank()) throw new IllegalArgumentException("Description cant be null");
             description = val;
+            return this;
+        }
+
+        public Builder category(Category category) {
+            this.categories.add(category);
+            return this;
+        }
+
+        public Builder categories(Set<Category> categories) {
+            this.categories.addAll(categories);
             return this;
         }
 

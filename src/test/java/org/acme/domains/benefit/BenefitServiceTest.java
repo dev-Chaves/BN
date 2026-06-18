@@ -5,6 +5,8 @@ import jakarta.ws.rs.NotFoundException;
 import org.acme.domains.account.Account;
 import org.acme.domains.benefit.dto.BenefitResponse;
 import org.acme.domains.benefit.dto.CreateBenefitRequest;
+import org.acme.domains.category.Category;
+import org.acme.domains.category.CategoryRepository;
 import org.acme.domains.company.Company;
 import org.acme.domains.company.CompanyRepository;
 import org.acme.domains.manager.Manager;
@@ -17,6 +19,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+
+import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -37,17 +42,21 @@ class BenefitServiceTest {
     @Mock
     private TenantGuard tenantGuard;
 
+    @Mock
+    private CategoryRepository categoryRepository;
+
     private BenefitService benefitService;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        benefitService = new BenefitService(managerRepository, benefitRepository, companyRepository, tenantGuard);
+        benefitService = new BenefitService(managerRepository, benefitRepository, companyRepository, categoryRepository, tenantGuard);
     }
 
     @Test
     void shouldFailWhenManagerNotFound() {
-        CreateBenefitRequest request = new CreateBenefitRequest("Gym", "desc", 10L);
+        CreateBenefitRequest request = new CreateBenefitRequest("Gym", "desc", 10L, null);
+        when(categoryRepository.findByIds(any())).thenReturn(Uni.createFrom().item(List.of()));
         when(managerRepository.findByEmail("manager@acme.com")).thenReturn(Uni.createFrom().nullItem());
 
         assertThrows(RuntimeException.class, () ->
@@ -56,9 +65,10 @@ class BenefitServiceTest {
 
     @Test
     void shouldFailWhenTenantValidationFails() {
-        CreateBenefitRequest request = new CreateBenefitRequest("Gym", "desc", 99L);
+        CreateBenefitRequest request = new CreateBenefitRequest("Gym", "desc", 99L, null);
         Manager manager = buildManager(10L);
 
+        when(categoryRepository.findByIds(any())).thenReturn(Uni.createFrom().item(List.of()));
         when(managerRepository.findByEmail("manager@acme.com")).thenReturn(Uni.createFrom().item(manager));
         when(tenantGuard.verifyManagerCompanyAccess(manager, 99L))
                 .thenReturn(Uni.createFrom().failure(new SecurityException("Unauthorized access: Tenant mismatch")));
@@ -69,11 +79,12 @@ class BenefitServiceTest {
 
     @Test
     void shouldCreateBenefit() {
-        CreateBenefitRequest request = new CreateBenefitRequest("Gym", "desc", 10L);
+        CreateBenefitRequest request = new CreateBenefitRequest("Gym", "desc", 10L, null);
         Company company = Company.builder("ACME", CNPJ.of("11222333000181")).build();
         company.id = 10L;
         Manager manager = buildManager(10L);
 
+        when(categoryRepository.findByIds(any())).thenReturn(Uni.createFrom().item(List.of()));
         when(managerRepository.findByEmail("manager@acme.com")).thenReturn(Uni.createFrom().item(manager));
         when(tenantGuard.verifyManagerCompanyAccess(manager, 10L)).thenReturn(Uni.createFrom().item(company));
         when(benefitRepository.persist(any(Benefit.class))).thenAnswer(invocation -> {
@@ -88,6 +99,48 @@ class BenefitServiceTest {
         assertEquals(7L, response.id());
         assertEquals("Gym", response.benefitName());
         assertEquals("ACME", response.nameProvider());
+    }
+
+    @Test
+    void shouldCreateBenefitWithCategories() {
+        Category health = new Category("Saúde");
+        health.id = 1L;
+        CreateBenefitRequest request = new CreateBenefitRequest("Gym", "desc", 10L, List.of(1L));
+        Company company = Company.builder("ACME", CNPJ.of("11222333000181")).build();
+        company.id = 10L;
+        Manager manager = buildManager(10L);
+
+        when(categoryRepository.findByIds(List.of(1L))).thenReturn(Uni.createFrom().item(List.of(health)));
+        when(managerRepository.findByEmail("manager@acme.com")).thenReturn(Uni.createFrom().item(manager));
+        when(tenantGuard.verifyManagerCompanyAccess(manager, 10L)).thenReturn(Uni.createFrom().item(company));
+        when(benefitRepository.persist(any(Benefit.class))).thenAnswer(invocation -> {
+            Benefit benefit = invocation.getArgument(0);
+            benefit.id = 7L;
+            benefit.activeBenefit();
+            return Uni.createFrom().item(benefit);
+        });
+
+        BenefitResponse response = benefitService.createBenefit(request, "manager@acme.com").await().indefinitely();
+
+        assertEquals(7L, response.id());
+        assertEquals("Gym", response.benefitName());
+        assertEquals(1, response.categories().size());
+        assertEquals("Saúde", response.categories().get(0).name());
+    }
+
+    @Test
+    void shouldFailWhenCategoryNotFound() {
+        CreateBenefitRequest request = new CreateBenefitRequest("Gym", "desc", 10L, List.of(99L));
+        Company company = Company.builder("ACME", CNPJ.of("11222333000181")).build();
+        company.id = 10L;
+        Manager manager = buildManager(10L);
+
+        when(categoryRepository.findByIds(List.of(99L))).thenReturn(Uni.createFrom().item(List.of()));
+        when(managerRepository.findByEmail("manager@acme.com")).thenReturn(Uni.createFrom().item(manager));
+        when(tenantGuard.verifyManagerCompanyAccess(manager, 10L)).thenReturn(Uni.createFrom().item(company));
+
+        assertThrows(NotFoundException.class, () ->
+                benefitService.createBenefit(request, "manager@acme.com").await().indefinitely());
     }
 
     private Manager buildManager(Long companyId) {

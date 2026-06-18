@@ -28,4 +28,12 @@ public class BenefitRepository implements PanacheRepository<Benefit> {
         return find("id in ?1 and active = true", ids).list();
     }
 
+    public Uni<List<Benefit>> findByCompanyIdAndCategoryId(Long companyId, Long categoryId) {
+        return find("provider.id = ?1 and ?2 member of categories", companyId, categoryId).list();
+    }
+
+    public Uni<List<Benefit>> findActiveByProviderNotAndCategoryId(Long companyId, Long categoryId) {
+        return find("provider.id <> ?1 and active = true and ?2 member of categories", companyId, categoryId).list();
+    }
+
 }

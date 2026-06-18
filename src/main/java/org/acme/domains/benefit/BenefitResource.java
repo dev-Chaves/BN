@@ -12,9 +12,12 @@ import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.json.JsonNumber;
+
+import java.util.Optional;
 import org.acme.domains.benefit.dto.CreateBenefitRequest;
 import org.acme.domains.benefit.dto.UpdateBenefitRequest;
 import org.acme.domains.shared.api.BaseResource;
@@ -46,15 +49,15 @@ public class BenefitResource implements BaseResource {
     @GET
     @Path("/tenant")
     @RolesAllowed("MANAGER")
-    public Uni<Response> listBenefitsByTenant() {
-        return toOk(benefitService.listBenefitsByTenant(claimCompanyId(), jwt.getName()));
+    public Uni<Response> listBenefitsByTenant(@QueryParam("categoryId") Optional<Long> categoryId) {
+        return toOk(benefitService.listBenefitsByTenant(claimCompanyId(), jwt.getName(), categoryId));
     }
 
     @GET
     @Path("/marketplace")
     @RolesAllowed("MANAGER")
-    public Uni<Response> managerMarketplace() {
-        return toOk(benefitService.managerMarketplace(jwt.getName()));
+    public Uni<Response> managerMarketplace(@QueryParam("categoryId") Optional<Long> categoryId) {
+        return toOk(benefitService.managerMarketplace(jwt.getName(), categoryId));
     }
 
     @PUT

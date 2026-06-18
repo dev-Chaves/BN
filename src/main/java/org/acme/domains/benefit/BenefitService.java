@@ -8,6 +8,9 @@ import jakarta.ws.rs.NotFoundException;
 import org.acme.domains.benefit.dto.BenefitResponse;
 import org.acme.domains.benefit.dto.CreateBenefitRequest;
 import org.acme.domains.benefit.dto.UpdateBenefitRequest;
+import org.acme.domains.category.Category;
+import org.acme.domains.category.CategoryRepository;
+import org.acme.domains.category.dto.CategoryResponse;
 import org.acme.domains.company.Company;
 import org.acme.domains.company.CompanyRepository;
 import org.acme.domains.manager.Manager;
@@ -16,6 +19,8 @@ import org.acme.domains.shared.security.TenantGuard;
 import org.jboss.logging.Logger;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 
 @ApplicationScoped
 public class BenefitService {
@@ -27,12 +32,15 @@ public class BenefitService {
 
     private final CompanyRepository companyRepository;
 
+    private final CategoryRepository categoryRepository;
+
     private final TenantGuard tenantGuard;
 
-    public BenefitService(ManagerRepository managerRepository, BenefitRepository benefitRepository, CompanyRepository companyRepository, TenantGuard tenantGuard) {
+    public BenefitService(ManagerRepository managerRepository, BenefitRepository benefitRepository, CompanyRepository companyRepository, CategoryRepository categoryRepository, TenantGuard tenantGuard) {
         this.managerRepository = managerRepository;
         this.benefitRepository = benefitRepository;
         this.companyRepository = companyRepository;
+        this.categoryRepository = categoryRepository;
         this.tenantGuard = tenantGuard;
     }
 
@@ -41,26 +49,31 @@ public class BenefitService {
 
         return validateManager(managerEmail)
                 .flatMap(manager -> tenantGuard.verifyManagerCompanyAccess(manager, request.companyId()))
-                .flatMap(company -> create(request, company))
+                .flatMap(company -> fetchCategories(request.categoryIds()).map(categories -> create(request, company, categories)))
                 .call(benefitRepository::persist)
                 .onItem().transform(this::toResponse);
 
     }
 
     @WithSession
-    public Uni<List<BenefitResponse>> listBenefitsByTenant(Long companyId, String email){
+    public Uni<List<BenefitResponse>> listBenefitsByTenant(Long companyId, String email, Optional<Long> categoryId){
 
         return validateManager(email)
                 .flatMap(manager -> tenantGuard.verifyManagerCompanyAccess(manager, companyId))
-                .flatMap(company -> listBenefitByCompanyId(company.id))
+                .flatMap(company -> listBenefitByCompanyId(company.id, categoryId))
                 .map(benefits -> benefits.stream().map(this::toResponse).toList());
     }
 
     @WithSession
-    public Uni<List<BenefitResponse>> managerMarketplace(String managerEmail) {
+    public Uni<List<BenefitResponse>> managerMarketplace(String managerEmail, Optional<Long> categoryId) {
         return validateManager(managerEmail)
                 .flatMap(manager -> tenantGuard.verifyManagerCompanyAccess(manager, manager.getCompany().id))
-                .flatMap(company -> benefitRepository.findActiveByProviderNot(company.id))
+                .flatMap(company -> {
+                    if (categoryId.isPresent()) {
+                        return benefitRepository.findActiveByProviderNotAndCategoryId(company.id, categoryId.get());
+                    }
+                    return benefitRepository.findActiveByProviderNot(company.id);
+                })
                 .map(benefits -> benefits.stream().map(this::toResponse).toList());
     }
 
@@ -70,9 +83,16 @@ public class BenefitService {
                 .flatMap(manager -> getBenefitById(benefitId)
                         .flatMap(benefit -> tenantGuard.verifyManagerCompanyAccess(manager, benefit.getProvider().id)
                                 .replaceWith(benefit)))
-                .map(benefit -> {
+                .flatMap(benefit -> {
                     benefit.update(request.name(), request.description());
-                    return benefit;
+                    if (request.categoryIds() != null) {
+                        return fetchCategories(request.categoryIds())
+                                .map(categories -> {
+                                    benefit.updateCategories(categories);
+                                    return benefit;
+                                });
+                    }
+                    return Uni.createFrom().item(benefit);
                 })
                 .map(this::toResponse);
     }
@@ -98,16 +118,25 @@ public class BenefitService {
     }
 
     private BenefitResponse toResponse (Benefit benefit){
+        List<CategoryResponse> categories = benefit.getCategories().stream()
+                .map(c -> new CategoryResponse(c.id, c.getName()))
+                .toList();
         return new BenefitResponse(
                 benefit.id,
                 benefit.getName(),
                 benefit.getProvider().getName(),
                 benefit.getActive(),
-                benefit.getCreatedAt());
+                benefit.getCreatedAt(),
+                categories);
     }
 
-    private Uni<List<Benefit>> listBenefitByCompanyId(Long companyId){
-        return benefitRepository.findByCompanyId(companyId).onItem().ifNull().failWith(() -> new NotFoundException("Unauthorized access: Company not found"));
+    private Uni<List<Benefit>> listBenefitByCompanyId(Long companyId, Optional<Long> categoryId){
+        if (categoryId.isPresent()) {
+            return benefitRepository.findByCompanyIdAndCategoryId(companyId, categoryId.get())
+                    .onItem().ifNull().failWith(() -> new NotFoundException("Unauthorized access: Company not found"));
+        }
+        return benefitRepository.findByCompanyId(companyId)
+                .onItem().ifNull().failWith(() -> new NotFoundException("Unauthorized access: Company not found"));
     }
 
     private Uni<Manager> validateManager(String email){
@@ -118,8 +147,24 @@ public class BenefitService {
                 });
     }
 
-    private Uni<Benefit> create(CreateBenefitRequest request, Company company) {
-        return Uni.createFrom().item(Benefit.builder(request.name(), company).description(request.description()).build());
+    private Benefit create(CreateBenefitRequest request, Company company, Set<Category> categories) {
+        return Benefit.builder(request.name(), company)
+                .description(request.description())
+                .categories(categories)
+                .build();
+    }
+
+    private Uni<Set<Category>> fetchCategories(List<Long> categoryIds) {
+        if (categoryIds == null || categoryIds.isEmpty()) {
+            return Uni.createFrom().item(Set.<Category>of());
+        }
+        return categoryRepository.findByIds(categoryIds)
+                .map(found -> {
+                    if (found.size() != categoryIds.size()) {
+                        throw new NotFoundException("One or more categories not found");
+                    }
+                    return Set.copyOf(found);
+                });
     }
 
     private Uni<Benefit> getBenefitById(Long benefitId) {
