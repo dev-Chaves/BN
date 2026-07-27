@@ -2,6 +2,7 @@ package org.acme.domains.benefit;
 
 import io.quarkus.hibernate.reactive.panache.common.WithSession;
 import io.quarkus.hibernate.reactive.panache.common.WithTransaction;
+import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.ws.rs.NotFoundException;
@@ -16,6 +17,7 @@ import org.acme.domains.company.CompanyRepository;
 import org.acme.domains.manager.Manager;
 import org.acme.domains.manager.ManagerRepository;
 import org.acme.domains.shared.security.TenantGuard;
+import org.hibernate.reactive.mutiny.Mutiny;
 import org.jboss.logging.Logger;
 
 import java.util.List;
@@ -61,6 +63,7 @@ public class BenefitService {
         return validateManager(email)
                 .flatMap(manager -> tenantGuard.verifyManagerCompanyAccess(manager, companyId))
                 .flatMap(company -> listBenefitByCompanyId(company.id, categoryId))
+                .flatMap(this::fetchAllBenefitAssociations)
                 .map(benefits -> benefits.stream().map(this::toResponse).toList());
     }
 
@@ -74,6 +77,7 @@ public class BenefitService {
                     }
                     return benefitRepository.findActiveByProviderNot(company.id);
                 })
+                .flatMap(this::fetchAllBenefitAssociations)
                 .map(benefits -> benefits.stream().map(this::toResponse).toList());
     }
 
@@ -169,7 +173,23 @@ public class BenefitService {
 
     private Uni<Benefit> getBenefitById(Long benefitId) {
         return benefitRepository.findById(benefitId)
-                .onItem().ifNull().failWith(() -> new NotFoundException("Benefit not found"));
+                .onItem().ifNull().failWith(() -> new NotFoundException("Benefit not found"))
+                .flatMap(this::fetchBenefitAssociations);
+    }
+
+    private Uni<Benefit> fetchBenefitAssociations(Benefit benefit) {
+        return Mutiny.fetch(benefit.getCategories())
+                .chain(() -> Mutiny.fetch(benefit.getProvider()))
+                .replaceWith(benefit);
+    }
+
+    private Uni<List<Benefit>> fetchAllBenefitAssociations(List<Benefit> benefits) {
+        if (benefits.isEmpty()) {
+            return Uni.createFrom().item(benefits);
+        }
+        return Multi.createFrom().iterable(benefits)
+                .onItem().transformToUniAndConcatenate(this::fetchBenefitAssociations)
+                .collect().asList();
     }
 
     private Uni<BenefitResponse> changeBenefitStatus(Long benefitId, String managerEmail, boolean activate) {

@@ -14,26 +14,26 @@ public class BenefitRepository implements PanacheRepository<Benefit> {
     }
 
     public Uni<List<Benefit>> findByCompanyId(Long companyId) {
-        return list("select distinct b from Benefit b left join fetch b.categories where b.provider.id = ?1", companyId);
+        return list("provider.id", companyId);
     }
 
     public Uni<List<Benefit>> findActiveByProviderNot(Long companyId) {
-        return find("select distinct b from Benefit b left join fetch b.categories where b.provider.id <> ?1 and b.active = true", companyId).list();
+        return find("provider.id <> ?1 and active = true", companyId).list();
     }
 
     public Uni<List<Benefit>> findActiveByIds(List<Long> ids) {
         if (ids == null || ids.isEmpty()) {
             return Uni.createFrom().item(List.of());
         }
-        return find("select distinct b from Benefit b left join fetch b.categories where b.id in ?1 and b.active = true", ids).list();
+        return find("id in ?1 and active = true", ids).list();
     }
 
     public Uni<List<Benefit>> findByCompanyIdAndCategoryId(Long companyId, Long categoryId) {
-        return find("select distinct b from Benefit b join fetch b.categories c where b.provider.id = ?1 and c.id = ?2", companyId, categoryId).list();
+        return find("provider.id = ?1 and ?2 member of categories", companyId, categoryId).list();
     }
 
     public Uni<List<Benefit>> findActiveByProviderNotAndCategoryId(Long companyId, Long categoryId) {
-        return find("select distinct b from Benefit b join fetch b.categories c where b.provider.id <> ?1 and b.active = true and c.id = ?2", companyId, categoryId).list();
+        return find("provider.id <> ?1 and active = true and ?2 member of categories", companyId, categoryId).list();
     }
 
 }
