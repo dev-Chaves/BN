@@ -22,7 +22,12 @@ public class ManagerRepository implements PanacheRepository<Manager> {
     }
 
     public Uni<Manager> findByEmail(String email) {
-        return find("select m from Manager m join m.account a where a.email = ?1", email).firstResult();
+        return find("""
+                select m from Manager m
+                join fetch m.account a
+                join fetch m.company
+                where a.email = ?1
+                """, email).firstResult();
     }
 
 }

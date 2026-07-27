@@ -89,6 +89,13 @@ public class BenefitService {
                                 .replaceWith(benefit)))
                 .flatMap(benefit -> {
                     benefit.update(request.name(), request.description());
+                    benefit.updateAvailability(
+                            request.publiclyVisible(),
+                            request.validFrom(),
+                            request.validUntil(),
+                            request.maxUsesPerUser(),
+                            request.terms()
+                    );
                     if (request.categoryIds() != null) {
                         return fetchCategories(request.categoryIds())
                                 .map(categories -> {
@@ -128,8 +135,13 @@ public class BenefitService {
         return new BenefitResponse(
                 benefit.id,
                 benefit.getName(),
+                benefit.getDescription(),
                 benefit.getProvider().getName(),
                 benefit.getActive(),
+                benefit.getPubliclyVisible(),
+                benefit.getValidUntil(),
+                benefit.getMaxUsesPerUser(),
+                benefit.getTerms(),
                 benefit.getCreatedAt(),
                 categories);
     }
@@ -155,6 +167,13 @@ public class BenefitService {
         return Benefit.builder(request.name(), company)
                 .description(request.description())
                 .categories(categories)
+                .availability(
+                        request.publiclyVisible(),
+                        request.validFrom(),
+                        request.validUntil(),
+                        request.maxUsesPerUser(),
+                        request.terms()
+                )
                 .build();
     }
 

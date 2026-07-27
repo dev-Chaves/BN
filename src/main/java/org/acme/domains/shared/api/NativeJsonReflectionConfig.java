@@ -7,6 +7,9 @@ import org.acme.domains.auth.dto.LoginResponse;
 import org.acme.domains.benefit.dto.BenefitResponse;
 import org.acme.domains.benefit.dto.CreateBenefitRequest;
 import org.acme.domains.benefit.dto.UpdateBenefitRequest;
+import org.acme.domains.benefitrequest.dto.BenefitAccessRequestResponse;
+import org.acme.domains.benefitrequest.dto.CreateBenefitAccessRequest;
+import org.acme.domains.benefitrequest.dto.RejectBenefitAccessRequest;
 import org.acme.domains.company.dto.CompanyResponse;
 import org.acme.domains.company.dto.CreateCompanyRequest;
 import org.acme.domains.company.dto.UpdateCompanyRequest;
@@ -23,6 +26,11 @@ import org.acme.domains.partnership.dto.PartnershipResponse;
 import org.acme.domains.partnership.dto.UpdatePartnershipRequest;
 import org.acme.domains.subscription.dto.CreateSubscriptionRequest;
 import org.acme.domains.subscription.dto.SubscriptionResponse;
+import org.acme.domains.redemption.dto.RedemptionPreviewResponse;
+import org.acme.domains.redemption.dto.RedemptionResponse;
+import org.acme.domains.redemption.dto.RedemptionTokenRequest;
+import org.acme.domains.redemption.dto.RedemptionTokenResponse;
+import org.acme.domains.sharedbenefit.dto.SharedBenefitResponse;
 
 @RegisterForReflection(
         methods = true,
@@ -35,6 +43,14 @@ import org.acme.domains.subscription.dto.SubscriptionResponse;
                 CreateBenefitRequest.class,
                 UpdateBenefitRequest.class,
                 BenefitResponse.class,
+                CreateBenefitAccessRequest.class,
+                RejectBenefitAccessRequest.class,
+                BenefitAccessRequestResponse.class,
+                SharedBenefitResponse.class,
+                RedemptionTokenRequest.class,
+                RedemptionTokenResponse.class,
+                RedemptionPreviewResponse.class,
+                RedemptionResponse.class,
                 CreateCompanyRequest.class,
                 UpdateCompanyRequest.class,
                 CompanyResponse.class,

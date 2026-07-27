@@ -14,7 +14,12 @@ public class EmployeeRepository implements PanacheRepository<Employee> {
     }
 
     public Uni<Employee> findByAccountId(java.util.UUID accountId) {
-        return find("account.id", accountId).firstResult();
+        return find("""
+                select e from Employee e
+                join fetch e.account
+                join fetch e.company
+                where e.account.id = ?1
+                """, accountId).firstResult();
     }
 
 }

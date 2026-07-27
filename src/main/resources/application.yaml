@@ -22,6 +22,12 @@ quarkus:
             period: ${ONBOARDING_RATE_LIMIT_PERIOD_SECOND}
           - permitted-uses: ${ONBOARDING_RATE_LIMIT_USES_MINUTE}
             period: ${ONBOARDING_RATE_LIMIT_PERIOD_MINUTE}
+      redemption-group:
+        limits:
+          - permitted-uses: ${REDEMPTION_RATE_LIMIT_USES_SECOND:10}
+            period: ${REDEMPTION_RATE_LIMIT_PERIOD_SECOND:1S}
+          - permitted-uses: ${REDEMPTION_RATE_LIMIT_USES_MINUTE:120}
+            period: ${REDEMPTION_RATE_LIMIT_PERIOD_MINUTE:1M}
 mp:
   jwt:
     token:
@@ -33,6 +39,7 @@ mp:
       issuer: bn-api
 
 app:
+  public-url: ${APP_PUBLIC_URL:http://localhost:3000}
   cookie:
     secure: true
   swagger:

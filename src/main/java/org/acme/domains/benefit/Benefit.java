@@ -33,6 +33,21 @@ public class Benefit extends PanacheEntityBase {
 
     private Boolean active;
 
+    @Column(name = "publicly_visible", nullable = false)
+    private Boolean publiclyVisible = Boolean.TRUE;
+
+    @Column(name = "valid_from")
+    private LocalDateTime validFrom;
+
+    @Column(name = "valid_until")
+    private LocalDateTime validUntil;
+
+    @Column(name = "max_uses_per_user", nullable = false)
+    private Integer maxUsesPerUser = 1;
+
+    @Column(columnDefinition = "TEXT")
+    private String terms;
+
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "benefit")
     private List<Subscription> subscriptions;
 
@@ -58,12 +73,26 @@ public class Benefit extends PanacheEntityBase {
         this.provider = builder.provider;
         this.description = builder.description;
         this.categories = new HashSet<>(builder.categories);
+        this.publiclyVisible = builder.publiclyVisible;
+        this.validFrom = builder.validFrom;
+        this.validUntil = builder.validUntil;
+        this.maxUsesPerUser = builder.maxUsesPerUser;
+        this.terms = builder.terms;
+        if (this.maxUsesPerUser == null || this.maxUsesPerUser < 1) {
+            throw new IllegalArgumentException("Max uses per user must be at least 1");
+        }
+        validateValidityWindow();
     }
 
     public String getName() { return name; }
     public String getDescription() { return description; }
     public Company getProvider() { return provider; }
     public Boolean getActive() { return active; }
+    public Boolean getPubliclyVisible() { return publiclyVisible; }
+    public LocalDateTime getValidFrom() { return validFrom; }
+    public LocalDateTime getValidUntil() { return validUntil; }
+    public Integer getMaxUsesPerUser() { return maxUsesPerUser; }
+    public String getTerms() { return terms; }
     public List<Subscription> getSubscriptions() { return subscriptions; }
     public Set<Category> getCategories() { return categories; }
     public LocalDateTime getCreatedAt() { return createdAt; }
@@ -80,6 +109,8 @@ public class Benefit extends PanacheEntityBase {
     public void onCreate() {
         this.createdAt = LocalDateTime.now();
         this.active = Boolean.FALSE;
+        this.publiclyVisible = Boolean.TRUE;
+        this.maxUsesPerUser = 1;
     }
 
     public void update(String name, String description) {
@@ -97,12 +128,30 @@ public class Benefit extends PanacheEntityBase {
         }
     }
 
+    public void updateAvailability(Boolean publiclyVisible, LocalDateTime validFrom, LocalDateTime validUntil,
+                                   Integer maxUsesPerUser, String terms) {
+        if (publiclyVisible != null) this.publiclyVisible = publiclyVisible;
+        if (validFrom != null) this.validFrom = validFrom;
+        if (validUntil != null) this.validUntil = validUntil;
+        if (maxUsesPerUser != null) {
+            if (maxUsesPerUser < 1) throw new IllegalArgumentException("Max uses per user must be at least 1");
+            this.maxUsesPerUser = maxUsesPerUser;
+        }
+        if (terms != null) this.terms = terms;
+        validateValidityWindow();
+    }
+
     public static class Builder {
 
         private final String name;
         private final Company provider;
         private String description;
         private final Set<Category> categories = new HashSet<>();
+        private Boolean publiclyVisible = Boolean.TRUE;
+        private LocalDateTime validFrom;
+        private LocalDateTime validUntil;
+        private Integer maxUsesPerUser = 1;
+        private String terms;
 
         public Builder(String name, Company provider) {
             this.name = name;
@@ -125,6 +174,16 @@ public class Benefit extends PanacheEntityBase {
             return this;
         }
 
+        public Builder availability(Boolean publiclyVisible, LocalDateTime validFrom, LocalDateTime validUntil,
+                                    Integer maxUsesPerUser, String terms) {
+            if (publiclyVisible != null) this.publiclyVisible = publiclyVisible;
+            this.validFrom = validFrom;
+            this.validUntil = validUntil;
+            if (maxUsesPerUser != null) this.maxUsesPerUser = maxUsesPerUser;
+            this.terms = terms;
+            return this;
+        }
+
         public Benefit build() {
             return new Benefit(this);
         }
@@ -136,5 +195,18 @@ public class Benefit extends PanacheEntityBase {
 
     public void deactivateBenefit() {
         this.active = Boolean.FALSE;
+    }
+
+    public boolean isAvailableAt(LocalDateTime now) {
+        return Boolean.TRUE.equals(active)
+                && Boolean.TRUE.equals(publiclyVisible)
+                && (validFrom == null || !validFrom.isAfter(now))
+                && (validUntil == null || validUntil.isAfter(now));
+    }
+
+    private void validateValidityWindow() {
+        if (validFrom != null && validUntil != null && !validUntil.isAfter(validFrom)) {
+            throw new IllegalArgumentException("Valid until must be after valid from");
+        }
     }
 }

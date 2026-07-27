@@ -26,4 +26,27 @@ public class SubscriptionRepository implements PanacheRepository<Subscription> {
                 .onItem().transform(subscription -> subscription != null);
     }
 
+    public Uni<List<Subscription>> findByEmployeeWithBenefit(Long employeeId) {
+        return find("""
+                select distinct s from Subscription s
+                join fetch s.employee e
+                join fetch s.benefit b
+                join fetch b.provider
+                left join fetch b.categories
+                where e.id = ?1
+                order by s.createdAt desc
+                """, employeeId).list();
+    }
+
+    public Uni<Subscription> findOwnedWithBenefit(Long subscriptionId, Long employeeId) {
+        return find("""
+                select distinct s from Subscription s
+                join fetch s.employee e
+                join fetch s.benefit b
+                join fetch b.provider
+                left join fetch b.categories
+                where s.id = ?1 and e.id = ?2
+                """, subscriptionId, employeeId).firstResult();
+    }
+
 }
