@@ -26,14 +26,13 @@ import java.util.Base64;
 
 @ApplicationScoped
 public class RedemptionService {
-    private static final SecureRandom RANDOM = new SecureRandom();
-
     private final AccountRepository accountRepository;
     private final EmployeeRepository employeeRepository;
     private final ManagerRepository managerRepository;
     private final SubscriptionRepository subscriptionRepository;
     private final RedemptionTokenRepository tokenRepository;
     private final BenefitRedemptionRepository redemptionRepository;
+    private final SecureRandom random;
 
     @ConfigProperty(name = "app.public-url", defaultValue = "http://localhost:3000")
     String publicUrl;
@@ -50,6 +49,7 @@ public class RedemptionService {
         this.subscriptionRepository = subscriptionRepository;
         this.tokenRepository = tokenRepository;
         this.redemptionRepository = redemptionRepository;
+        this.random = new SecureRandom();
     }
 
     @WithTransaction
@@ -163,7 +163,7 @@ public class RedemptionService {
 
     private String generateToken() {
         byte[] bytes = new byte[32];
-        RANDOM.nextBytes(bytes);
+        random.nextBytes(bytes);
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 
