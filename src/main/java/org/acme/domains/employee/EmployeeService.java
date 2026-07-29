@@ -17,6 +17,7 @@ import org.acme.domains.manager.ManagerRepository;
 import org.acme.domains.shared.domain.CPF;
 import org.acme.domains.shared.enums.Role;
 import org.acme.domains.shared.security.TenantGuard;
+import org.acme.domains.subscription.CompanyBenefitAssignmentService;
 import org.jboss.logging.Logger;
 
 import java.util.List;
@@ -38,12 +39,22 @@ public class EmployeeService {
 
     private final TenantGuard tenantGuard;
 
-    public EmployeeService(CompanyRepository companyRepository, AccountRepository accountRepository, ManagerRepository managerRepository, EmployeeRepository employeeRepository, TenantGuard tenantGuard) {
+    private final CompanyBenefitAssignmentService companyBenefitAssignmentService;
+
+    public EmployeeService(
+            CompanyRepository companyRepository,
+            AccountRepository accountRepository,
+            ManagerRepository managerRepository,
+            EmployeeRepository employeeRepository,
+            TenantGuard tenantGuard,
+            CompanyBenefitAssignmentService companyBenefitAssignmentService
+    ) {
         this.companyRepository = companyRepository;
         this.accountRepository = accountRepository;
         this.managerRepository = managerRepository;
         this.employeeRepository = employeeRepository;
         this.tenantGuard = tenantGuard;
+        this.companyBenefitAssignmentService = companyBenefitAssignmentService;
     }
 
     @WithTransaction
@@ -100,6 +111,9 @@ public class EmployeeService {
                                     employee.active();
                                     return employeeRepository.persist(employee);
                                 })
+                                .flatMap(employee -> companyBenefitAssignmentService
+                                        .assignActiveCompanyBenefits(employee)
+                                        .replaceWith(employee))
                                 .map(this::toResponse)
                 );
     }

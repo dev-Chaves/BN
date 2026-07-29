@@ -14,6 +14,7 @@ import org.acme.domains.shared.domain.CNPJ;
 import org.acme.domains.shared.domain.CPF;
 import org.acme.domains.shared.enums.Role;
 import org.acme.domains.shared.security.TenantGuard;
+import org.acme.domains.subscription.CompanyBenefitAssignmentService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -43,6 +44,9 @@ class EmployeeServiceTest {
     @Mock
     private TenantGuard tenantGuard;
 
+    @Mock
+    private CompanyBenefitAssignmentService companyBenefitAssignmentService;
+
     private EmployeeService employeeService;
 
     @BeforeEach
@@ -53,7 +57,8 @@ class EmployeeServiceTest {
                 accountRepository,
                 managerRepository,
                 employeeRepository,
-                tenantGuard
+                tenantGuard,
+                companyBenefitAssignmentService
         );
     }
 

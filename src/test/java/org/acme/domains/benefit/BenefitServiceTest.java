@@ -15,6 +15,7 @@ import org.acme.domains.shared.domain.CNPJ;
 import org.acme.domains.shared.domain.CPF;
 import org.acme.domains.shared.enums.Role;
 import org.acme.domains.shared.security.TenantGuard;
+import org.acme.domains.subscription.CompanyBenefitAssignmentService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -45,12 +46,22 @@ class BenefitServiceTest {
     @Mock
     private CategoryRepository categoryRepository;
 
+    @Mock
+    private CompanyBenefitAssignmentService companyBenefitAssignmentService;
+
     private BenefitService benefitService;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        benefitService = new BenefitService(managerRepository, benefitRepository, companyRepository, categoryRepository, tenantGuard);
+        benefitService = new BenefitService(
+                managerRepository,
+                benefitRepository,
+                companyRepository,
+                categoryRepository,
+                tenantGuard,
+                companyBenefitAssignmentService
+        );
     }
 
     @Test

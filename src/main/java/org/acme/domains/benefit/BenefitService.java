@@ -17,6 +17,7 @@ import org.acme.domains.company.CompanyRepository;
 import org.acme.domains.manager.Manager;
 import org.acme.domains.manager.ManagerRepository;
 import org.acme.domains.shared.security.TenantGuard;
+import org.acme.domains.subscription.CompanyBenefitAssignmentService;
 import org.hibernate.reactive.mutiny.Mutiny;
 import org.jboss.logging.Logger;
 
@@ -38,12 +39,22 @@ public class BenefitService {
 
     private final TenantGuard tenantGuard;
 
-    public BenefitService(ManagerRepository managerRepository, BenefitRepository benefitRepository, CompanyRepository companyRepository, CategoryRepository categoryRepository, TenantGuard tenantGuard) {
+    private final CompanyBenefitAssignmentService companyBenefitAssignmentService;
+
+    public BenefitService(
+            ManagerRepository managerRepository,
+            BenefitRepository benefitRepository,
+            CompanyRepository companyRepository,
+            CategoryRepository categoryRepository,
+            TenantGuard tenantGuard,
+            CompanyBenefitAssignmentService companyBenefitAssignmentService
+    ) {
         this.managerRepository = managerRepository;
         this.benefitRepository = benefitRepository;
         this.companyRepository = companyRepository;
         this.categoryRepository = categoryRepository;
         this.tenantGuard = tenantGuard;
+        this.companyBenefitAssignmentService = companyBenefitAssignmentService;
     }
 
     @WithTransaction
@@ -224,6 +235,10 @@ public class BenefitService {
                     }
                     return benefit;
                 })
+                .flatMap(benefit -> activate
+                        ? companyBenefitAssignmentService.assignBenefitToActiveEmployees(benefit)
+                                .replaceWith(benefit)
+                        : Uni.createFrom().item(benefit))
                 .map(this::toResponse);
     }
 

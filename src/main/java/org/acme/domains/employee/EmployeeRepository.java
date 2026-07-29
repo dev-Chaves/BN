@@ -13,6 +13,10 @@ public class EmployeeRepository implements PanacheRepository<Employee> {
         return list("company.id", companyId);
     }
 
+    public Uni<List<Employee>> findActiveByCompanyId(Long companyId) {
+        return list("company.id = ?1 and active = ?2", companyId, EmployeeStatus.ACTIVE);
+    }
+
     public Uni<Employee> findByAccountId(java.util.UUID accountId) {
         return find("""
                 select e from Employee e
