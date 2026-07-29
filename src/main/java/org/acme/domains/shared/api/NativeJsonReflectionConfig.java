@@ -10,6 +10,7 @@ import org.acme.domains.benefit.dto.UpdateBenefitRequest;
 import org.acme.domains.benefitrequest.dto.BenefitAccessRequestResponse;
 import org.acme.domains.benefitrequest.dto.CreateBenefitAccessRequest;
 import org.acme.domains.benefitrequest.dto.RejectBenefitAccessRequest;
+import org.acme.domains.category.dto.CategoryResponse;
 import org.acme.domains.company.dto.CompanyResponse;
 import org.acme.domains.company.dto.CreateCompanyRequest;
 import org.acme.domains.company.dto.UpdateCompanyRequest;
@@ -43,6 +44,7 @@ import org.acme.domains.sharedbenefit.dto.SharedBenefitResponse;
                 CreateBenefitRequest.class,
                 UpdateBenefitRequest.class,
                 BenefitResponse.class,
+                CategoryResponse.class,
                 CreateBenefitAccessRequest.class,
                 RejectBenefitAccessRequest.class,
                 BenefitAccessRequestResponse.class,
