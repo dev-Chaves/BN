@@ -20,6 +20,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class AuthResource implements BaseResource {
+    private static final int SESSION_SECONDS = 3 * 60 * 60;
 
     private final AuthService authService;
     private final boolean cookieSecure;
@@ -41,6 +42,21 @@ public class AuthResource implements BaseResource {
                 .map(this::toLoginResponseWithCookie);
     }
 
+    @POST
+    @Path("/logout")
+    @PermitAll
+    public Response logout() {
+        NewCookie expiredCookie = new NewCookie.Builder("jwt")
+                .value("")
+                .path("/")
+                .httpOnly(true)
+                .secure(cookieSecure)
+                .sameSite(NewCookie.SameSite.STRICT)
+                .maxAge(0)
+                .build();
+        return Response.noContent().cookie(expiredCookie).header("Cache-Control", "no-store").build();
+    }
+
     private Response toLoginResponseWithCookie(LoginResponse loginResponse) {
         NewCookie cookie = new NewCookie.Builder("jwt")
                 .value(loginResponse.token())
@@ -48,10 +64,12 @@ public class AuthResource implements BaseResource {
                 .httpOnly(true)
                 .secure(cookieSecure)
                 .sameSite(NewCookie.SameSite.STRICT)
+                .maxAge(SESSION_SECONDS)
                 .build();
 
         return Response.ok(loginResponse)
                 .cookie(cookie)
+                .header("Cache-Control", "no-store")
                 .build();
     }
 

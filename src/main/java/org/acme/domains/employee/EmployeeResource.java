@@ -65,8 +65,9 @@ public class EmployeeResource implements BaseResource {
 
     @GET
     @RolesAllowed("MANAGER")
-    public Uni<Response> listByTenant() {
-        return toOk(employeeService.listByTenant(jwt.getName(), claimCompanyId()));
+    public Uni<Response> listByTenant(@QueryParam("page") @DefaultValue("0") int page,
+                                      @QueryParam("size") @DefaultValue("50") int size) {
+        return toOk(employeeService.listByTenant(jwt.getName(), claimCompanyId(), page, size));
     }
 
     private Long claimCompanyId() {

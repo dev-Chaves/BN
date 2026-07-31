@@ -2,6 +2,7 @@ package org.acme.domains.manager;
 
 import io.quarkus.elytron.security.common.BcryptUtil;
 import io.quarkus.hibernate.reactive.panache.common.WithTransaction;
+import io.quarkus.hibernate.reactive.panache.common.WithSession;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.ws.rs.NotFoundException;
@@ -13,6 +14,7 @@ import org.acme.domains.manager.dto.CreateManagerRequest;
 import org.acme.domains.manager.dto.ManagerResponse;
 import org.acme.domains.shared.domain.CPF;
 import org.acme.domains.shared.enums.Role;
+import org.acme.domains.shared.security.AccessStatusGuard;
 
 @ApplicationScoped
 public class ManagerService {
@@ -29,14 +31,28 @@ public class ManagerService {
 
     @WithTransaction
     public Uni<ManagerResponse> createManager(CreateManagerRequest request) {
-        return companyRepository.findById(request.companyId())
+        return validateAccountAvailable(request.email(), request.cpf())
+                .flatMap(ignored -> companyRepository.findById(request.companyId()))
                 .onItem().ifNull().failWith(() -> new NotFoundException("Company not found"))
                 .flatMap(company -> createManager(request, company));
     }
 
+    private Uni<Void> validateAccountAvailable(String email, String cpf) {
+        return accountRepository.findByEmail(email)
+                .flatMap(byEmail -> {
+                    if (byEmail != null) return Uni.createFrom().failure(new IllegalStateException("Email already in use"));
+                    return accountRepository.findByCPF(cpf);
+                })
+                .flatMap(byCpf -> byCpf != null
+                        ? Uni.createFrom().failure(new IllegalStateException("CPF already in use"))
+                        : Uni.createFrom().voidItem());
+    }
+
+    @WithSession
     public Uni<ManagerResponse> getCurrentManager(String email) {
         return managerRepository.findByEmail(email)
                 .onItem().ifNull().failWith(() -> new NotFoundException("Manager not found"))
+                .map(AccessStatusGuard::requireActive)
                 .map(this::toResponse);
     }
 

@@ -14,6 +14,7 @@ import org.acme.domains.employee.EmployeeRepository;
 import org.acme.domains.sharedbenefit.dto.SharedBenefitResponse;
 import org.acme.domains.subscription.Subscription;
 import org.acme.domains.subscription.SubscriptionRepository;
+import org.acme.domains.shared.security.AccessStatusGuard;
 
 import java.util.List;
 import java.util.Set;
@@ -65,7 +66,7 @@ public class SharedBenefitService {
         return findEmployee(email)
                 .flatMap(employee -> subscriptionRepository.findByEmployeeWithBenefit(employee.id))
                 .map(items -> items.stream()
-                        .filter(item -> item.getBenefit().isAvailableAt(java.time.LocalDateTime.now()))
+                        .filter(item -> item.getBenefit().isOperationalAt(java.time.LocalDateTime.now()))
                         .map(this::toResponse)
                         .toList());
     }
@@ -74,7 +75,8 @@ public class SharedBenefitService {
         return accountRepository.findByEmail(email)
                 .onItem().ifNull().failWith(() -> new NotFoundException("Account not found"))
                 .flatMap(account -> employeeRepository.findByAccountId(account.id))
-                .onItem().ifNull().failWith(() -> new NotFoundException("Employee not found"));
+                .onItem().ifNull().failWith(() -> new NotFoundException("Employee not found"))
+                .map(AccessStatusGuard::requireActive);
     }
 
     private SharedBenefitResponse toResponse(Subscription subscription) {

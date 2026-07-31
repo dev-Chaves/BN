@@ -36,6 +36,8 @@ public class OnboardingService {
     @WithTransaction
     public Uni<OnboardingResponse> onboardingCompany(OnboardingRequest request) {
         return validateCpfNotRegistered(request.manager().cpf())
+                .call(() -> validateEmailNotRegistered(request.manager().email()))
+                .call(() -> validateCnpjNotRegistered(request.company().cnpj()))
                 .flatMap(unused -> {
                     CNPJ cnpj = CNPJ.of(request.company().cnpj());
 
@@ -80,6 +82,20 @@ public class OnboardingService {
                     }
                     return Uni.createFrom().voidItem();
                 });
+    }
+
+    private Uni<Void> validateEmailNotRegistered(String email) {
+        return accountRepository.findByEmail(email)
+                .flatMap(account -> account != null
+                        ? Uni.createFrom().failure(new BadRequestException("Email already registered"))
+                        : Uni.createFrom().voidItem());
+    }
+
+    private Uni<Void> validateCnpjNotRegistered(String cnpj) {
+        return companyRepository.findByCNPJ(cnpj)
+                .flatMap(company -> company != null
+                        ? Uni.createFrom().failure(new BadRequestException("CNPJ already registered"))
+                        : Uni.createFrom().voidItem());
     }
 
 }

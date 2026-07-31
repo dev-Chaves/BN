@@ -15,6 +15,7 @@ import org.acme.domains.redemption.dto.RedemptionResponse;
 import org.acme.domains.redemption.dto.RedemptionTokenResponse;
 import org.acme.domains.subscription.Subscription;
 import org.acme.domains.subscription.SubscriptionRepository;
+import org.acme.domains.shared.security.AccessStatusGuard;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.nio.charset.StandardCharsets;
@@ -58,7 +59,7 @@ public class RedemptionService {
                 .flatMap(employee -> subscriptionRepository.findOwnedWithBenefit(subscriptionId, employee.id)
                         .onItem().ifNull().failWith(() -> new NotFoundException("Subscription not found"))
                         .flatMap(subscription -> {
-                            if (!subscription.getBenefit().isAvailableAt(LocalDateTime.now())) {
+                            if (!subscription.getBenefit().isOperationalAt(LocalDateTime.now())) {
                                 return Uni.createFrom().failure(new IllegalStateException("Benefit is not available"));
                             }
                             return validateUsageLimit(subscription).replaceWith(subscription);
@@ -128,7 +129,8 @@ public class RedemptionService {
                     if (token.getStatus() != RedemptionTokenStatus.ACTIVE || !token.getExpiresAt().isAfter(LocalDateTime.now())) {
                         return Uni.createFrom().failure(new IllegalStateException("Token expired or already used"));
                     }
-                    if (!token.getSubscription().getBenefit().isAvailableAt(LocalDateTime.now())) {
+                    AccessStatusGuard.requireActive(token.getSubscription().getEmployee());
+                    if (!token.getSubscription().getBenefit().isOperationalAt(LocalDateTime.now())) {
                         return Uni.createFrom().failure(new IllegalStateException("Benefit is not available"));
                     }
                     return Uni.createFrom().item(token);
@@ -153,12 +155,14 @@ public class RedemptionService {
         return accountRepository.findByEmail(email)
                 .onItem().ifNull().failWith(() -> new NotFoundException("Account not found"))
                 .flatMap(account -> employeeRepository.findByAccountId(account.id))
-                .onItem().ifNull().failWith(() -> new NotFoundException("Employee not found"));
+                .onItem().ifNull().failWith(() -> new NotFoundException("Employee not found"))
+                .map(AccessStatusGuard::requireActive);
     }
 
     private Uni<Manager> findManager(String email) {
         return managerRepository.findByEmail(email)
-                .onItem().ifNull().failWith(() -> new NotFoundException("Manager not found"));
+                .onItem().ifNull().failWith(() -> new NotFoundException("Manager not found"))
+                .map(AccessStatusGuard::requireActive);
     }
 
     private String generateToken() {

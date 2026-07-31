@@ -11,24 +11,30 @@ import static org.mockito.Mockito.when;
 class IpResolverTest {
 
     @Test
-    void shouldUseFirstForwardedIpWhenPresent() {
+    void shouldIgnoreUntrustedForwardedIp() {
         HttpServerRequest request = Mockito.mock(HttpServerRequest.class);
         when(request.getHeader("X-Forwarded-For")).thenReturn(" 10.0.0.10, 10.0.0.11 ");
+        SocketAddress remoteAddress = Mockito.mock(SocketAddress.class);
+        when(request.remoteAddress()).thenReturn(remoteAddress);
+        when(remoteAddress.host()).thenReturn("127.0.0.1");
 
         IpResolver resolver = new IpResolver(request);
 
-        assertEquals("10.0.0.10", resolver.getIdentityKey());
+        assertEquals("127.0.0.1", resolver.getIdentityKey());
     }
 
     @Test
-    void shouldFallbackToRealIpWhenForwardedHeaderIsBlank() {
+    void shouldIgnoreUntrustedRealIp() {
         HttpServerRequest request = Mockito.mock(HttpServerRequest.class);
         when(request.getHeader("X-Forwarded-For")).thenReturn("   ");
         when(request.getHeader("X-Real-IP")).thenReturn(" 172.16.0.1 ");
+        SocketAddress remoteAddress = Mockito.mock(SocketAddress.class);
+        when(request.remoteAddress()).thenReturn(remoteAddress);
+        when(remoteAddress.host()).thenReturn("127.0.0.1");
 
         IpResolver resolver = new IpResolver(request);
 
-        assertEquals("172.16.0.1", resolver.getIdentityKey());
+        assertEquals("127.0.0.1", resolver.getIdentityKey());
     }
 
     @Test
@@ -46,13 +52,16 @@ class IpResolverTest {
     }
 
     @Test
-    void shouldPreferForwardedIpOverRealIp() {
+    void shouldAlwaysUseResolvedRemoteAddress() {
         HttpServerRequest request = Mockito.mock(HttpServerRequest.class);
         when(request.getHeader("X-Forwarded-For")).thenReturn("203.0.113.10");
         when(request.getHeader("X-Real-IP")).thenReturn("172.16.0.1");
+        SocketAddress remoteAddress = Mockito.mock(SocketAddress.class);
+        when(request.remoteAddress()).thenReturn(remoteAddress);
+        when(remoteAddress.host()).thenReturn("127.0.0.1");
 
         IpResolver resolver = new IpResolver(request);
 
-        assertEquals("203.0.113.10", resolver.getIdentityKey());
+        assertEquals("127.0.0.1", resolver.getIdentityKey());
     }
 }

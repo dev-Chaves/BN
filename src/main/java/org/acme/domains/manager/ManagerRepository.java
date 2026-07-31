@@ -14,7 +14,7 @@ public class ManagerRepository implements PanacheRepository<Manager> {
     }
 
     public Uni<Manager> findByAccountId(java.util.UUID accountId) {
-        return find("account.id", accountId).firstResult();
+        return find("select m from Manager m join fetch m.account join fetch m.company where m.account.id = ?1", accountId).firstResult();
     }
 
     public Uni<List<Manager>> findByCNPJ(String cnpj) {
@@ -26,8 +26,8 @@ public class ManagerRepository implements PanacheRepository<Manager> {
                 select m from Manager m
                 join fetch m.account a
                 join fetch m.company
-                where a.email = ?1
-                """, email).firstResult();
+                where lower(a.email) = lower(?1)
+                """, email.trim()).firstResult();
     }
 
 }

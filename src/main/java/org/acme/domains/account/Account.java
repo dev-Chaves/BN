@@ -7,6 +7,7 @@ import io.quarkus.hibernate.reactive.panache.PanacheEntityBase;
 import jakarta.persistence.*;
 
 import java.util.UUID;
+import java.util.Locale;
 
 @Entity
 @Table(name = "accounts")
@@ -16,18 +17,21 @@ public class Account extends PanacheEntityBase {
     @GeneratedValue(strategy = GenerationType.UUID)
     public UUID id;
 
+    @Column(nullable = false)
     private String name;
 
-    @Column(unique = true)
+    @Column(unique = true, nullable = false)
     private String email;
 
+    @Column(nullable = false)
     private String password;
 
     @Embedded
-    @AttributeOverride(name = "value", column = @Column(name = "cpf"))
+    @AttributeOverride(name = "value", column = @Column(name = "cpf", nullable = false, unique = true))
     private CPF cpf;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private Role role;
 
     protected Account() {}
@@ -36,7 +40,7 @@ public class Account extends PanacheEntityBase {
         this.name = builder.name;
         this.cpf = builder.cpf;
         this.password = builder.password;
-        this.email = builder.email;
+        this.email = builder.email.trim().toLowerCase(Locale.ROOT);
         this.role = builder.role;
     }
 

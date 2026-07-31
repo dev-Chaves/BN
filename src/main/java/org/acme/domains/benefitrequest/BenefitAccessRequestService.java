@@ -10,11 +10,11 @@ import org.acme.domains.benefit.BenefitRepository;
 import org.acme.domains.benefitrequest.dto.BenefitAccessRequestResponse;
 import org.acme.domains.employee.Employee;
 import org.acme.domains.employee.EmployeeRepository;
-import org.acme.domains.employee.EmployeeStatus;
 import org.acme.domains.manager.Manager;
 import org.acme.domains.manager.ManagerRepository;
 import org.acme.domains.subscription.Subscription;
 import org.acme.domains.subscription.SubscriptionRepository;
+import org.acme.domains.shared.security.AccessStatusGuard;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -117,14 +117,13 @@ public class BenefitAccessRequestService {
                 .onItem().ifNull().failWith(() -> new NotFoundException("Account not found"))
                 .flatMap(account -> employeeRepository.findByAccountId(account.id))
                 .onItem().ifNull().failWith(() -> new NotFoundException("Employee not found"))
-                .flatMap(employee -> employee.getActive() == EmployeeStatus.ACTIVE
-                        ? Uni.createFrom().item(employee)
-                        : Uni.createFrom().failure(new SecurityException("Employee account is disabled")));
+                .map(AccessStatusGuard::requireActive);
     }
 
     private Uni<Manager> findManager(String email) {
         return managerRepository.findByEmail(email)
-                .onItem().ifNull().failWith(() -> new NotFoundException("Manager not found"));
+                .onItem().ifNull().failWith(() -> new NotFoundException("Manager not found"))
+                .map(AccessStatusGuard::requireActive);
     }
 
     private Uni<BenefitAccessRequest> verifyProvider(Manager manager, BenefitAccessRequest request) {

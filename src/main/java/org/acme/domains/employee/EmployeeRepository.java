@@ -3,6 +3,7 @@ package org.acme.domains.employee;
 import java.util.List;
 
 import io.quarkus.hibernate.reactive.panache.PanacheRepository;
+import io.quarkus.panache.common.Page;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 
@@ -11,6 +12,11 @@ public class EmployeeRepository implements PanacheRepository<Employee> {
 
     public Uni<List<Employee>> findByCompanyId(Long companyId) {
         return list("company.id", companyId);
+    }
+
+    public Uni<List<Employee>> findByCompanyId(Long companyId, int page, int size) {
+        return find("company.id = ?1 order by createdAt desc", companyId)
+                .page(Page.of(page, size)).list();
     }
 
     public Uni<List<Employee>> findActiveByCompanyId(Long companyId) {

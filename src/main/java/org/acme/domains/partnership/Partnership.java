@@ -9,7 +9,8 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "partnerships")
+@Table(name = "partnerships", uniqueConstraints = @UniqueConstraint(
+        name = "uq_partnership_client_benefit", columnNames = {"client_company_id", "benefit_id"}))
 public class Partnership extends PanacheEntityBase {
 
     @Id
@@ -18,17 +19,18 @@ public class Partnership extends PanacheEntityBase {
     public Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "client_company_id")
+    @JoinColumn(name = "client_company_id", nullable = false)
     private Company clientCompany;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "benefit_id")
+    @JoinColumn(name = "benefit_id", nullable = false)
     private Benefit benefit;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private PartnershipStatus status;
 
-    @Column(name = "created_at")
+    @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
     protected Partnership() {}

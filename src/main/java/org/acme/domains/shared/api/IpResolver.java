@@ -16,18 +16,6 @@ public class IpResolver implements IdentityResolver {
     @Override
     public String getIdentityKey() {
 
-        String ip = request.getHeader("X-Forwarded-For");
-
-        String host = request.getHeader("X-Real-IP");
-
-        if(ip != null && !ip.isBlank()){
-            return normalize(ip);
-        }
-
-        if(host != null && !host.isBlank()){
-            return normalize(host);
-        }
-
         return normalize(request.remoteAddress().host());
 
     }
@@ -36,7 +24,7 @@ public class IpResolver implements IdentityResolver {
         if(ip == null || ip.isBlank()){
             return null;
         }
-        return ip.split(",")[0].trim();
+        return ip.trim();
     }
 
 }

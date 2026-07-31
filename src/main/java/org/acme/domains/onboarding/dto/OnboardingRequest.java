@@ -3,8 +3,10 @@
         import org.acme.domains.company.dto.CreateCompanyRequest;
 
         import jakarta.validation.Valid;
-        import jakarta.validation.constraints.NotEmpty;
+        import jakarta.validation.constraints.NotBlank;
         import jakarta.validation.constraints.NotNull;
+        import jakarta.validation.constraints.Email;
+        import jakarta.validation.constraints.Size;
 
         public record OnboardingRequest(
                 @Valid
@@ -16,13 +18,13 @@
                 ManagerRegistrationData manager
         ) {
         public record ManagerRegistrationData(
-                @NotEmpty(message = "Manager name cannot be null")
+                @NotBlank(message = "Manager name cannot be null") @Size(max = 120)
                 String name,
-                @NotNull(message = "Manager CPF cannot be null")
+                @NotBlank(message = "Manager CPF cannot be null")
                 String cpf,
-                @NotEmpty(message = "Email cannot be null")
+                @NotBlank(message = "Email cannot be null") @Email @Size(max = 255)
                 String email,
-                @NotEmpty(message = "Password cannot be null")
+                @NotBlank(message = "Password cannot be null") @Size(min = 10, max = 72)
                 String password
         ) {}
         }

@@ -13,6 +13,7 @@ import org.acme.domains.partnership.Partnership;
 import org.acme.domains.partnership.PartnershipStatus;
 import org.acme.domains.partnership.PartnershipRepository;
 import org.acme.domains.shared.security.TenantGuard;
+import org.acme.domains.shared.security.AccessStatusGuard;
 import org.acme.domains.subscription.dto.CreateSubscriptionRequest;
 import org.acme.domains.subscription.dto.SubscriptionResponse;
 import org.jboss.logging.Logger;
@@ -79,7 +80,8 @@ public class SubscriptionService {
         return accountRepository.findByEmail(email)
                 .onItem().ifNull().failWith(() -> new NotFoundException("Account not found"))
                 .flatMap(account -> employeeRepository.findByAccountId(account.id))
-                .onItem().ifNull().failWith(() -> new NotFoundException("Employee not found"));
+                .onItem().ifNull().failWith(() -> new NotFoundException("Employee not found"))
+                .map(AccessStatusGuard::requireActive);
     }
 
     private Uni<Subscription> createSubscription(Benefit benefit, Employee employee){

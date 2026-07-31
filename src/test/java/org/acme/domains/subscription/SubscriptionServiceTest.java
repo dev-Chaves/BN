@@ -76,6 +76,8 @@ class SubscriptionServiceTest {
         employeeAccount.id = UUID.randomUUID();
         Employee employee = Employee.builder("User", company, employeeAccount).build();
         employee.id = 4L;
+        company.onCreate();
+        employee.active();
 
         Company provider = Company.builder("Provider", CNPJ.of("12345678000195")).build();
         Benefit benefit = Benefit.builder("Gym", provider).description("desc").build();
@@ -111,6 +113,8 @@ class SubscriptionServiceTest {
         Account employeeAccount = Account.builder("User", CPF.of("52998224725"), "pwd", "user@acme.com", Role.USER).build();
         employeeAccount.id = UUID.randomUUID();
         Employee employee = Employee.builder("User", company, employeeAccount).build();
+        company.onCreate();
+        employee.active();
 
         Company provider = Company.builder("Provider", CNPJ.of("12345678000195")).build();
         Benefit benefit = Benefit.builder("Gym", provider).description("desc").build();

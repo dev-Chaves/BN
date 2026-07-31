@@ -24,11 +24,11 @@ public class Benefit extends PanacheEntityBase {
     @Column(nullable = false)
     private String name;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 500)
     private String description;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "provider_id")
+    @JoinColumn(name = "provider_id", nullable = false)
     private Company provider;
 
     private Boolean active;
@@ -108,9 +108,9 @@ public class Benefit extends PanacheEntityBase {
     @PrePersist
     public void onCreate() {
         this.createdAt = LocalDateTime.now();
-        this.active = Boolean.FALSE;
-        this.publiclyVisible = Boolean.TRUE;
-        this.maxUsesPerUser = 1;
+        if (this.active == null) this.active = Boolean.FALSE;
+        if (this.publiclyVisible == null) this.publiclyVisible = Boolean.TRUE;
+        if (this.maxUsesPerUser == null) this.maxUsesPerUser = 1;
     }
 
     public void update(String name, String description) {
@@ -198,10 +198,20 @@ public class Benefit extends PanacheEntityBase {
     }
 
     public boolean isAvailableAt(LocalDateTime now) {
-        return Boolean.TRUE.equals(active)
-                && Boolean.TRUE.equals(publiclyVisible)
+        return isDiscoverableAt(now);
+    }
+
+    public boolean isOperationalAt(LocalDateTime now) {
+        return provider != null
+                && Boolean.TRUE.equals(provider.getActive())
+                && Boolean.TRUE.equals(active)
                 && (validFrom == null || !validFrom.isAfter(now))
                 && (validUntil == null || validUntil.isAfter(now));
+    }
+
+    public boolean isDiscoverableAt(LocalDateTime now) {
+        return Boolean.TRUE.equals(publiclyVisible)
+                && isOperationalAt(now);
     }
 
     private void validateValidityWindow() {

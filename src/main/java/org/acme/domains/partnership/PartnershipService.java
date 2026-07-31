@@ -14,6 +14,7 @@ import org.acme.domains.manager.ManagerRepository;
 import org.acme.domains.partnership.dto.PartnershipResponse;
 import org.acme.domains.shared.security.TenantGuard;
 import org.jboss.logging.Logger;
+import java.time.LocalDateTime;
 
 @ApplicationScoped
 public class PartnershipService {
@@ -161,6 +162,10 @@ public class PartnershipService {
     private Uni<Void> validateBusinessRules(Tuple2<Company, Benefit> tuple) {
         Company company = tuple.getItem1();
         Benefit benefit = tuple.getItem2();
+
+        if (!benefit.isDiscoverableAt(LocalDateTime.now())) {
+            return Uni.createFrom().failure(new IllegalStateException("Benefit is not available for partnership"));
+        }
 
         return validatePartnershipDoesNotExist(company.id, benefit.id)
             .call(() -> validateCompanyIsNotOwnProvider(company, benefit));

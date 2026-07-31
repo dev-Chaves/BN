@@ -1,12 +1,12 @@
 package org.acme.domains.company.dto;
 
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
 public record CreateCompanyRequest(
-        @NotEmpty(message = "Name company cannot be null")
+        @NotBlank(message = "Name company cannot be null") @Size(max = 160)
         String name,
-        @NotNull(message = "CNPJ cannot be null")
+        @NotBlank(message = "CNPJ cannot be null")
         String cnpj
 ) {
 }

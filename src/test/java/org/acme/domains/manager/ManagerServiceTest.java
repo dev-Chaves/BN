@@ -46,6 +46,8 @@ class ManagerServiceTest {
     @Test
     void shouldFailWhenCompanyNotFound() {
         CreateManagerRequest request = new CreateManagerRequest("Manager", "52998224725", "manager@acme.com", "123456", 10L);
+        when(accountRepository.findByEmail(request.email())).thenReturn(Uni.createFrom().nullItem());
+        when(accountRepository.findByCPF(request.cpf())).thenReturn(Uni.createFrom().nullItem());
         when(companyRepository.findById(request.companyId())).thenReturn(Uni.createFrom().nullItem());
 
         assertThrows(NotFoundException.class, () -> managerService.createManager(request).await().indefinitely());
@@ -62,6 +64,8 @@ class ManagerServiceTest {
         persistedManager.id = 99L;
 
         when(companyRepository.findById(request.companyId())).thenReturn(Uni.createFrom().item(company));
+        when(accountRepository.findByEmail(request.email())).thenReturn(Uni.createFrom().nullItem());
+        when(accountRepository.findByCPF(request.cpf())).thenReturn(Uni.createFrom().nullItem());
         when(accountRepository.persist(any(Account.class))).thenReturn(Uni.createFrom().item(persistedAccount));
         when(managerRepository.persist(any(Manager.class))).thenReturn(Uni.createFrom().item(persistedManager));
 
@@ -80,6 +84,8 @@ class ManagerServiceTest {
         company.id = 12L;
         Manager manager = Manager.builder("Manager", company, account).build();
         manager.id = 15L;
+        company.onCreate();
+        manager.onCreate();
 
         when(managerRepository.findByEmail("manager@acme.com")).thenReturn(Uni.createFrom().item(manager));
 

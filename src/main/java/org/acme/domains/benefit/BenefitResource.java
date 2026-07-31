@@ -13,6 +13,7 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.json.JsonNumber;
@@ -49,15 +50,19 @@ public class BenefitResource implements BaseResource {
     @GET
     @Path("/tenant")
     @RolesAllowed("MANAGER")
-    public Uni<Response> listBenefitsByTenant(@QueryParam("categoryId") Optional<Long> categoryId) {
-        return toOk(benefitService.listBenefitsByTenant(claimCompanyId(), jwt.getName(), categoryId));
+    public Uni<Response> listBenefitsByTenant(@QueryParam("categoryId") Optional<Long> categoryId,
+                                               @QueryParam("page") @DefaultValue("0") int page,
+                                               @QueryParam("size") @DefaultValue("50") int size) {
+        return toOk(benefitService.listBenefitsByTenant(claimCompanyId(), jwt.getName(), categoryId, page, size));
     }
 
     @GET
     @Path("/marketplace")
     @RolesAllowed("MANAGER")
-    public Uni<Response> managerMarketplace(@QueryParam("categoryId") Optional<Long> categoryId) {
-        return toOk(benefitService.managerMarketplace(jwt.getName(), categoryId));
+    public Uni<Response> managerMarketplace(@QueryParam("categoryId") Optional<Long> categoryId,
+                                             @QueryParam("page") @DefaultValue("0") int page,
+                                             @QueryParam("size") @DefaultValue("50") int size) {
+        return toOk(benefitService.managerMarketplace(jwt.getName(), categoryId, page, size));
     }
 
     @PUT

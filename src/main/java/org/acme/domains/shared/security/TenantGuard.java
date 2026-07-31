@@ -25,6 +25,7 @@ public class TenantGuard {
     }
 
     public Uni<Company> verifyManagerCompanyAccess(Manager manager, Long companyId) {
+        AccessStatusGuard.requireActive(manager);
         if (manager.getCompany() == null || manager.getCompany().id == null) {
             return Uni.createFrom().failure(new NotFoundException("Unauthorized access: Manager company not found"));
         }
@@ -34,10 +35,15 @@ public class TenantGuard {
         }
 
         return companyRepository.findById(companyId)
-                .onItem().ifNull().failWith(() -> new NotFoundException("Unauthorized access: Company not found"));
+                .onItem().ifNull().failWith(() -> new NotFoundException("Unauthorized access: Company not found"))
+                .map(company -> {
+                    if (!Boolean.TRUE.equals(company.getActive())) throw new SecurityException("Company is inactive");
+                    return company;
+                });
     }
 
     public Uni<Employee> verifyManagerEmployeeAccess(Manager manager, Employee employee) {
+        AccessStatusGuard.requireActive(manager);
         if (manager.getCompany() == null || manager.getCompany().id == null || employee.getCompany() == null || employee.getCompany().id == null) {
             return Uni.createFrom().failure(new NotFoundException("Unauthorized access: Company not found"));
         }
@@ -50,6 +56,7 @@ public class TenantGuard {
     }
 
     public Uni<Partnership> verifyManagerPartnershipProviderAccess(Manager manager, Partnership partnership) {
+        AccessStatusGuard.requireActive(manager);
         if (manager.getCompany() == null || manager.getCompany().id == null) {
             return Uni.createFrom().failure(new NotFoundException("Unauthorized access: Manager company not found"));
         }
@@ -66,6 +73,7 @@ public class TenantGuard {
     }
 
     public Uni<Benefit> verifyEmployeeBenefitAccess(Employee employee, Benefit benefit) {
+        AccessStatusGuard.requireActive(employee);
         if (employee.getCompany() == null || employee.getCompany().id == null) {
             return Uni.createFrom().failure(new NotFoundException("Unauthorized access: Company not found"));
         }

@@ -36,11 +36,11 @@ Padrão arquitetural predominante:
 
 O ambiente local está definido em `application-dev.yaml` e `docker-compose.yml`.
 
-Parâmetros padrão:
+Parâmetros locais:
 
 - Banco: `benefix`
 - Usuário: `postgres`
-- Senha: `password`
+- Senha: definida por `POSTGRES_PASSWORD`
 - JDBC URL: `jdbc:postgresql://localhost:5432/benefix`
 - Reactive URL: `postgresql://localhost:5432/benefix`
 
@@ -54,6 +54,9 @@ JWT:
 ## Subindo infraestrutura local
 
 ```bash
+export POSTGRES_PASSWORD='uma-senha-local-forte'
+export SWAGGER_BASIC_AUTH_USERNAME='admin-local'
+export SWAGGER_BASIC_AUTH_PASSWORD='uma-senha-local-forte'
 docker compose up -d
 docker compose ps
 ```
@@ -161,6 +164,7 @@ curl -i -X PUT "http://localhost:8080/employees/activate?employeeId=<EMPLOYEE_ID
 
 - `POST /onboarding` (público)
 - `POST /auth/login` (público)
+- `POST /auth/logout` (público; remove o cookie de sessão)
 - `GET /companies/me` (`MANAGER`)
 - `GET /managers/me` (`MANAGER`)
 - `POST /managers` (`ADMIN`)
@@ -196,9 +200,10 @@ curl -i -X PUT "http://localhost:8080/employees/activate?employeeId=<EMPLOYEE_ID
 
 Observações:
 
-- O projeto usa Flyway com `migrate-at-start: true`, então o banco deve estar acessível no bootstrap de testes.
-- Se variáveis de ambiente do Quarkus estiverem sobrescrevendo datasource local, os testes podem falhar por conexão com host externo.
-- No IntelliJ/IDE, evite injetar variáveis de produção (`QUARKUS_DATASOURCE_*`) ao rodar `@QuarkusTest`; os testes locais devem usar `localhost:5432`.
+- Testes `@QuarkusTest` usam PostgreSQL efêmero via Dev Services; Docker Desktop ou OrbStack precisa estar ativo.
+- O banco de teste é descartável e não reutiliza a base local `benefix`.
+- Evite injetar variáveis de produção (`QUARKUS_DATASOURCE_*`) ao executar os testes.
+- As listagens de funcionários e benefícios aceitam `page` e `size`; `size` é limitado a 100 e o padrão é 50.
 
 ## Build e execução em produção
 

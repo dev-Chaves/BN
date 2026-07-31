@@ -3,6 +3,7 @@ package org.acme.domains.benefit;
 import java.util.List;
 
 import io.quarkus.hibernate.reactive.panache.PanacheRepository;
+import io.quarkus.panache.common.Page;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 
@@ -14,11 +15,16 @@ public class BenefitRepository implements PanacheRepository<Benefit> {
     }
 
     public Uni<List<Benefit>> findByCompanyId(Long companyId) {
-        return list("provider.id", companyId);
+        return find("select distinct b from Benefit b join fetch b.provider left join fetch b.categories where b.provider.id = ?1 order by b.createdAt desc", companyId).list();
+    }
+
+    public Uni<List<Benefit>> findByCompanyId(Long companyId, int page, int size) {
+        return find("select distinct b from Benefit b join fetch b.provider left join fetch b.categories where b.provider.id = ?1 order by b.createdAt desc", companyId)
+                .page(Page.of(page, size)).list();
     }
 
     public Uni<List<Benefit>> findActiveByProviderNot(Long companyId) {
-        return find("provider.id <> ?1 and active = true", companyId).list();
+        return findPublicAvailableByProviderNot(companyId);
     }
 
     public Uni<List<Benefit>> findActiveByProvider(Long companyId) {
@@ -40,6 +46,17 @@ public class BenefitRepository implements PanacheRepository<Benefit> {
                 """, companyId).list();
     }
 
+    public Uni<List<Benefit>> findPublicAvailableByProviderNot(Long companyId, int page, int size) {
+        return find("""
+                select distinct b from Benefit b
+                join fetch b.provider p left join fetch b.categories
+                where p.id <> ?1 and p.active = true and b.active = true and b.publiclyVisible = true
+                  and (b.validFrom is null or b.validFrom <= CURRENT_TIMESTAMP)
+                  and (b.validUntil is null or b.validUntil > CURRENT_TIMESTAMP)
+                order by b.createdAt desc
+                """, companyId).page(Page.of(page, size)).list();
+    }
+
     public Uni<Benefit> findByIdWithProviderAndCategories(Long benefitId) {
         return find("""
                 select distinct b from Benefit b
@@ -57,11 +74,35 @@ public class BenefitRepository implements PanacheRepository<Benefit> {
     }
 
     public Uni<List<Benefit>> findByCompanyIdAndCategoryId(Long companyId, Long categoryId) {
-        return find("provider.id = ?1 and ?2 member of categories", companyId, categoryId).list();
+        return find("select distinct b from Benefit b join fetch b.provider join fetch b.categories c where b.provider.id = ?1 and c.id = ?2 order by b.createdAt desc", companyId, categoryId).list();
+    }
+
+    public Uni<List<Benefit>> findByCompanyIdAndCategoryId(Long companyId, Long categoryId, int page, int size) {
+        return find("select distinct b from Benefit b join fetch b.provider join fetch b.categories c where b.provider.id = ?1 and c.id = ?2 order by b.createdAt desc", companyId, categoryId)
+                .page(Page.of(page, size)).list();
     }
 
     public Uni<List<Benefit>> findActiveByProviderNotAndCategoryId(Long companyId, Long categoryId) {
-        return find("provider.id <> ?1 and active = true and ?2 member of categories", companyId, categoryId).list();
+        return find("""
+                select distinct b from Benefit b
+                join fetch b.provider p
+                join fetch b.categories c
+                where p.id <> ?1 and c.id = ?2
+                  and p.active = true and b.active = true and b.publiclyVisible = true
+                  and (b.validFrom is null or b.validFrom <= CURRENT_TIMESTAMP)
+                  and (b.validUntil is null or b.validUntil > CURRENT_TIMESTAMP)
+                order by b.createdAt desc
+                """, companyId, categoryId).list();
+    }
+
+    public Uni<List<Benefit>> findActiveByProviderNotAndCategoryId(Long companyId, Long categoryId, int page, int size) {
+        return find("""
+                select distinct b from Benefit b join fetch b.provider p join fetch b.categories c
+                where p.id <> ?1 and c.id = ?2 and p.active = true and b.active = true and b.publiclyVisible = true
+                  and (b.validFrom is null or b.validFrom <= CURRENT_TIMESTAMP)
+                  and (b.validUntil is null or b.validUntil > CURRENT_TIMESTAMP)
+                order by b.createdAt desc
+                """, companyId, categoryId).page(Page.of(page, size)).list();
     }
 
 }

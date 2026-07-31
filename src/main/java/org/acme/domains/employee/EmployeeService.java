@@ -18,6 +18,7 @@ import org.acme.domains.shared.domain.CPF;
 import org.acme.domains.shared.enums.Role;
 import org.acme.domains.shared.security.TenantGuard;
 import org.acme.domains.subscription.CompanyBenefitAssignmentService;
+import org.acme.domains.redemption.RedemptionTokenRepository;
 import org.jboss.logging.Logger;
 
 import java.util.List;
@@ -40,6 +41,7 @@ public class EmployeeService {
     private final TenantGuard tenantGuard;
 
     private final CompanyBenefitAssignmentService companyBenefitAssignmentService;
+    private final RedemptionTokenRepository redemptionTokenRepository;
 
     public EmployeeService(
             CompanyRepository companyRepository,
@@ -47,7 +49,8 @@ public class EmployeeService {
             ManagerRepository managerRepository,
             EmployeeRepository employeeRepository,
             TenantGuard tenantGuard,
-            CompanyBenefitAssignmentService companyBenefitAssignmentService
+            CompanyBenefitAssignmentService companyBenefitAssignmentService,
+            RedemptionTokenRepository redemptionTokenRepository
     ) {
         this.companyRepository = companyRepository;
         this.accountRepository = accountRepository;
@@ -55,19 +58,11 @@ public class EmployeeService {
         this.employeeRepository = employeeRepository;
         this.tenantGuard = tenantGuard;
         this.companyBenefitAssignmentService = companyBenefitAssignmentService;
+        this.redemptionTokenRepository = redemptionTokenRepository;
     }
 
     @WithTransaction
     public Uni<EmployeeResponse> createEmployee(CreateEmployeeRequest request, String managerEmail, Long companyId) {
-
-        String hashPassword = BcryptUtil.bcryptHash(request.password());
-
-        Account account = Account.builder(
-                request.name(),
-                CPF.of(request.cpf()),
-                hashPassword,
-                request.email(),
-                Role.USER).build();
 
         return accountRepository.findByEmail(request.email())
                 .flatMap(existing -> {
@@ -75,11 +70,19 @@ public class EmployeeService {
                         LOG.warnf("Email already exists email=%s", request.email());
                         return Uni.createFrom().failure(new IllegalStateException("Email already in use"));
                     }
+                    return accountRepository.findByCPF(request.cpf());
+                })
+                .flatMap(existing -> {
+                    if (existing != null) return Uni.createFrom().failure(new IllegalStateException("CPF already in use"));
                     return validateManager(managerEmail);
                 })
                 .flatMap(manager -> tenantGuard.verifyManagerCompanyAccess(manager, companyId))
-                .onItem().transform((company) -> Employee.builder(request.name(), company,  account).build())
-                .call(() -> accountRepository.persist(account))
+                .onItem().transform(company -> {
+                    Account account = Account.builder(request.name(), CPF.of(request.cpf()),
+                            BcryptUtil.bcryptHash(request.password()), request.email(), Role.USER).build();
+                    return Employee.builder(request.name(), company, account).build();
+                })
+                .call(employee -> accountRepository.persist(employee.getAccount()))
                 .call(employeeRepository::persist).onItem().transform(this::toResponse);
     }
 
@@ -93,7 +96,8 @@ public class EmployeeService {
                                 .flatMap(this::validateNotDisabled)
                                 .flatMap(employee -> {
                                     employee.disable();
-                                    return employeeRepository.persist(employee);
+                                    return redemptionTokenRepository.revokeActiveByEmployee(employee.id)
+                                            .flatMap(ignored -> employeeRepository.persist(employee));
                                 })
                                 .map(this::toResponse)
                 );
@@ -135,11 +139,19 @@ public class EmployeeService {
 
     @WithSession
     public Uni<List<EmployeeResponse>> listByTenant(String managerEmail, Long companyId) {
+        return listByTenant(managerEmail, companyId, 0, 50);
+    }
+
+    @WithSession
+    public Uni<List<EmployeeResponse>> listByTenant(String managerEmail, Long companyId, int page, int size) {
         return validateManager(managerEmail)
                 .flatMap(manager -> tenantGuard.verifyManagerCompanyAccess(manager, companyId))
-                .flatMap(company -> employeeRepository.findByCompanyId(company.id))
+                .flatMap(company -> employeeRepository.findByCompanyId(company.id, normalizePage(page), normalizeSize(size)))
                 .map(employees -> employees.stream().map(this::toResponse).toList());
     }
+
+    private int normalizePage(int page) { return Math.max(0, page); }
+    private int normalizeSize(int size) { return Math.max(1, Math.min(size, 100)); }
 
     private Uni<Manager> validateManager(String managerEmail) {
         return managerRepository.findByEmail(managerEmail).onItem().ifNull().failWith(() -> {

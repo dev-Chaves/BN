@@ -81,6 +81,9 @@ class PartnershipServiceTest {
         provider.id = 30L;
         Benefit benefit = Benefit.builder("Gym", provider).description("desc").build();
         benefit.id = 1L;
+        provider.onCreate();
+        benefit.onCreate();
+        benefit.activeBenefit();
 
         when(managerRepository.findByEmail("manager@acme.com")).thenReturn(Uni.createFrom().item(manager));
         when(tenantGuard.verifyManagerCompanyAccess(manager, 10L)).thenReturn(Uni.createFrom().item(manager.getCompany()));

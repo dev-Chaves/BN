@@ -15,6 +15,7 @@ import org.acme.domains.shared.domain.CPF;
 import org.acme.domains.shared.enums.Role;
 import org.acme.domains.shared.security.TenantGuard;
 import org.acme.domains.subscription.CompanyBenefitAssignmentService;
+import org.acme.domains.redemption.RedemptionTokenRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -47,6 +48,9 @@ class EmployeeServiceTest {
     @Mock
     private CompanyBenefitAssignmentService companyBenefitAssignmentService;
 
+    @Mock
+    private RedemptionTokenRepository redemptionTokenRepository;
+
     private EmployeeService employeeService;
 
     @BeforeEach
@@ -58,7 +62,8 @@ class EmployeeServiceTest {
                 managerRepository,
                 employeeRepository,
                 tenantGuard,
-                companyBenefitAssignmentService
+                companyBenefitAssignmentService,
+                redemptionTokenRepository
         );
     }
 
@@ -73,6 +78,7 @@ class EmployeeServiceTest {
         );
 
         when(accountRepository.findByEmail("employee@acme.com")).thenReturn(Uni.createFrom().nullItem());
+        when(accountRepository.findByCPF("52998224725")).thenReturn(Uni.createFrom().nullItem());
         when(managerRepository.findByEmail("manager@acme.com")).thenReturn(Uni.createFrom().nullItem());
 
         assertThrows(NotFoundException.class, () ->
@@ -97,6 +103,7 @@ class EmployeeServiceTest {
         ).build();
 
         when(accountRepository.findByEmail("employee@acme.com")).thenReturn(Uni.createFrom().nullItem());
+        when(accountRepository.findByCPF("52998224725")).thenReturn(Uni.createFrom().nullItem());
         when(managerRepository.findByEmail("manager@acme.com")).thenReturn(Uni.createFrom().item(manager));
         when(tenantGuard.verifyManagerCompanyAccess(manager, 99L)).thenReturn(Uni.createFrom().failure(new SecurityException("Unauthorized access: Tenant mismatch")));
 
@@ -124,6 +131,7 @@ class EmployeeServiceTest {
         ).build();
 
         when(accountRepository.findByEmail("employee@acme.com")).thenReturn(Uni.createFrom().nullItem());
+        when(accountRepository.findByCPF("52998224725")).thenReturn(Uni.createFrom().nullItem());
         when(managerRepository.findByEmail("manager@acme.com")).thenReturn(Uni.createFrom().item(manager));
         when(tenantGuard.verifyManagerCompanyAccess(manager, 10L)).thenReturn(Uni.createFrom().item(company));
         when(accountRepository.persist(any(Account.class))).thenAnswer(invocation -> {

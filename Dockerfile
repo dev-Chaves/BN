@@ -6,9 +6,9 @@ WORKDIR /app
 COPY pom.xml .
 RUN mvn dependency:go-offline -B
 
-# 2. Compilação: Copia o src e gera o pacote Quarkus (fast-jar) offline
+# 2. Compilação: Copia o src e gera o pacote Quarkus (fast-jar)
 COPY src ./src
-RUN mvn clean package -DskipTests -o
+RUN mvn clean package -DskipTests -B
 
 # Stage 2: Run (Focado em economia de RAM para o WSL/Produção)
 FROM amazoncorretto:21-alpine

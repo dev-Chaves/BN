@@ -2,7 +2,6 @@ package org.acme.domains.auth;
 
 import io.quarkus.elytron.security.common.BcryptUtil;
 import io.smallrye.mutiny.Uni;
-import jakarta.ws.rs.NotFoundException;
 import org.acme.domains.account.Account;
 import org.acme.domains.account.AccountRepository;
 import org.acme.domains.auth.dto.LoginRequest;
@@ -48,7 +47,7 @@ class AuthServiceTest {
         LoginRequest request = new LoginRequest("missing@acme.com", "123456");
         when(accountRepository.findByEmail(request.email())).thenReturn(Uni.createFrom().nullItem());
 
-        assertThrows(NotFoundException.class, () -> authService.login(request).await().indefinitely());
+        assertThrows(AuthenticationException.class, () -> authService.login(request).await().indefinitely());
     }
 
     @Test
@@ -57,7 +56,7 @@ class AuthServiceTest {
         LoginRequest request = new LoginRequest(account.getEmail(), "wrong-password");
         when(accountRepository.findByEmail(request.email())).thenReturn(Uni.createFrom().item(account));
 
-        assertThrows(IllegalStateException.class, () -> authService.login(request).await().indefinitely());
+        assertThrows(AuthenticationException.class, () -> authService.login(request).await().indefinitely());
     }
 
     @Test
@@ -67,9 +66,9 @@ class AuthServiceTest {
 
         when(accountRepository.findByEmail(request.email())).thenReturn(Uni.createFrom().item(account));
         when(employeeLoginContext.resolve(account))
-                .thenReturn(Uni.createFrom().failure(new IllegalStateException("Employee is disabled")));
+                .thenReturn(Uni.createFrom().failure(new SecurityException("Employee is disabled")));
 
-        assertThrows(IllegalStateException.class, () -> authService.login(request).await().indefinitely());
+        assertThrows(AuthenticationException.class, () -> authService.login(request).await().indefinitely());
     }
 
     @Test
@@ -79,9 +78,9 @@ class AuthServiceTest {
 
         when(accountRepository.findByEmail(request.email())).thenReturn(Uni.createFrom().item(account));
         when(managerLoginContext.resolve(account))
-                .thenReturn(Uni.createFrom().failure(new NotFoundException("Manager not found")));
+                .thenReturn(Uni.createFrom().failure(new AuthenticationException()));
 
-        assertThrows(NotFoundException.class, () -> authService.login(request).await().indefinitely());
+        assertThrows(AuthenticationException.class, () -> authService.login(request).await().indefinitely());
     }
 
     private Account buildAccount(String email, String rawPassword, Role role) {

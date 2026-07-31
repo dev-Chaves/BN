@@ -1,6 +1,13 @@
 quarkus:
+  http:
+    auth:
+      proactive: false
   datasource:
     db-kind: postgresql
+
+  hibernate-orm:
+    jdbc:
+      timezone: UTC
 
   smallrye-jwt:
     enabled: true
@@ -12,16 +19,16 @@ quarkus:
     buckets:
       auth-group:
         limits:
-          - permitted-uses: ${AUTH_RATE_LIMIT_USES_SECOND}
-            period: ${AUTH_RATE_LIMIT_PERIOD_SECOND}
-          - permitted-uses: ${AUTH_RATE_LIMIT_USES_MINUTE}
-            period: ${AUTH_RATE_LIMIT_PERIOD_MINUTE}
+          - permitted-uses: ${AUTH_RATE_LIMIT_USES_SECOND:5}
+            period: ${AUTH_RATE_LIMIT_PERIOD_SECOND:1S}
+          - permitted-uses: ${AUTH_RATE_LIMIT_USES_MINUTE:30}
+            period: ${AUTH_RATE_LIMIT_PERIOD_MINUTE:1M}
       onboarding-group:
         limits:
-          - permitted-uses: ${ONBOARDING_RATE_LIMIT_USES_SECOND}
-            period: ${ONBOARDING_RATE_LIMIT_PERIOD_SECOND}
-          - permitted-uses: ${ONBOARDING_RATE_LIMIT_USES_MINUTE}
-            period: ${ONBOARDING_RATE_LIMIT_PERIOD_MINUTE}
+          - permitted-uses: ${ONBOARDING_RATE_LIMIT_USES_SECOND:2}
+            period: ${ONBOARDING_RATE_LIMIT_PERIOD_SECOND:1S}
+          - permitted-uses: ${ONBOARDING_RATE_LIMIT_USES_MINUTE:10}
+            period: ${ONBOARDING_RATE_LIMIT_PERIOD_MINUTE:1M}
       redemption-group:
         limits:
           - permitted-uses: ${REDEMPTION_RATE_LIMIT_USES_SECOND:10}

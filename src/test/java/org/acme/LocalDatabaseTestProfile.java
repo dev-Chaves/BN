@@ -10,10 +10,8 @@ public class LocalDatabaseTestProfile implements QuarkusTestProfile {
     public Map<String, String> getConfigOverrides() {
         return Map.ofEntries(
                 Map.entry("quarkus.datasource.db-kind", "postgresql"),
-                Map.entry("quarkus.datasource.username", "postgres"),
-                Map.entry("quarkus.datasource.password", "password"),
-                Map.entry("quarkus.datasource.jdbc.url", "jdbc:postgresql://localhost:5432/benefix"),
-                Map.entry("quarkus.datasource.reactive.url", "postgresql://localhost:5432/benefix"),
+                Map.entry("quarkus.datasource.devservices.enabled", "true"),
+                Map.entry("quarkus.datasource.devservices.reuse", "false"),
                 Map.entry("quarkus.flyway.migrate-at-start", "true"),
                 Map.entry("quarkus.http.test-port", "0"),
                 Map.entry("mp.jwt.verify.publickey.location", "publicKey.pem"),

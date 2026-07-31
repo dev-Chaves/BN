@@ -2,7 +2,6 @@ package org.acme.domains.benefit;
 
 import io.quarkus.hibernate.reactive.panache.common.WithSession;
 import io.quarkus.hibernate.reactive.panache.common.WithTransaction;
-import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.ws.rs.NotFoundException;
@@ -18,7 +17,6 @@ import org.acme.domains.manager.Manager;
 import org.acme.domains.manager.ManagerRepository;
 import org.acme.domains.shared.security.TenantGuard;
 import org.acme.domains.subscription.CompanyBenefitAssignmentService;
-import org.hibernate.reactive.mutiny.Mutiny;
 import org.jboss.logging.Logger;
 
 import java.util.List;
@@ -70,25 +68,33 @@ public class BenefitService {
 
     @WithSession
     public Uni<List<BenefitResponse>> listBenefitsByTenant(Long companyId, String email, Optional<Long> categoryId){
+        return listBenefitsByTenant(companyId, email, categoryId, 0, 50);
+    }
+
+    @WithSession
+    public Uni<List<BenefitResponse>> listBenefitsByTenant(Long companyId, String email, Optional<Long> categoryId, int page, int size){
 
         return validateManager(email)
                 .flatMap(manager -> tenantGuard.verifyManagerCompanyAccess(manager, companyId))
-                .flatMap(company -> listBenefitByCompanyId(company.id, categoryId))
-                .flatMap(this::fetchAllBenefitAssociations)
+                .flatMap(company -> listBenefitByCompanyId(company.id, categoryId, page, size))
                 .map(benefits -> benefits.stream().map(this::toResponse).toList());
     }
 
     @WithSession
     public Uni<List<BenefitResponse>> managerMarketplace(String managerEmail, Optional<Long> categoryId) {
+        return managerMarketplace(managerEmail, categoryId, 0, 50);
+    }
+
+    @WithSession
+    public Uni<List<BenefitResponse>> managerMarketplace(String managerEmail, Optional<Long> categoryId, int page, int size) {
         return validateManager(managerEmail)
                 .flatMap(manager -> tenantGuard.verifyManagerCompanyAccess(manager, manager.getCompany().id))
                 .flatMap(company -> {
                     if (categoryId.isPresent()) {
-                        return benefitRepository.findActiveByProviderNotAndCategoryId(company.id, categoryId.get());
+                        return benefitRepository.findActiveByProviderNotAndCategoryId(company.id, categoryId.get(), normalizePage(page), normalizeSize(size));
                     }
-                    return benefitRepository.findActiveByProviderNot(company.id);
+                    return benefitRepository.findPublicAvailableByProviderNot(company.id, normalizePage(page), normalizeSize(size));
                 })
-                .flatMap(this::fetchAllBenefitAssociations)
                 .map(benefits -> benefits.stream().map(this::toResponse).toList());
     }
 
@@ -157,20 +163,23 @@ public class BenefitService {
                 categories);
     }
 
-    private Uni<List<Benefit>> listBenefitByCompanyId(Long companyId, Optional<Long> categoryId){
+    private Uni<List<Benefit>> listBenefitByCompanyId(Long companyId, Optional<Long> categoryId, int page, int size){
         if (categoryId.isPresent()) {
-            return benefitRepository.findByCompanyIdAndCategoryId(companyId, categoryId.get())
+            return benefitRepository.findByCompanyIdAndCategoryId(companyId, categoryId.get(), normalizePage(page), normalizeSize(size))
                     .onItem().ifNull().failWith(() -> new NotFoundException("Unauthorized access: Company not found"));
         }
-        return benefitRepository.findByCompanyId(companyId)
+        return benefitRepository.findByCompanyId(companyId, normalizePage(page), normalizeSize(size))
                 .onItem().ifNull().failWith(() -> new NotFoundException("Unauthorized access: Company not found"));
     }
+
+    private int normalizePage(int page) { return Math.max(0, page); }
+    private int normalizeSize(int size) { return Math.max(1, Math.min(size, 100)); }
 
     private Uni<Manager> validateManager(String email){
         return managerRepository.findByEmail(email).onItem()
                 .ifNull().failWith(() -> {
                     LOG.warnf("Manager not found managerEmail=%s", email);
-                    return new RuntimeException("Manager not found");
+                    return new NotFoundException("Manager not found");
                 });
     }
 
@@ -202,24 +211,8 @@ public class BenefitService {
     }
 
     private Uni<Benefit> getBenefitById(Long benefitId) {
-        return benefitRepository.findById(benefitId)
-                .onItem().ifNull().failWith(() -> new NotFoundException("Benefit not found"))
-                .flatMap(this::fetchBenefitAssociations);
-    }
-
-    private Uni<Benefit> fetchBenefitAssociations(Benefit benefit) {
-        return Mutiny.fetch(benefit.getCategories())
-                .chain(() -> Mutiny.fetch(benefit.getProvider()))
-                .replaceWith(benefit);
-    }
-
-    private Uni<List<Benefit>> fetchAllBenefitAssociations(List<Benefit> benefits) {
-        if (benefits.isEmpty()) {
-            return Uni.createFrom().item(benefits);
-        }
-        return Multi.createFrom().iterable(benefits)
-                .onItem().transformToUniAndConcatenate(this::fetchBenefitAssociations)
-                .collect().asList();
+        return benefitRepository.findByIdWithProviderAndCategories(benefitId)
+                .onItem().ifNull().failWith(() -> new NotFoundException("Benefit not found"));
     }
 
     private Uni<BenefitResponse> changeBenefitStatus(Long benefitId, String managerEmail, boolean activate) {

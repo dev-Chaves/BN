@@ -6,7 +6,6 @@ import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
-import jakarta.ws.rs.NotFoundException;
 import org.jboss.logging.Logger;
 import org.acme.domains.account.Account;
 import org.acme.domains.account.AccountRepository;
@@ -17,6 +16,7 @@ import org.acme.domains.auth.logincontext.LoginContextResolver;
 import org.acme.domains.shared.enums.Role;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -24,6 +24,7 @@ import java.util.stream.Collectors;
 @ApplicationScoped
 public class AuthService {
     private static final Logger LOG = Logger.getLogger(AuthService.class);
+    private static final String DUMMY_PASSWORD_HASH = BcryptUtil.bcryptHash("benefix-invalid-login-password");
 
     private final AccountRepository accountRepository;
     private final Map<Role, LoginContextResolver> resolvers;
@@ -41,32 +42,35 @@ public class AuthService {
 
     @WithSession
     public Uni<LoginResponse> login(LoginRequest req) {
-        return validateAccount(req.email())
-                .flatMap(acc -> validatePassword(req.password(), acc).replaceWith(acc)
-                        .flatMap(account -> resolveByRole(acc)))
+        String normalizedEmail = normalizeEmail(req.email());
+        return accountRepository.findByEmail(normalizedEmail)
+                .flatMap(account -> validateCredentials(req.password(), account))
+                .flatMap(this::resolveByRole)
+                .onFailure(SecurityException.class).transform(ignored -> new AuthenticationException())
                 .map(ctx -> new LoginResponse(ctx.token()));
     }
 
     private Uni<LoginContextData> resolveByRole(Account account) {
         LoginContextResolver resolver = resolvers.get(account.getRole());
         if (resolver == null) {
-            LOG.errorf("Login resolver not found role=%s email=%s", account.getRole(), account.getEmail());
-            return Uni.createFrom().failure(new IllegalStateException("No login resolver for role: " + account.getRole()));
+            LOG.errorf("Login resolver not found role=%s", account.getRole());
+            return Uni.createFrom().failure(new AuthenticationException());
         }
         return resolver.resolve(account);
     }
 
-    private Uni<Account> validateAccount(String email) {
-        return accountRepository.findByEmail(email).onItem().ifNull().failWith(() -> new NotFoundException("Account not found"));
+    private Uni<Account> validateCredentials(String password, Account account) {
+        String hash = account == null ? DUMMY_PASSWORD_HASH : account.getPassword();
+        boolean matches = BcryptUtil.matches(password, hash);
+        if (account == null || !matches) {
+            LOG.warn("Invalid login credentials");
+            return Uni.createFrom().failure(new AuthenticationException());
+        }
+        return Uni.createFrom().item(account);
     }
 
-    private Uni<Void> validatePassword(String password, Account account) {
-
-        if(!BcryptUtil.matches(password, account.getPassword())){
-            LOG.warnf("Invalid login credentials email=%s", account.getEmail());
-            return Uni.createFrom().failure(new IllegalStateException("Invalid credentials"));
-        }
-        return Uni.createFrom().voidItem();
+    private String normalizeEmail(String email) {
+        return email.trim().toLowerCase(Locale.ROOT);
     }
 
 }
