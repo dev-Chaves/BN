@@ -9,8 +9,7 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "partnerships", uniqueConstraints = @UniqueConstraint(
-        name = "uq_partnership_client_benefit", columnNames = {"client_company_id", "benefit_id"}))
+@Table(name = "partnerships")
 public class Partnership extends PanacheEntityBase {
 
     @Id

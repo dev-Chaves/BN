@@ -26,7 +26,7 @@ public class Company extends PanacheEntityBase {
     private String name;
 
     @Embedded
-    @AttributeOverride(name = "value", column = @Column(name = "value", nullable = false, unique = true))
+    @AttributeOverride(name = "value", column = @Column(name = "value", nullable = false))
     private CNPJ cnpj;
 
     @Column(name = "employee_count")

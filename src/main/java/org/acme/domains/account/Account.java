@@ -27,7 +27,7 @@ public class Account extends PanacheEntityBase {
     private String password;
 
     @Embedded
-    @AttributeOverride(name = "value", column = @Column(name = "cpf", nullable = false, unique = true))
+    @AttributeOverride(name = "value", column = @Column(name = "cpf", nullable = false))
     private CPF cpf;
 
     @Enumerated(EnumType.STRING)
