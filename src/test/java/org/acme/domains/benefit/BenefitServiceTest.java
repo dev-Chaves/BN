@@ -68,10 +68,10 @@ class BenefitServiceTest {
     void shouldFailWhenManagerNotFound() {
         CreateBenefitRequest request = new CreateBenefitRequest("Gym", "desc", 10L, null);
         when(categoryRepository.findByIds(any())).thenReturn(Uni.createFrom().item(List.of()));
-        when(managerRepository.findByEmail("manager@acme.com")).thenReturn(Uni.createFrom().nullItem());
+        when(managerRepository.findByEmailAndCompanyId("manager@acme.com", 10L)).thenReturn(Uni.createFrom().nullItem());
 
         assertThrows(RuntimeException.class, () ->
-                benefitService.createBenefit(request, "manager@acme.com").await().indefinitely());
+                benefitService.createBenefit(request, "manager@acme.com", 10L).await().indefinitely());
     }
 
     @Test
@@ -80,12 +80,12 @@ class BenefitServiceTest {
         Manager manager = buildManager(10L);
 
         when(categoryRepository.findByIds(any())).thenReturn(Uni.createFrom().item(List.of()));
-        when(managerRepository.findByEmail("manager@acme.com")).thenReturn(Uni.createFrom().item(manager));
+        when(managerRepository.findByEmailAndCompanyId("manager@acme.com", 10L)).thenReturn(Uni.createFrom().item(manager));
         when(tenantGuard.verifyManagerCompanyAccess(manager, 99L))
                 .thenReturn(Uni.createFrom().failure(new SecurityException("Unauthorized access: Tenant mismatch")));
 
         assertThrows(SecurityException.class, () ->
-                benefitService.createBenefit(request, "manager@acme.com").await().indefinitely());
+                benefitService.createBenefit(request, "manager@acme.com", 10L).await().indefinitely());
     }
 
     @Test
@@ -96,7 +96,7 @@ class BenefitServiceTest {
         Manager manager = buildManager(10L);
 
         when(categoryRepository.findByIds(any())).thenReturn(Uni.createFrom().item(List.of()));
-        when(managerRepository.findByEmail("manager@acme.com")).thenReturn(Uni.createFrom().item(manager));
+        when(managerRepository.findByEmailAndCompanyId("manager@acme.com", 10L)).thenReturn(Uni.createFrom().item(manager));
         when(tenantGuard.verifyManagerCompanyAccess(manager, 10L)).thenReturn(Uni.createFrom().item(company));
         when(benefitRepository.persist(any(Benefit.class))).thenAnswer(invocation -> {
             Benefit benefit = invocation.getArgument(0);
@@ -105,7 +105,7 @@ class BenefitServiceTest {
             return Uni.createFrom().item(benefit);
         });
 
-        BenefitResponse response = benefitService.createBenefit(request, "manager@acme.com").await().indefinitely();
+        BenefitResponse response = benefitService.createBenefit(request, "manager@acme.com", 10L).await().indefinitely();
 
         assertEquals(7L, response.id());
         assertEquals("Gym", response.benefitName());
@@ -122,7 +122,7 @@ class BenefitServiceTest {
         Manager manager = buildManager(10L);
 
         when(categoryRepository.findByIds(List.of(1L))).thenReturn(Uni.createFrom().item(List.of(health)));
-        when(managerRepository.findByEmail("manager@acme.com")).thenReturn(Uni.createFrom().item(manager));
+        when(managerRepository.findByEmailAndCompanyId("manager@acme.com", 10L)).thenReturn(Uni.createFrom().item(manager));
         when(tenantGuard.verifyManagerCompanyAccess(manager, 10L)).thenReturn(Uni.createFrom().item(company));
         when(benefitRepository.persist(any(Benefit.class))).thenAnswer(invocation -> {
             Benefit benefit = invocation.getArgument(0);
@@ -131,7 +131,7 @@ class BenefitServiceTest {
             return Uni.createFrom().item(benefit);
         });
 
-        BenefitResponse response = benefitService.createBenefit(request, "manager@acme.com").await().indefinitely();
+        BenefitResponse response = benefitService.createBenefit(request, "manager@acme.com", 10L).await().indefinitely();
 
         assertEquals(7L, response.id());
         assertEquals("Gym", response.benefitName());
@@ -147,11 +147,11 @@ class BenefitServiceTest {
         Manager manager = buildManager(10L);
 
         when(categoryRepository.findByIds(List.of(99L))).thenReturn(Uni.createFrom().item(List.of()));
-        when(managerRepository.findByEmail("manager@acme.com")).thenReturn(Uni.createFrom().item(manager));
+        when(managerRepository.findByEmailAndCompanyId("manager@acme.com", 10L)).thenReturn(Uni.createFrom().item(manager));
         when(tenantGuard.verifyManagerCompanyAccess(manager, 10L)).thenReturn(Uni.createFrom().item(company));
 
         assertThrows(NotFoundException.class, () ->
-                benefitService.createBenefit(request, "manager@acme.com").await().indefinitely());
+                benefitService.createBenefit(request, "manager@acme.com", 10L).await().indefinitely());
     }
 
     private Manager buildManager(Long companyId) {

@@ -164,8 +164,12 @@ curl -i -X PUT "http://localhost:8080/employees/activate?employeeId=<EMPLOYEE_ID
 
 - `POST /onboarding` (público)
 - `POST /auth/login` (público)
+- `POST /auth/switch-company` (`MANAGER`; troca o tenant do JWT)
 - `POST /auth/logout` (público; remove o cookie de sessão)
+- `GET /companies` (`MANAGER`; lista as empresas ativas da conta)
+- `POST /companies` (`MANAGER`; cria outra empresa para a mesma conta)
 - `GET /companies/me` (`MANAGER`)
+- `PUT /companies/me/deactivate` (`MANAGER` proprietário; desativação lógica confirmada por senha)
 - `GET /managers/me` (`MANAGER`)
 - `POST /managers` (`ADMIN`)
 - `POST /employees` (`MANAGER`)
@@ -204,6 +208,8 @@ Observações:
 - O banco de teste é descartável e não reutiliza a base local `benefix`.
 - Evite injetar variáveis de produção (`QUARKUS_DATASOURCE_*`) ao executar os testes.
 - As listagens de funcionários e benefícios aceitam `page` e `size`; `size` é limitado a 100 e o padrão é 50.
+- CPF e e-mail identificam uma única conta. A mesma conta pode possuir um vínculo de gestor em várias empresas; desativar uma empresa preserva a identidade e o histórico das demais.
+- O criador da empresa é seu gestor proprietário. Somente esse vínculo pode encerrar o tenant; a operação desativa gestores, colaboradores, benefícios, parcerias e tokens, além de cancelar solicitações pendentes.
 
 ## Build e execução em produção
 

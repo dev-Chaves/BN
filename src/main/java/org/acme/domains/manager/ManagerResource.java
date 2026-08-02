@@ -13,6 +13,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.acme.domains.manager.dto.CreateManagerRequest;
 import org.acme.domains.shared.api.BaseResource;
+import org.acme.domains.shared.security.JwtCompanyContext;
 import org.eclipse.microprofile.jwt.JsonWebToken;
 
 @ApplicationScoped
@@ -39,7 +40,7 @@ public class ManagerResource implements BaseResource {
     @Path("/me")
     @RolesAllowed("MANAGER")
     public Uni<Response> me() {
-        return toOk(managerService.getCurrentManager(jwt.getName()));
+        return toOk(managerService.getCurrentManager(jwt.getName(), JwtCompanyContext.requireCompanyId(jwt)));
     }
 
     public <T> Uni<Response> toCreated(Uni<T> useCaseResult) {

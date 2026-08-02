@@ -8,6 +8,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.acme.domains.benefitrequest.dto.CreateBenefitAccessRequest;
 import org.acme.domains.benefitrequest.dto.RejectBenefitAccessRequest;
+import org.acme.domains.shared.security.JwtCompanyContext;
 import org.eclipse.microprofile.jwt.JsonWebToken;
 
 @Path("/benefit-requests")
@@ -40,20 +41,24 @@ public class BenefitAccessRequestResource {
     @Path("/provider")
     @RolesAllowed("MANAGER")
     public Uni<Response> providerPending() {
-        return service.providerPending(jwt.getName()).map(item -> Response.ok(item).build());
+        return service.providerPending(jwt.getName(), companyId()).map(item -> Response.ok(item).build());
     }
 
     @PUT
     @Path("/{requestId}/approve")
     @RolesAllowed("MANAGER")
     public Uni<Response> approve(@PathParam("requestId") Long requestId) {
-        return service.approve(jwt.getName(), requestId).map(item -> Response.ok(item).build());
+        return service.approve(jwt.getName(), companyId(), requestId).map(item -> Response.ok(item).build());
     }
 
     @PUT
     @Path("/{requestId}/reject")
     @RolesAllowed("MANAGER")
     public Uni<Response> reject(@PathParam("requestId") Long requestId, @Valid RejectBenefitAccessRequest request) {
-        return service.reject(jwt.getName(), requestId, request.reason()).map(item -> Response.ok(item).build());
+        return service.reject(jwt.getName(), companyId(), requestId, request.reason()).map(item -> Response.ok(item).build());
+    }
+
+    private Long companyId() {
+        return JwtCompanyContext.requireCompanyId(jwt);
     }
 }

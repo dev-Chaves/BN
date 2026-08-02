@@ -32,4 +32,9 @@ public class EmployeeRepository implements PanacheRepository<Employee> {
                 """, accountId).firstResult();
     }
 
+    public Uni<Integer> disableByCompanyId(Long companyId) {
+        return update("active = ?1 where company.id = ?2 and active <> ?1",
+                EmployeeStatus.DISABLED, companyId);
+    }
+
 }

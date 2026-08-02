@@ -35,8 +35,8 @@ public class PartnershipService {
     }
 
     @WithTransaction
-    public Uni<PartnershipResponse> requestPartnership(String managerEmail, Long benefitId) {
-        return validateManagerExists(managerEmail)
+    public Uni<PartnershipResponse> requestPartnership(String managerEmail, Long companyId, Long benefitId) {
+        return validateManagerExists(managerEmail, companyId)
             .flatMap(manager -> tenantGuard.verifyManagerCompanyAccess(manager, manager.getCompany().id)
                 .replaceWith(manager))
             .flatMap(manager -> fetchCompanyAndBenefit(manager, benefitId))
@@ -46,8 +46,8 @@ public class PartnershipService {
     }
 
     @WithTransaction
-    public Uni<PartnershipResponse> acceptPartnership(String managerEmail, Long partnershipId) {
-        return validateManagerExists(managerEmail)
+    public Uni<PartnershipResponse> acceptPartnership(String managerEmail, Long companyId, Long partnershipId) {
+        return validateManagerExists(managerEmail, companyId)
                 .flatMap(manager -> getPartnership(partnershipId)
                         .flatMap(partnership -> tenantGuard.verifyManagerPartnershipProviderAccess(manager, partnership)))
                 .flatMap(partnership -> transactionPartnershipStatus(partnership, PartnershipStatus.ACTIVE)
@@ -55,8 +55,8 @@ public class PartnershipService {
     }
 
     @WithTransaction
-    public Uni<PartnershipResponse> rejectPartnership(String managerEmail, Long partnershipId) {
-        return validateManagerExists(managerEmail)
+    public Uni<PartnershipResponse> rejectPartnership(String managerEmail, Long companyId, Long partnershipId) {
+        return validateManagerExists(managerEmail, companyId)
                 .flatMap(manager -> getPartnership(partnershipId)
                         .flatMap(partnership -> tenantGuard.verifyManagerPartnershipProviderAccess(manager, partnership)))
                 .flatMap(partnership -> transactionPartnershipStatus(partnership, PartnershipStatus.REJECTED))
@@ -64,8 +64,8 @@ public class PartnershipService {
     }
 
     @WithTransaction
-    public Uni<PartnershipResponse> disablePartnership(String managerEmail, Long partnershipId) {
-        return validateManagerExists(managerEmail)
+    public Uni<PartnershipResponse> disablePartnership(String managerEmail, Long companyId, Long partnershipId) {
+        return validateManagerExists(managerEmail, companyId)
                 .flatMap(manager -> getPartnership(partnershipId)
                         .flatMap(partnership -> tenantGuard.verifyManagerPartnershipProviderAccess(manager, partnership)))
                 .flatMap(partnership -> transactionPartnershipStatus(partnership, PartnershipStatus.DISABLED))
@@ -105,8 +105,8 @@ public class PartnershipService {
 
     }
 
-    private Uni<Manager> validateManagerExists(String email) {
-        return managerRepository.findByEmail(email)
+    private Uni<Manager> validateManagerExists(String email, Long companyId) {
+        return managerRepository.findByEmailAndCompanyId(email, companyId)
             .onItem().ifNull().failWith(() -> 
                 new NotFoundException("Manager not found with email: " + email)
             );

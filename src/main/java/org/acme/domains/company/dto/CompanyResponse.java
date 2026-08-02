@@ -7,6 +7,7 @@ public record CompanyResponse(
         String name,
         String cnpj,
         Boolean active,
+        Boolean owner,
         LocalDateTime createdAt
 ) {
 }

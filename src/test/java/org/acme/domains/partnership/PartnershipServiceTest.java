@@ -57,21 +57,21 @@ class PartnershipServiceTest {
 
     @Test
     void shouldFailWhenManagerNotFound() {
-        when(managerRepository.findByEmail("manager@acme.com")).thenReturn(Uni.createFrom().nullItem());
+        when(managerRepository.findByEmailAndCompanyId("manager@acme.com", 10L)).thenReturn(Uni.createFrom().nullItem());
 
         assertThrows(NotFoundException.class, () ->
-                partnershipService.requestPartnership("manager@acme.com", 1L).await().indefinitely());
+                partnershipService.requestPartnership("manager@acme.com", 10L, 1L).await().indefinitely());
     }
 
     @Test
     void shouldFailWhenTenantValidationFails() {
         Manager manager = buildManager(10L);
-        when(managerRepository.findByEmail("manager@acme.com")).thenReturn(Uni.createFrom().item(manager));
+        when(managerRepository.findByEmailAndCompanyId("manager@acme.com", 10L)).thenReturn(Uni.createFrom().item(manager));
         when(tenantGuard.verifyManagerCompanyAccess(manager, 10L))
                 .thenReturn(Uni.createFrom().failure(new SecurityException("Unauthorized access: Tenant mismatch")));
 
         assertThrows(SecurityException.class, () ->
-                partnershipService.requestPartnership("manager@acme.com", 1L).await().indefinitely());
+                partnershipService.requestPartnership("manager@acme.com", 10L, 1L).await().indefinitely());
     }
 
     @Test
@@ -85,7 +85,7 @@ class PartnershipServiceTest {
         benefit.onCreate();
         benefit.activeBenefit();
 
-        when(managerRepository.findByEmail("manager@acme.com")).thenReturn(Uni.createFrom().item(manager));
+        when(managerRepository.findByEmailAndCompanyId("manager@acme.com", 10L)).thenReturn(Uni.createFrom().item(manager));
         when(tenantGuard.verifyManagerCompanyAccess(manager, 10L)).thenReturn(Uni.createFrom().item(manager.getCompany()));
         when(benefitRepository.findById(1L)).thenReturn(Uni.createFrom().item(benefit));
         when(partnershipRepository.findExistingPartnership(10L, 1L)).thenReturn(Uni.createFrom().item(false));
@@ -95,7 +95,7 @@ class PartnershipServiceTest {
             return Uni.createFrom().item(partnership);
         });
 
-        PartnershipResponse response = partnershipService.requestPartnership("manager@acme.com", 1L).await().indefinitely();
+        PartnershipResponse response = partnershipService.requestPartnership("manager@acme.com", 10L, 1L).await().indefinitely();
 
         assertEquals(100L, response.id());
         assertEquals(10L, response.clientCompanyId());

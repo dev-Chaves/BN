@@ -4,6 +4,7 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
 import org.acme.domains.auth.dto.LoginContextData;
 import org.acme.domains.auth.dto.LoginRequest;
 import org.acme.domains.auth.dto.LoginResponse;
+import org.acme.domains.auth.dto.SwitchCompanyRequest;
 import org.acme.domains.benefit.dto.BenefitResponse;
 import org.acme.domains.benefit.dto.CreateBenefitRequest;
 import org.acme.domains.benefit.dto.UpdateBenefitRequest;
@@ -13,6 +14,7 @@ import org.acme.domains.benefitrequest.dto.RejectBenefitAccessRequest;
 import org.acme.domains.category.dto.CategoryResponse;
 import org.acme.domains.company.dto.CompanyResponse;
 import org.acme.domains.company.dto.CreateCompanyRequest;
+import org.acme.domains.company.dto.DeactivateCompanyRequest;
 import org.acme.domains.company.dto.UpdateCompanyRequest;
 import org.acme.domains.employee.dto.CreateEmployeeRequest;
 import org.acme.domains.employee.dto.EmployeeResponse;
@@ -40,6 +42,7 @@ import org.acme.domains.sharedbenefit.dto.SharedBenefitResponse;
                 ErrorResponse.class,
                 LoginRequest.class,
                 LoginResponse.class,
+                SwitchCompanyRequest.class,
                 LoginContextData.class,
                 CreateBenefitRequest.class,
                 UpdateBenefitRequest.class,
@@ -54,6 +57,7 @@ import org.acme.domains.sharedbenefit.dto.SharedBenefitResponse;
                 RedemptionPreviewResponse.class,
                 RedemptionResponse.class,
                 CreateCompanyRequest.class,
+                DeactivateCompanyRequest.class,
                 UpdateCompanyRequest.class,
                 CompanyResponse.class,
                 CreateEmployeeRequest.class,

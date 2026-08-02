@@ -4,8 +4,6 @@ import io.quarkus.hibernate.reactive.panache.PanacheRepository;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 
-import java.util.UUID;
-
 @ApplicationScoped
 public class CompanyRepository implements PanacheRepository<Company> {
 
@@ -17,17 +15,8 @@ public class CompanyRepository implements PanacheRepository<Company> {
         return find("name", name).firstResult();
     }
 
-    public  Uni<Company> findByManagerEmail(String managerEmail){
-        return find("select distinct c from Company c join c.managers m where m.account.email = ?1", managerEmail)
-                .firstResult();
-    }
-
     public Uni<Company> findByBenefitId(Long benefitId) {
         return find("select distinct c from Company c join c.offeredBenefits b where b.id = ?1 ", benefitId).firstResult();
-    }
-
-    public Uni<Company> findByAccountId(UUID accountId) {
-        return find("select distinct c from Company c join c.employees e where e.account.id = ?1", accountId).firstResult();
     }
 
 }

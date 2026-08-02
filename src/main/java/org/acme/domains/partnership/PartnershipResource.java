@@ -14,6 +14,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.acme.domains.partnership.dto.CreatePartnershipRequest;
 import org.acme.domains.shared.api.BaseResource;
+import org.acme.domains.shared.security.JwtCompanyContext;
 import org.eclipse.microprofile.jwt.JsonWebToken;
 
 @ApplicationScoped
@@ -33,28 +34,32 @@ public class PartnershipResource implements BaseResource {
     @POST
     @RolesAllowed("MANAGER")
     public Uni<Response> request(@Valid CreatePartnershipRequest request) {
-        return toCreated(partnershipService.requestPartnership(jwt.getName(), request.benefitId()));
+        return toCreated(partnershipService.requestPartnership(jwt.getName(), companyId(), request.benefitId()));
     }
 
     @PUT
     @Path("/accept")
     @RolesAllowed("MANAGER")
     public Uni<Response> accept(@QueryParam("partnershipId") Long partnershipId) {
-        return toOk(partnershipService.acceptPartnership(jwt.getName(), partnershipId));
+        return toOk(partnershipService.acceptPartnership(jwt.getName(), companyId(), partnershipId));
     }
 
     @PUT
     @Path("/reject")
     @RolesAllowed("MANAGER")
     public Uni<Response> reject(@QueryParam("partnershipId") Long partnershipId) {
-        return toOk(partnershipService.rejectPartnership(jwt.getName(), partnershipId));
+        return toOk(partnershipService.rejectPartnership(jwt.getName(), companyId(), partnershipId));
     }
 
     @PUT
     @Path("/disable")
     @RolesAllowed("MANAGER")
     public Uni<Response> disable(@QueryParam("partnershipId") Long partnershipId) {
-        return toOk(partnershipService.disablePartnership(jwt.getName(), partnershipId));
+        return toOk(partnershipService.disablePartnership(jwt.getName(), companyId(), partnershipId));
+    }
+
+    private Long companyId() {
+        return JwtCompanyContext.requireCompanyId(jwt);
     }
 
     public <T> Uni<Response> toCreated(Uni<T> useCaseResult) {

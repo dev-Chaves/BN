@@ -8,10 +8,10 @@ import jakarta.ws.rs.GET;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import jakarta.json.JsonNumber;
 import org.acme.domains.employee.dto.CreateEmployeeRequest;
 import org.acme.domains.employee.dto.UpdateEmployeeRequest;
 import org.acme.domains.shared.api.BaseResource;
+import org.acme.domains.shared.security.JwtCompanyContext;
 import org.eclipse.microprofile.jwt.JsonWebToken;
 
 @Path("employees")
@@ -35,7 +35,7 @@ public class EmployeeResource implements BaseResource {
 
            String email = jwt.getName();
 
-           return toCreated(employeeService.createEmployee(request,email, request.companyId()));
+           return toCreated(employeeService.createEmployee(request, email, claimCompanyId()));
 
     }
 
@@ -46,21 +46,21 @@ public class EmployeeResource implements BaseResource {
 
         String email = jwt.getName();
 
-        return toOk(employeeService.disabledEmployee(employeeId, email));
+        return toOk(employeeService.disabledEmployee(employeeId, email, claimCompanyId()));
     }
 
     @PUT
     @Path("/activate")
     @RolesAllowed("MANAGER")
     public Uni<Response> activateEmployee(@QueryParam("employeeId") Long employeeId){
-        return toOk(employeeService.activateEmployee(employeeId, jwt.getName()));
+        return toOk(employeeService.activateEmployee(employeeId, jwt.getName(), claimCompanyId()));
     }
 
     @PUT
     @Path("/{employeeId}")
     @RolesAllowed("MANAGER")
     public Uni<Response> updateEmployee(@PathParam("employeeId") Long employeeId, @Valid UpdateEmployeeRequest request){
-        return toOk(employeeService.updateEmployee(employeeId, request, jwt.getName()));
+        return toOk(employeeService.updateEmployee(employeeId, request, jwt.getName(), claimCompanyId()));
     }
 
     @GET
@@ -71,21 +71,7 @@ public class EmployeeResource implements BaseResource {
     }
 
     private Long claimCompanyId() {
-        try {
-            return jwt.getClaim("companyId");
-        } catch (ClassCastException ignored) {
-            Object claim = jwt.claim("companyId").orElse(null);
-            if (claim instanceof Number number) {
-                return number.longValue();
-            }
-            if (claim instanceof JsonNumber jsonNumber) {
-                return jsonNumber.longValue();
-            }
-            if (claim instanceof String value) {
-                return Long.parseLong(value);
-            }
-        }
-        throw new IllegalStateException("Invalid companyId claim type");
+        return JwtCompanyContext.requireCompanyId(jwt);
     }
 
     public <T> Uni<Response> toCreated(Uni<T> useCaseResult) {

@@ -79,8 +79,8 @@ public class RedemptionService {
     }
 
     @WithSession
-    public Uni<RedemptionPreviewResponse> preview(String managerEmail, String rawToken) {
-        return findManager(managerEmail)
+    public Uni<RedemptionPreviewResponse> preview(String managerEmail, Long companyId, String rawToken) {
+        return findManager(managerEmail, companyId)
                 .flatMap(manager -> findValidToken(rawToken)
                         .flatMap(token -> verifyProvider(manager, token))
                         .map(token -> new RedemptionPreviewResponse(
@@ -94,9 +94,9 @@ public class RedemptionService {
     }
 
     @WithTransaction
-    public Uni<RedemptionResponse> consume(String managerEmail, String rawToken) {
+    public Uni<RedemptionResponse> consume(String managerEmail, Long companyId, String rawToken) {
         LocalDateTime now = LocalDateTime.now();
-        return findManager(managerEmail)
+        return findManager(managerEmail, companyId)
                 .flatMap(manager -> findValidToken(rawToken)
                         .flatMap(token -> verifyProvider(manager, token)
                                 .flatMap(valid -> validateUsageLimit(valid.getSubscription())
@@ -159,8 +159,8 @@ public class RedemptionService {
                 .map(AccessStatusGuard::requireActive);
     }
 
-    private Uni<Manager> findManager(String email) {
-        return managerRepository.findByEmail(email)
+    private Uni<Manager> findManager(String email, Long companyId) {
+        return managerRepository.findByEmailAndCompanyId(email, companyId)
                 .onItem().ifNull().failWith(() -> new NotFoundException("Manager not found"))
                 .map(AccessStatusGuard::requireActive);
     }

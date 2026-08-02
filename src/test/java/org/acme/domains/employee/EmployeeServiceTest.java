@@ -79,7 +79,7 @@ class EmployeeServiceTest {
 
         when(accountRepository.findByEmail("employee@acme.com")).thenReturn(Uni.createFrom().nullItem());
         when(accountRepository.findByCPF("52998224725")).thenReturn(Uni.createFrom().nullItem());
-        when(managerRepository.findByEmail("manager@acme.com")).thenReturn(Uni.createFrom().nullItem());
+        when(managerRepository.findByEmailAndCompanyId("manager@acme.com", 10L)).thenReturn(Uni.createFrom().nullItem());
 
         assertThrows(NotFoundException.class, () ->
                 employeeService.createEmployee(request, "manager@acme.com", 10L).await().indefinitely());
@@ -104,7 +104,7 @@ class EmployeeServiceTest {
 
         when(accountRepository.findByEmail("employee@acme.com")).thenReturn(Uni.createFrom().nullItem());
         when(accountRepository.findByCPF("52998224725")).thenReturn(Uni.createFrom().nullItem());
-        when(managerRepository.findByEmail("manager@acme.com")).thenReturn(Uni.createFrom().item(manager));
+        when(managerRepository.findByEmailAndCompanyId("manager@acme.com", 99L)).thenReturn(Uni.createFrom().item(manager));
         when(tenantGuard.verifyManagerCompanyAccess(manager, 99L)).thenReturn(Uni.createFrom().failure(new SecurityException("Unauthorized access: Tenant mismatch")));
 
         assertThrows(SecurityException.class, () ->
@@ -132,7 +132,7 @@ class EmployeeServiceTest {
 
         when(accountRepository.findByEmail("employee@acme.com")).thenReturn(Uni.createFrom().nullItem());
         when(accountRepository.findByCPF("52998224725")).thenReturn(Uni.createFrom().nullItem());
-        when(managerRepository.findByEmail("manager@acme.com")).thenReturn(Uni.createFrom().item(manager));
+        when(managerRepository.findByEmailAndCompanyId("manager@acme.com", 10L)).thenReturn(Uni.createFrom().item(manager));
         when(tenantGuard.verifyManagerCompanyAccess(manager, 10L)).thenReturn(Uni.createFrom().item(company));
         when(accountRepository.persist(any(Account.class))).thenAnswer(invocation -> {
             Account account = invocation.getArgument(0);

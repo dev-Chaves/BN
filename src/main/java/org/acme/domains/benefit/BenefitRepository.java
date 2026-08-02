@@ -73,6 +73,10 @@ public class BenefitRepository implements PanacheRepository<Benefit> {
         return find("id in ?1 and active = true", ids).list();
     }
 
+    public Uni<Integer> deactivateByProviderId(Long companyId) {
+        return update("active = false where provider.id = ?1 and active = true", companyId);
+    }
+
     public Uni<List<Benefit>> findByCompanyIdAndCategoryId(Long companyId, Long categoryId) {
         return find("select distinct b from Benefit b join fetch b.provider join fetch b.categories c where b.provider.id = ?1 and c.id = ?2 order by b.createdAt desc", companyId, categoryId).list();
     }

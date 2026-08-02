@@ -75,22 +75,23 @@ public class BenefitAccessRequestService {
     }
 
     @WithSession
-    public Uni<List<BenefitAccessRequestResponse>> providerPending(String email) {
-        return findManager(email)
+    public Uni<List<BenefitAccessRequestResponse>> providerPending(String email, Long companyId) {
+        return findManager(email, companyId)
                 .flatMap(manager -> requestRepository.findPendingByProvider(manager.getCompany().id))
                 .map(items -> items.stream().map(this::toResponse).toList());
     }
 
     @WithTransaction
-    public Uni<BenefitAccessRequestResponse> approve(String email, Long requestId) {
-        return findManager(email)
+    public Uni<BenefitAccessRequestResponse> approve(String email, Long companyId, Long requestId) {
+        return findManager(email, companyId)
                 .flatMap(manager -> requestRepository.findByIdWithRelations(requestId)
                         .onItem().ifNull().failWith(() -> new NotFoundException("Request not found"))
                         .flatMap(request -> verifyProvider(manager, request)
+                                .invoke(verified -> AccessStatusGuard.requireActive(verified.getEmployee()))
                                 .flatMap(verified -> subscriptionRepository.existsByEmployeeAndBenefit(
                                                 verified.getEmployee().id, verified.getBenefit().id)
                                         .flatMap(exists -> {
-                                            if (!verified.getBenefit().isAvailableAt(LocalDateTime.now())) {
+                                            if (!verified.getBenefit().isOperationalAt(LocalDateTime.now())) {
                                                 return Uni.createFrom().failure(new IllegalStateException("Benefit is no longer available"));
                                             }
                                             verified.approve(manager);
@@ -103,8 +104,8 @@ public class BenefitAccessRequestService {
     }
 
     @WithTransaction
-    public Uni<BenefitAccessRequestResponse> reject(String email, Long requestId, String reason) {
-        return findManager(email)
+    public Uni<BenefitAccessRequestResponse> reject(String email, Long companyId, Long requestId, String reason) {
+        return findManager(email, companyId)
                 .flatMap(manager -> requestRepository.findByIdWithRelations(requestId)
                         .onItem().ifNull().failWith(() -> new NotFoundException("Request not found"))
                         .flatMap(request -> verifyProvider(manager, request)
@@ -120,8 +121,8 @@ public class BenefitAccessRequestService {
                 .map(AccessStatusGuard::requireActive);
     }
 
-    private Uni<Manager> findManager(String email) {
-        return managerRepository.findByEmail(email)
+    private Uni<Manager> findManager(String email, Long companyId) {
+        return managerRepository.findByEmailAndCompanyId(email, companyId)
                 .onItem().ifNull().failWith(() -> new NotFoundException("Manager not found"))
                 .map(AccessStatusGuard::requireActive);
     }

@@ -9,6 +9,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.acme.domains.redemption.dto.RedemptionTokenRequest;
 import org.acme.domains.shared.api.IpResolver;
+import org.acme.domains.shared.security.JwtCompanyContext;
 import org.eclipse.microprofile.jwt.JsonWebToken;
 
 @Path("/redemptions")
@@ -37,7 +38,7 @@ public class RedemptionResource {
     @RolesAllowed("MANAGER")
     @RateLimited(bucket = "redemption-group", identityResolver = IpResolver.class)
     public Uni<Response> preview(@Valid RedemptionTokenRequest request) {
-        return service.preview(jwt.getName(), request.token()).map(item -> Response.ok(item).build());
+        return service.preview(jwt.getName(), companyId(), request.token()).map(item -> Response.ok(item).build());
     }
 
     @POST
@@ -45,6 +46,10 @@ public class RedemptionResource {
     @RolesAllowed("MANAGER")
     @RateLimited(bucket = "redemption-group", identityResolver = IpResolver.class)
     public Uni<Response> consume(@Valid RedemptionTokenRequest request) {
-        return service.consume(jwt.getName(), request.token()).map(item -> Response.ok(item).build());
+        return service.consume(jwt.getName(), companyId(), request.token()).map(item -> Response.ok(item).build());
+    }
+
+    private Long companyId() {
+        return JwtCompanyContext.requireCompanyId(jwt);
     }
 }

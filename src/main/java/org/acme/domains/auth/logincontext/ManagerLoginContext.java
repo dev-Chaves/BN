@@ -29,7 +29,7 @@ public class ManagerLoginContext implements LoginContextResolver{
 
     @Override
     public Uni<LoginContextData> resolve(Account account) {
-        return managerRepository.findByAccountId(account.id)
+        return managerRepository.findActiveByAccountId(account.id)
                 .onItem().ifNull().failWith(AuthenticationException::new)
                 .map(AccessStatusGuard::requireActive)
                 .map(manager ->

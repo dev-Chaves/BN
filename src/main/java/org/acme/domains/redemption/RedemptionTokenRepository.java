@@ -36,6 +36,18 @@ public class RedemptionTokenRepository implements PanacheRepository<RedemptionTo
                 """, RedemptionTokenStatus.REVOKED, RedemptionTokenStatus.ACTIVE, employeeId);
     }
 
+    public Uni<Integer> revokeActiveByCompanyId(Long companyId) {
+        return update("""
+                status = ?1
+                where status = ?2
+                  and subscription.id in (
+                    select subscription.id from Subscription subscription
+                    where subscription.employee.company.id = ?3
+                       or subscription.benefit.provider.id = ?3
+                  )
+                """, RedemptionTokenStatus.REVOKED, RedemptionTokenStatus.ACTIVE, companyId);
+    }
+
     public Uni<Integer> consumeIfActive(UUID id, LocalDateTime now) {
         return update("""
                 status = ?1, consumedAt = ?2

@@ -74,9 +74,9 @@ public class EmployeeService {
                 })
                 .flatMap(existing -> {
                     if (existing != null) return Uni.createFrom().failure(new IllegalStateException("CPF already in use"));
-                    return validateManager(managerEmail);
+                    return validateManager(managerEmail, companyId);
                 })
-                .flatMap(manager -> tenantGuard.verifyManagerCompanyAccess(manager, companyId))
+                .flatMap(manager -> tenantGuard.verifyManagerCompanyAccess(manager, request.companyId()))
                 .onItem().transform(company -> {
                     Account account = Account.builder(request.name(), CPF.of(request.cpf()),
                             BcryptUtil.bcryptHash(request.password()), request.email(), Role.USER).build();
@@ -87,9 +87,9 @@ public class EmployeeService {
     }
 
     @WithTransaction
-    public Uni<EmployeeResponse> disabledEmployee(Long id, String managerEmail) {
+    public Uni<EmployeeResponse> disabledEmployee(Long id, String managerEmail, Long companyId) {
 
-        return validateManager(managerEmail)
+        return validateManager(managerEmail, companyId)
                 .flatMap(manager ->
                         employeeRepository.findById(id).onItem().ifNull().failWith(()-> new NotFoundException("Employee not Found"))
                                 .flatMap(employee -> tenantGuard.verifyManagerEmployeeAccess(manager, employee))
@@ -105,8 +105,8 @@ public class EmployeeService {
     }
 
     @WithTransaction
-    public Uni<EmployeeResponse> activateEmployee(Long id, String managerEmail) {
-        return validateManager(managerEmail)
+    public Uni<EmployeeResponse> activateEmployee(Long id, String managerEmail, Long companyId) {
+        return validateManager(managerEmail, companyId)
                 .flatMap(manager ->
                         employeeRepository.findById(id).onItem().ifNull().failWith(() -> new NotFoundException("Employee not Found"))
                                 .flatMap(employee -> tenantGuard.verifyManagerEmployeeAccess(manager, employee))
@@ -123,8 +123,8 @@ public class EmployeeService {
     }
 
     @WithTransaction
-    public Uni<EmployeeResponse> updateEmployee(Long id, UpdateEmployeeRequest request, String managerEmail) {
-        return validateManager(managerEmail)
+    public Uni<EmployeeResponse> updateEmployee(Long id, UpdateEmployeeRequest request, String managerEmail, Long companyId) {
+        return validateManager(managerEmail, companyId)
                 .flatMap(manager ->
                         employeeRepository.findById(id).onItem().ifNull().failWith(() -> new NotFoundException("Employee not Found"))
                                 .flatMap(employee -> tenantGuard.verifyManagerEmployeeAccess(manager, employee))
@@ -144,7 +144,7 @@ public class EmployeeService {
 
     @WithSession
     public Uni<List<EmployeeResponse>> listByTenant(String managerEmail, Long companyId, int page, int size) {
-        return validateManager(managerEmail)
+        return validateManager(managerEmail, companyId)
                 .flatMap(manager -> tenantGuard.verifyManagerCompanyAccess(manager, companyId))
                 .flatMap(company -> employeeRepository.findByCompanyId(company.id, normalizePage(page), normalizeSize(size)))
                 .map(employees -> employees.stream().map(this::toResponse).toList());
@@ -153,8 +153,8 @@ public class EmployeeService {
     private int normalizePage(int page) { return Math.max(0, page); }
     private int normalizeSize(int size) { return Math.max(1, Math.min(size, 100)); }
 
-    private Uni<Manager> validateManager(String managerEmail) {
-        return managerRepository.findByEmail(managerEmail).onItem().ifNull().failWith(() -> {
+    private Uni<Manager> validateManager(String managerEmail, Long companyId) {
+        return managerRepository.findByEmailAndCompanyId(managerEmail, companyId).onItem().ifNull().failWith(() -> {
             LOG.warnf("Manager not found managerEmail=%s", managerEmail);
             return new NotFoundException("Manager not Found");
         });

@@ -32,15 +32,16 @@ public class Company extends PanacheEntityBase {
     @Column(name = "employee_count")
     private Integer employeeCount;
 
-    @OneToMany(mappedBy = "company", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "company")
     private Set<Employee> employees = new HashSet<>();
 
-    @OneToMany(mappedBy = "company", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "company")
     private Set<Manager> managers = new HashSet<>();
 
     @OneToMany(mappedBy = "provider")
     private Set<Benefit> offeredBenefits;
 
+    @Column(nullable = false)
     private Boolean active;
 
     @Column(nullable = false, name = "created_at")

@@ -87,9 +87,9 @@ class ManagerServiceTest {
         company.onCreate();
         manager.onCreate();
 
-        when(managerRepository.findByEmail("manager@acme.com")).thenReturn(Uni.createFrom().item(manager));
+        when(managerRepository.findByEmailAndCompanyId("manager@acme.com", 12L)).thenReturn(Uni.createFrom().item(manager));
 
-        ManagerResponse response = managerService.getCurrentManager("manager@acme.com").await().indefinitely();
+        ManagerResponse response = managerService.getCurrentManager("manager@acme.com", 12L).await().indefinitely();
         assertEquals(15L, response.id());
         assertEquals(12L, response.companyId());
     }

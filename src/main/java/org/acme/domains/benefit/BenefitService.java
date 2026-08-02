@@ -56,9 +56,9 @@ public class BenefitService {
     }
 
     @WithTransaction
-    public Uni<BenefitResponse> createBenefit(CreateBenefitRequest request, String managerEmail){
+    public Uni<BenefitResponse> createBenefit(CreateBenefitRequest request, String managerEmail, Long companyId){
 
-        return validateManager(managerEmail)
+        return validateManager(managerEmail, companyId)
                 .flatMap(manager -> tenantGuard.verifyManagerCompanyAccess(manager, request.companyId()))
                 .flatMap(company -> fetchCategories(request.categoryIds()).map(categories -> create(request, company, categories)))
                 .call(benefitRepository::persist)
@@ -74,20 +74,20 @@ public class BenefitService {
     @WithSession
     public Uni<List<BenefitResponse>> listBenefitsByTenant(Long companyId, String email, Optional<Long> categoryId, int page, int size){
 
-        return validateManager(email)
+        return validateManager(email, companyId)
                 .flatMap(manager -> tenantGuard.verifyManagerCompanyAccess(manager, companyId))
                 .flatMap(company -> listBenefitByCompanyId(company.id, categoryId, page, size))
                 .map(benefits -> benefits.stream().map(this::toResponse).toList());
     }
 
     @WithSession
-    public Uni<List<BenefitResponse>> managerMarketplace(String managerEmail, Optional<Long> categoryId) {
-        return managerMarketplace(managerEmail, categoryId, 0, 50);
+    public Uni<List<BenefitResponse>> managerMarketplace(String managerEmail, Long companyId, Optional<Long> categoryId) {
+        return managerMarketplace(managerEmail, companyId, categoryId, 0, 50);
     }
 
     @WithSession
-    public Uni<List<BenefitResponse>> managerMarketplace(String managerEmail, Optional<Long> categoryId, int page, int size) {
-        return validateManager(managerEmail)
+    public Uni<List<BenefitResponse>> managerMarketplace(String managerEmail, Long companyId, Optional<Long> categoryId, int page, int size) {
+        return validateManager(managerEmail, companyId)
                 .flatMap(manager -> tenantGuard.verifyManagerCompanyAccess(manager, manager.getCompany().id))
                 .flatMap(company -> {
                     if (categoryId.isPresent()) {
@@ -99,8 +99,8 @@ public class BenefitService {
     }
 
     @WithTransaction
-    public Uni<BenefitResponse> updateBenefit(Long benefitId, UpdateBenefitRequest request, String managerEmail) {
-        return validateManager(managerEmail)
+    public Uni<BenefitResponse> updateBenefit(Long benefitId, UpdateBenefitRequest request, String managerEmail, Long companyId) {
+        return validateManager(managerEmail, companyId)
                 .flatMap(manager -> getBenefitById(benefitId)
                         .flatMap(benefit -> tenantGuard.verifyManagerCompanyAccess(manager, benefit.getProvider().id)
                                 .replaceWith(benefit)))
@@ -126,18 +126,18 @@ public class BenefitService {
     }
 
     @WithTransaction
-    public Uni<BenefitResponse> activateBenefit(Long benefitId, String managerEmail) {
-        return changeBenefitStatus(benefitId, managerEmail, true);
+    public Uni<BenefitResponse> activateBenefit(Long benefitId, String managerEmail, Long companyId) {
+        return changeBenefitStatus(benefitId, managerEmail, companyId, true);
     }
 
     @WithTransaction
-    public Uni<BenefitResponse> deactivateBenefit(Long benefitId, String managerEmail) {
-        return changeBenefitStatus(benefitId, managerEmail, false);
+    public Uni<BenefitResponse> deactivateBenefit(Long benefitId, String managerEmail, Long companyId) {
+        return changeBenefitStatus(benefitId, managerEmail, companyId, false);
     }
 
     @WithTransaction
-    public Uni<Void> deleteBenefit(Long benefitId, String managerEmail) {
-        return validateManager(managerEmail)
+    public Uni<Void> deleteBenefit(Long benefitId, String managerEmail, Long companyId) {
+        return validateManager(managerEmail, companyId)
                 .flatMap(manager -> getBenefitById(benefitId)
                         .flatMap(benefit -> tenantGuard.verifyManagerCompanyAccess(manager, benefit.getProvider().id)
                                 .replaceWith(benefit)))
@@ -175,8 +175,8 @@ public class BenefitService {
     private int normalizePage(int page) { return Math.max(0, page); }
     private int normalizeSize(int size) { return Math.max(1, Math.min(size, 100)); }
 
-    private Uni<Manager> validateManager(String email){
-        return managerRepository.findByEmail(email).onItem()
+    private Uni<Manager> validateManager(String email, Long companyId){
+        return managerRepository.findByEmailAndCompanyId(email, companyId).onItem()
                 .ifNull().failWith(() -> {
                     LOG.warnf("Manager not found managerEmail=%s", email);
                     return new NotFoundException("Manager not found");
@@ -215,8 +215,8 @@ public class BenefitService {
                 .onItem().ifNull().failWith(() -> new NotFoundException("Benefit not found"));
     }
 
-    private Uni<BenefitResponse> changeBenefitStatus(Long benefitId, String managerEmail, boolean activate) {
-        return validateManager(managerEmail)
+    private Uni<BenefitResponse> changeBenefitStatus(Long benefitId, String managerEmail, Long companyId, boolean activate) {
+        return validateManager(managerEmail, companyId)
                 .flatMap(manager -> getBenefitById(benefitId)
                         .flatMap(benefit -> tenantGuard.verifyManagerCompanyAccess(manager, benefit.getProvider().id)
                                 .replaceWith(benefit)))

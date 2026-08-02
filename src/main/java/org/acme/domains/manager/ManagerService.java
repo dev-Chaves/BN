@@ -49,8 +49,8 @@ public class ManagerService {
     }
 
     @WithSession
-    public Uni<ManagerResponse> getCurrentManager(String email) {
-        return managerRepository.findByEmail(email)
+    public Uni<ManagerResponse> getCurrentManager(String email, Long companyId) {
+        return managerRepository.findByEmailAndCompanyId(email, companyId)
                 .onItem().ifNull().failWith(() -> new NotFoundException("Manager not found"))
                 .map(AccessStatusGuard::requireActive)
                 .map(this::toResponse);

@@ -3,6 +3,7 @@ package org.acme.domains.auth;
 import io.quarkiverse.bucket4j.runtime.RateLimited;
 import io.smallrye.mutiny.Uni;
 import jakarta.annotation.security.PermitAll;
+import jakarta.annotation.security.RolesAllowed;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.*;
@@ -11,8 +12,10 @@ import jakarta.ws.rs.core.NewCookie;
 import jakarta.ws.rs.core.Response;
 import org.acme.domains.auth.dto.LoginResponse;
 import org.acme.domains.auth.dto.LoginRequest;
+import org.acme.domains.auth.dto.SwitchCompanyRequest;
 import org.acme.domains.shared.api.BaseResource;
 import org.acme.domains.shared.api.IpResolver;
+import org.eclipse.microprofile.jwt.JsonWebToken;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 @ApplicationScoped
@@ -23,13 +26,19 @@ public class AuthResource implements BaseResource {
     private static final int SESSION_SECONDS = 3 * 60 * 60;
 
     private final AuthService authService;
+    private final SwitchCompanyService switchCompanyService;
+    private final JsonWebToken jwt;
     private final boolean cookieSecure;
 
     public AuthResource(
             AuthService authService,
+            SwitchCompanyService switchCompanyService,
+            JsonWebToken jwt,
             @ConfigProperty(name = "app.cookie.secure", defaultValue = "true") boolean cookieSecure
     ) {
         this.authService = authService;
+        this.switchCompanyService = switchCompanyService;
+        this.jwt = jwt;
         this.cookieSecure = cookieSecure;
     }
 
@@ -39,6 +48,14 @@ public class AuthResource implements BaseResource {
     @RateLimited(bucket = "auth-group", identityResolver = IpResolver.class)
     public Uni<Response> login(@Valid LoginRequest request) {
         return authService.login(request)
+                .map(this::toLoginResponseWithCookie);
+    }
+
+    @POST
+    @Path("/switch-company")
+    @RolesAllowed("MANAGER")
+    public Uni<Response> switchCompany(@Valid SwitchCompanyRequest request) {
+        return switchCompanyService.switchCompany(jwt.getName(), request.companyId())
                 .map(this::toLoginResponseWithCookie);
     }
 

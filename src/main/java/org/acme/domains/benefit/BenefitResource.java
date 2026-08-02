@@ -16,12 +16,12 @@ import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import jakarta.json.JsonNumber;
 
 import java.util.Optional;
 import org.acme.domains.benefit.dto.CreateBenefitRequest;
 import org.acme.domains.benefit.dto.UpdateBenefitRequest;
 import org.acme.domains.shared.api.BaseResource;
+import org.acme.domains.shared.security.JwtCompanyContext;
 import org.eclipse.microprofile.jwt.JsonWebToken;
 
 @ApplicationScoped
@@ -44,7 +44,7 @@ public class BenefitResource implements BaseResource {
     public Uni<Response> createBenefit(@Valid CreateBenefitRequest request){
         String email = jwt.getName();
 
-        return toCreated(benefitService.createBenefit(request, email));
+        return toCreated(benefitService.createBenefit(request, email, claimCompanyId()));
     }
 
     @GET
@@ -62,35 +62,35 @@ public class BenefitResource implements BaseResource {
     public Uni<Response> managerMarketplace(@QueryParam("categoryId") Optional<Long> categoryId,
                                              @QueryParam("page") @DefaultValue("0") int page,
                                              @QueryParam("size") @DefaultValue("50") int size) {
-        return toOk(benefitService.managerMarketplace(jwt.getName(), categoryId, page, size));
+        return toOk(benefitService.managerMarketplace(jwt.getName(), claimCompanyId(), categoryId, page, size));
     }
 
     @PUT
     @Path("/{benefitId}")
     @RolesAllowed("MANAGER")
     public Uni<Response> updateBenefit(@PathParam("benefitId") Long benefitId, @Valid UpdateBenefitRequest request) {
-        return toOk(benefitService.updateBenefit(benefitId, request, jwt.getName()));
+        return toOk(benefitService.updateBenefit(benefitId, request, jwt.getName(), claimCompanyId()));
     }
 
     @PUT
     @Path("/{benefitId}/activate")
     @RolesAllowed("MANAGER")
     public Uni<Response> activateBenefit(@PathParam("benefitId") Long benefitId) {
-        return toOk(benefitService.activateBenefit(benefitId, jwt.getName()));
+        return toOk(benefitService.activateBenefit(benefitId, jwt.getName(), claimCompanyId()));
     }
 
     @PUT
     @Path("/{benefitId}/deactivate")
     @RolesAllowed("MANAGER")
     public Uni<Response> deactivateBenefit(@PathParam("benefitId") Long benefitId) {
-        return toOk(benefitService.deactivateBenefit(benefitId, jwt.getName()));
+        return toOk(benefitService.deactivateBenefit(benefitId, jwt.getName(), claimCompanyId()));
     }
 
     @DELETE
     @Path("/{benefitId}")
     @RolesAllowed("MANAGER")
     public Uni<Response> deleteBenefit(@PathParam("benefitId") Long benefitId) {
-        return delete(benefitService.deleteBenefit(benefitId, jwt.getName()));
+        return delete(benefitService.deleteBenefit(benefitId, jwt.getName(), claimCompanyId()));
     }
 
     public <T> Uni<Response> toCreated(Uni<T> useCaseResult) {
@@ -106,20 +106,6 @@ public class BenefitResource implements BaseResource {
     }
 
     private Long claimCompanyId() {
-        try {
-            return jwt.getClaim("companyId");
-        } catch (ClassCastException ignored) {
-            Object claim = jwt.claim("companyId").orElse(null);
-            if (claim instanceof Number number) {
-                return number.longValue();
-            }
-            if (claim instanceof JsonNumber jsonNumber) {
-                return jsonNumber.longValue();
-            }
-            if (claim instanceof String value) {
-                return Long.parseLong(value);
-            }
-        }
-        throw new IllegalStateException("Invalid companyId claim type");
+        return JwtCompanyContext.requireCompanyId(jwt);
     }
 }

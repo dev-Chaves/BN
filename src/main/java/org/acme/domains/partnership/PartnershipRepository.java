@@ -43,4 +43,21 @@ public class PartnershipRepository implements PanacheRepository<Partnership> {
                 .onItem().transform(partnership -> partnership != null);
     }
 
+    public Uni<Integer> disableByCompanyId(Long companyId) {
+        return update("""
+                status = ?1
+                where status in (?2, ?3)
+                  and (
+                    clientCompany.id = ?4
+                    or benefit.id in (
+                      select benefit.id from Benefit benefit where benefit.provider.id = ?4
+                    )
+                  )
+                """,
+                PartnershipStatus.DISABLED,
+                PartnershipStatus.PENDING,
+                PartnershipStatus.ACTIVE,
+                companyId);
+    }
+
 }

@@ -35,31 +35,71 @@ public class OnboardingService {
 
     @WithTransaction
     public Uni<OnboardingResponse> onboardingCompany(OnboardingRequest request) {
-        return validateCpfNotRegistered(request.manager().cpf())
-                .call(() -> validateEmailNotRegistered(request.manager().email()))
-                .call(() -> validateCnpjNotRegistered(request.company().cnpj()))
-                .flatMap(unused -> {
+        return validateCnpjNotRegistered(request.company().cnpj())
+                .flatMap(unused -> resolveManagerAccount(request.manager()))
+                .flatMap(accountResolution -> {
                     CNPJ cnpj = CNPJ.of(request.company().cnpj());
-
-                    Account newAccount = Account.builder(
-                            request.manager().name(),
-                            CPF.of(request.manager().cpf()),
-                            BcryptUtil.bcryptHash(request.manager().password()),
-                            request.manager().email(),
-                            Role.MANAGER).build();
-
                     Company newCompany = Company.builder(request.company().name(), cnpj).build();
-                    Manager manager = Manager.builder(request.manager().name(), newCompany, newAccount).build();
+                    Manager manager = Manager.builder(
+                            request.manager().name(),
+                            newCompany,
+                            accountResolution.account()
+                    ).companyOwner().build();
 
-                    return persistAccount(newAccount)
+                    return persistAccountIfNecessary(accountResolution)
                             .call(() -> persistCompany(newCompany))
                             .call(() -> persistManager(manager))
-                            .replaceWith(new OnboardingResponse(
+                            .map(ignored -> new OnboardingResponse(
+                                    newCompany.id,
+                                    manager.id,
                                     newCompany.getCnpj().getValue(),
                                     newCompany.getName(),
                                     manager.getName()
                             ));
                 });
+    }
+
+    private Uni<AccountResolution> resolveManagerAccount(OnboardingRequest.ManagerRegistrationData managerData) {
+        return accountRepository.findByEmail(managerData.email())
+                .flatMap(byEmail -> accountRepository.findByCPF(managerData.cpf())
+                        .map(byCpf -> resolveManagerAccount(managerData, byEmail, byCpf)));
+    }
+
+    private AccountResolution resolveManagerAccount(
+            OnboardingRequest.ManagerRegistrationData managerData,
+            Account byEmail,
+            Account byCpf
+    ) {
+        if (byEmail == null && byCpf == null) {
+            Account newAccount = Account.builder(
+                    managerData.name(),
+                    CPF.of(managerData.cpf()),
+                    BcryptUtil.bcryptHash(managerData.password()),
+                    managerData.email(),
+                    Role.MANAGER
+            ).build();
+            return new AccountResolution(newAccount, true);
+        }
+
+        boolean sameAccount = byEmail != null
+                && byCpf != null
+                && byEmail.id != null
+                && byEmail.id.equals(byCpf.id);
+        boolean validManager = sameAccount && byEmail.getRole() == Role.MANAGER;
+        boolean passwordMatches = validManager && BcryptUtil.matches(managerData.password(), byEmail.getPassword());
+
+        if (!passwordMatches) {
+            throw new BadRequestException("Manager identity or credentials are invalid");
+        }
+
+        return new AccountResolution(byEmail, false);
+    }
+
+    private Uni<Account> persistAccountIfNecessary(AccountResolution resolution) {
+        if (!resolution.newAccount()) {
+            return Uni.createFrom().item(resolution.account());
+        }
+        return persistAccount(resolution.account());
     }
 
     private Uni<Account> persistAccount(Account account) {
@@ -74,28 +114,14 @@ public class OnboardingService {
         return companyRepository.persist(company).replaceWith(company);
     }
 
-    private Uni<Void> validateCpfNotRegistered(String cpf) {
-        return accountRepository.findByCPF(cpf)
-                .flatMap(account -> {
-                    if (account != null) {
-                        return Uni.createFrom().failure(new BadRequestException("CPF already registered"));
-                    }
-                    return Uni.createFrom().voidItem();
-                });
-    }
-
-    private Uni<Void> validateEmailNotRegistered(String email) {
-        return accountRepository.findByEmail(email)
-                .flatMap(account -> account != null
-                        ? Uni.createFrom().failure(new BadRequestException("Email already registered"))
-                        : Uni.createFrom().voidItem());
-    }
-
     private Uni<Void> validateCnpjNotRegistered(String cnpj) {
         return companyRepository.findByCNPJ(cnpj)
                 .flatMap(company -> company != null
                         ? Uni.createFrom().failure(new BadRequestException("CNPJ already registered"))
                         : Uni.createFrom().voidItem());
+    }
+
+    private record AccountResolution(Account account, boolean newAccount) {
     }
 
 }
