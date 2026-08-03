@@ -14,6 +14,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.acme.domains.company.dto.CreateCompanyRequest;
 import org.acme.domains.company.dto.DeactivateCompanyRequest;
+import org.acme.domains.company.dto.UpdateCompanyRequest;
 import org.acme.domains.shared.api.BaseResource;
 import org.acme.domains.shared.security.JwtCompanyContext;
 import org.eclipse.microprofile.jwt.JsonWebToken;
@@ -51,6 +52,17 @@ public class CompanyResource implements BaseResource {
         return toOk(companyService.getByManagerEmailAndCompanyId(
                 jwt.getName(),
                 JwtCompanyContext.requireCompanyId(jwt)
+        ));
+    }
+
+    @PUT
+    @Path("/me")
+    @RolesAllowed("MANAGER")
+    public Uni<Response> updateMine(@Valid UpdateCompanyRequest request) {
+        return toOk(companyService.updateCurrent(
+                jwt.getName(),
+                JwtCompanyContext.requireCompanyId(jwt),
+                request
         ));
     }
 

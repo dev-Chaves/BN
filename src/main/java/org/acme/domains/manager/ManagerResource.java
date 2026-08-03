@@ -7,11 +7,14 @@ import jakarta.validation.Valid;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
+import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.acme.domains.manager.dto.CreateManagerRequest;
+import org.acme.domains.manager.dto.ChangeManagerPasswordRequest;
+import org.acme.domains.manager.dto.UpdateManagerEmailRequest;
 import org.acme.domains.shared.api.BaseResource;
 import org.acme.domains.shared.security.JwtCompanyContext;
 import org.eclipse.microprofile.jwt.JsonWebToken;
@@ -41,6 +44,28 @@ public class ManagerResource implements BaseResource {
     @RolesAllowed("MANAGER")
     public Uni<Response> me() {
         return toOk(managerService.getCurrentManager(jwt.getName(), JwtCompanyContext.requireCompanyId(jwt)));
+    }
+
+    @PUT
+    @Path("/me/email")
+    @RolesAllowed("MANAGER")
+    public Uni<Response> updateEmail(@Valid UpdateManagerEmailRequest request) {
+        return toOk(managerService.updateCurrentEmail(
+                jwt.getName(),
+                JwtCompanyContext.requireCompanyId(jwt),
+                request
+        ));
+    }
+
+    @PUT
+    @Path("/me/password")
+    @RolesAllowed("MANAGER")
+    public Uni<Response> changePassword(@Valid ChangeManagerPasswordRequest request) {
+        return toOk(managerService.changeCurrentPassword(
+                jwt.getName(),
+                JwtCompanyContext.requireCompanyId(jwt),
+                request
+        ));
     }
 
     public <T> Uni<Response> toCreated(Uni<T> useCaseResult) {

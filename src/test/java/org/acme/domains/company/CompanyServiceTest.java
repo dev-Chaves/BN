@@ -10,6 +10,7 @@ import org.acme.domains.benefitrequest.BenefitAccessRequestRepository;
 import org.acme.domains.company.dto.CompanyResponse;
 import org.acme.domains.company.dto.CreateCompanyRequest;
 import org.acme.domains.company.dto.DeactivateCompanyRequest;
+import org.acme.domains.company.dto.UpdateCompanyRequest;
 import org.acme.domains.employee.EmployeeRepository;
 import org.acme.domains.manager.Manager;
 import org.acme.domains.manager.ManagerRepository;
@@ -132,6 +133,29 @@ class CompanyServiceTest {
         verify(benefitRepository).deactivateByProviderId(10L);
         verify(partnershipRepository).disableByCompanyId(10L);
         verify(redemptionTokenRepository).revokeActiveByCompanyId(10L);
+    }
+
+    @Test
+    void shouldUpdateTheSelectedCompanyName() {
+        Account account = managerAccount("correct-password");
+        Company company = Company.builder("Old name", CNPJ.of("11222333000181")).build();
+        company.id = 10L;
+        company.onCreate();
+        Manager manager = Manager.builder(account.getName(), company, account).build();
+        manager.id = 11L;
+        manager.onCreate();
+
+        when(managerRepository.findByEmailAndCompanyId(account.getEmail(), 10L))
+                .thenReturn(Uni.createFrom().item(manager));
+
+        CompanyResponse response = service.updateCurrent(
+                account.getEmail(),
+                10L,
+                new UpdateCompanyRequest("  New company name  ")
+        ).await().indefinitely();
+
+        assertEquals("New company name", response.name());
+        assertEquals("11222333000181", response.cnpj());
     }
 
     @Test

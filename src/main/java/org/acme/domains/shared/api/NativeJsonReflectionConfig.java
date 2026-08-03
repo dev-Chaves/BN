@@ -20,7 +20,9 @@ import org.acme.domains.employee.dto.CreateEmployeeRequest;
 import org.acme.domains.employee.dto.EmployeeResponse;
 import org.acme.domains.employee.dto.UpdateEmployeeRequest;
 import org.acme.domains.manager.dto.CreateManagerRequest;
+import org.acme.domains.manager.dto.ChangeManagerPasswordRequest;
 import org.acme.domains.manager.dto.ManagerResponse;
+import org.acme.domains.manager.dto.UpdateManagerEmailRequest;
 import org.acme.domains.manager.dto.UpdateManagerRequest;
 import org.acme.domains.onboarding.dto.OnboardingRequest;
 import org.acme.domains.onboarding.dto.OnboardingResponse;
@@ -64,6 +66,8 @@ import org.acme.domains.sharedbenefit.dto.SharedBenefitResponse;
                 UpdateEmployeeRequest.class,
                 EmployeeResponse.class,
                 CreateManagerRequest.class,
+                ChangeManagerPasswordRequest.class,
+                UpdateManagerEmailRequest.class,
                 UpdateManagerRequest.class,
                 ManagerResponse.class,
                 OnboardingRequest.class,

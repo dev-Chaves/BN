@@ -8,7 +8,9 @@ import org.acme.domains.account.AccountRepository;
 import org.acme.domains.company.Company;
 import org.acme.domains.company.CompanyRepository;
 import org.acme.domains.manager.dto.CreateManagerRequest;
+import org.acme.domains.manager.dto.ChangeManagerPasswordRequest;
 import org.acme.domains.manager.dto.ManagerResponse;
+import org.acme.domains.manager.dto.UpdateManagerEmailRequest;
 import org.acme.domains.shared.domain.CNPJ;
 import org.acme.domains.shared.domain.CPF;
 import org.acme.domains.shared.enums.Role;
@@ -20,6 +22,7 @@ import org.mockito.MockitoAnnotations;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -92,5 +95,51 @@ class ManagerServiceTest {
         ManagerResponse response = managerService.getCurrentManager("manager@acme.com", 12L).await().indefinitely();
         assertEquals(15L, response.id());
         assertEquals(12L, response.companyId());
+    }
+
+    @Test
+    void shouldUpdateCurrentManagerEmail() {
+        Account account = Account.builder("Manager", CPF.of("52998224725"), BcryptUtil.bcryptHash("old-password"), "manager@acme.com", Role.MANAGER).build();
+        account.id = UUID.randomUUID();
+        Company company = Company.builder("ACME", CNPJ.of("11222333000181")).build();
+        company.id = 12L;
+        Manager manager = Manager.builder("Manager", company, account).build();
+        manager.id = 15L;
+        company.onCreate();
+        manager.onCreate();
+
+        when(managerRepository.findByEmailAndCompanyId("manager@acme.com", 12L)).thenReturn(Uni.createFrom().item(manager));
+        when(accountRepository.findByEmail("new@acme.com")).thenReturn(Uni.createFrom().nullItem());
+
+        ManagerResponse response = managerService.updateCurrentEmail(
+                "manager@acme.com",
+                12L,
+                new UpdateManagerEmailRequest(" New@Acme.com ", "old-password")
+        ).await().indefinitely();
+
+        assertEquals("new@acme.com", response.email());
+        assertEquals("new@acme.com", account.getEmail());
+    }
+
+    @Test
+    void shouldChangeCurrentManagerPassword() {
+        Account account = Account.builder("Manager", CPF.of("52998224725"), BcryptUtil.bcryptHash("old-password"), "manager@acme.com", Role.MANAGER).build();
+        account.id = UUID.randomUUID();
+        Company company = Company.builder("ACME", CNPJ.of("11222333000181")).build();
+        company.id = 12L;
+        Manager manager = Manager.builder("Manager", company, account).build();
+        manager.id = 15L;
+        company.onCreate();
+        manager.onCreate();
+
+        when(managerRepository.findByEmailAndCompanyId("manager@acme.com", 12L)).thenReturn(Uni.createFrom().item(manager));
+
+        managerService.changeCurrentPassword(
+                "manager@acme.com",
+                12L,
+                new ChangeManagerPasswordRequest("old-password", "New-password1!")
+        ).await().indefinitely();
+
+        assertTrue(BcryptUtil.matches("New-password1!", account.getPassword()));
     }
 }

@@ -6,15 +6,20 @@ import io.quarkus.hibernate.reactive.panache.common.WithSession;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.ws.rs.NotFoundException;
+import jakarta.ws.rs.BadRequestException;
 import org.acme.domains.account.Account;
 import org.acme.domains.account.AccountRepository;
 import org.acme.domains.company.Company;
 import org.acme.domains.company.CompanyRepository;
 import org.acme.domains.manager.dto.CreateManagerRequest;
+import org.acme.domains.manager.dto.ChangeManagerPasswordRequest;
 import org.acme.domains.manager.dto.ManagerResponse;
+import org.acme.domains.manager.dto.UpdateManagerEmailRequest;
 import org.acme.domains.shared.domain.CPF;
 import org.acme.domains.shared.enums.Role;
 import org.acme.domains.shared.security.AccessStatusGuard;
+
+import java.util.Locale;
 
 @ApplicationScoped
 public class ManagerService {
@@ -56,6 +61,61 @@ public class ManagerService {
                 .map(this::toResponse);
     }
 
+    @WithTransaction
+    public Uni<ManagerResponse> updateCurrentEmail(
+            String currentEmail,
+            Long companyId,
+            UpdateManagerEmailRequest request
+    ) {
+        String normalizedEmail = request.email().trim().toLowerCase(Locale.ROOT);
+
+        return managerRepository.findByEmailAndCompanyId(currentEmail, companyId)
+                .onItem().ifNull().failWith(() -> new NotFoundException("Manager not found"))
+                .map(AccessStatusGuard::requireActive)
+                .map(manager -> requirePassword(manager, request.currentPassword()))
+                .flatMap(manager -> {
+                    if (manager.getAccount().getEmail().equalsIgnoreCase(normalizedEmail)) {
+                        return Uni.createFrom().item(manager);
+                    }
+
+                    return accountRepository.findByEmail(normalizedEmail)
+                            .flatMap(existing -> existing != null
+                                    ? Uni.createFrom().failure(new IllegalStateException("Email already in use"))
+                                    : Uni.createFrom().item(manager));
+                })
+                .invoke(manager -> manager.getAccount().updateEmail(normalizedEmail))
+                .map(this::toResponse);
+    }
+
+    @WithTransaction
+    public Uni<ManagerResponse> changeCurrentPassword(
+            String email,
+            Long companyId,
+            ChangeManagerPasswordRequest request
+    ) {
+        return managerRepository.findByEmailAndCompanyId(email, companyId)
+                .onItem().ifNull().failWith(() -> new NotFoundException("Manager not found"))
+                .map(AccessStatusGuard::requireActive)
+                .map(manager -> requirePassword(manager, request.currentPassword()))
+                .map(manager -> requireNewPassword(manager, request.newPassword()))
+                .invoke(manager -> manager.getAccount().updatePassword(BcryptUtil.bcryptHash(request.newPassword())))
+                .map(this::toResponse);
+    }
+
+    private Manager requirePassword(Manager manager, String password) {
+        if (!BcryptUtil.matches(password, manager.getAccount().getPassword())) {
+            throw new BadRequestException("Password is incorrect");
+        }
+        return manager;
+    }
+
+    private Manager requireNewPassword(Manager manager, String newPassword) {
+        if (BcryptUtil.matches(newPassword, manager.getAccount().getPassword())) {
+            throw new BadRequestException("New password must be different");
+        }
+        return manager;
+    }
+
     private Uni<ManagerResponse> createManager(CreateManagerRequest request, Company company) {
         Account account = Account.builder(
                 request.name(),
@@ -76,6 +136,7 @@ public class ManagerService {
         return new ManagerResponse(
                 manager.id,
                 manager.getName(),
+                manager.getAccount().getEmail(),
                 manager.getCompany().id,
                 manager.getActive(),
                 manager.getCreatedAt()

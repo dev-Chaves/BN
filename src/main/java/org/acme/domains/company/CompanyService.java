@@ -14,6 +14,7 @@ import org.acme.domains.benefitrequest.BenefitAccessRequestRepository;
 import org.acme.domains.company.dto.CompanyResponse;
 import org.acme.domains.company.dto.CreateCompanyRequest;
 import org.acme.domains.company.dto.DeactivateCompanyRequest;
+import org.acme.domains.company.dto.UpdateCompanyRequest;
 import org.acme.domains.employee.EmployeeRepository;
 import org.acme.domains.manager.Manager;
 import org.acme.domains.manager.ManagerRepository;
@@ -93,6 +94,19 @@ public class CompanyService {
                                                     .companyOwner()
                                                     .build()));
                         }))
+                .map(this::toResponse);
+    }
+
+    @WithTransaction
+    public Uni<CompanyResponse> updateCurrent(
+            String managerEmail,
+            Long companyId,
+            UpdateCompanyRequest request
+    ) {
+        return managerRepository.findByEmailAndCompanyId(managerEmail, companyId)
+                .onItem().ifNull().failWith(() -> new NotFoundException("Company not found"))
+                .map(AccessStatusGuard::requireActive)
+                .invoke(manager -> manager.getCompany().update(request.name().trim()))
                 .map(this::toResponse);
     }
 
