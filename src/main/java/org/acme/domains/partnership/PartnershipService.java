@@ -13,7 +13,9 @@ import org.acme.domains.manager.Manager;
 import org.acme.domains.manager.ManagerRepository;
 import org.acme.domains.partnership.dto.PartnershipResponse;
 import org.acme.domains.shared.security.TenantGuard;
+import org.hibernate.reactive.mutiny.Mutiny;
 import org.jboss.logging.Logger;
+
 import java.time.LocalDateTime;
 
 @ApplicationScoped
@@ -163,12 +165,16 @@ public class PartnershipService {
         Company company = tuple.getItem1();
         Benefit benefit = tuple.getItem2();
 
-        if (!benefit.isDiscoverableAt(LocalDateTime.now())) {
-            return Uni.createFrom().failure(new IllegalStateException("Benefit is not available for partnership"));
-        }
+        return Mutiny.fetch(benefit.getProvider())
+                .call(provider -> Mutiny.fetch(provider.getActive()))
+                .flatMap(provider -> {
+                    if (!benefit.isDiscoverableAt(LocalDateTime.now())) {
+                        return Uni.createFrom().failure(new IllegalStateException("Benefit is not available for partnership"));
+                    }
 
-        return validatePartnershipDoesNotExist(company.id, benefit.id)
-            .call(() -> validateCompanyIsNotOwnProvider(company, benefit));
+                    return validatePartnershipDoesNotExist(company.id, benefit.id)
+                            .call(() -> validateCompanyIsNotOwnProvider(company, benefit));
+                });
     }
 
     private Uni<Partnership> createAndPersistPartnership(Tuple2<Company, Benefit> tuple) {

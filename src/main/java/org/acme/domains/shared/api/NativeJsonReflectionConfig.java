@@ -1,6 +1,12 @@
 package org.acme.domains.shared.api;
 
 import io.quarkus.runtime.annotations.RegisterForReflection;
+import org.acme.domains.announcement.dto.CreateAnnouncementRequest;
+import org.acme.domains.announcement.dto.EmployeeAnnouncement;
+import org.acme.domains.announcement.dto.EmployeeAnnouncementPage;
+import org.acme.domains.announcement.dto.ManagerAnnouncement;
+import org.acme.domains.announcement.dto.ManagerAnnouncementPage;
+import org.acme.domains.announcement.dto.UnreadCountResponse;
 import org.acme.domains.auth.dto.LoginContextData;
 import org.acme.domains.auth.dto.LoginRequest;
 import org.acme.domains.auth.dto.LoginResponse;
@@ -42,6 +48,12 @@ import org.acme.domains.sharedbenefit.dto.SharedBenefitResponse;
         fields = true,
         targets = {
                 ErrorResponse.class,
+                CreateAnnouncementRequest.class,
+                ManagerAnnouncement.class,
+                ManagerAnnouncementPage.class,
+                EmployeeAnnouncement.class,
+                EmployeeAnnouncementPage.class,
+                UnreadCountResponse.class,
                 LoginRequest.class,
                 LoginResponse.class,
                 SwitchCompanyRequest.class,
