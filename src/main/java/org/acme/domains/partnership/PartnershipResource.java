@@ -5,6 +5,7 @@ import jakarta.annotation.security.RolesAllowed;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
@@ -35,6 +36,13 @@ public class PartnershipResource implements BaseResource {
     @RolesAllowed("MANAGER")
     public Uni<Response> request(@Valid CreatePartnershipRequest request) {
         return toCreated(partnershipService.requestPartnership(jwt.getName(), companyId(), request.benefitId()));
+    }
+
+    @GET
+    @Path("/provider/pending")
+    @RolesAllowed("MANAGER")
+    public Uni<Response> providerPending() {
+        return toOk(partnershipService.providerPending(jwt.getName(), companyId()));
     }
 
     @PUT

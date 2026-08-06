@@ -1,5 +1,6 @@
 package org.acme.domains.partnership;
 
+import io.quarkus.hibernate.reactive.panache.common.WithSession;
 import io.quarkus.hibernate.reactive.panache.common.WithTransaction;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.tuples.Tuple2;
@@ -17,6 +18,7 @@ import org.hibernate.reactive.mutiny.Mutiny;
 import org.jboss.logging.Logger;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @ApplicationScoped
 public class PartnershipService {
@@ -72,6 +74,13 @@ public class PartnershipService {
                         .flatMap(partnership -> tenantGuard.verifyManagerPartnershipProviderAccess(manager, partnership)))
                 .flatMap(partnership -> transactionPartnershipStatus(partnership, PartnershipStatus.DISABLED))
                 .map(this::toPartnershipResponse);
+    }
+
+    @WithSession
+    public Uni<List<PartnershipResponse>> providerPending(String managerEmail, Long companyId) {
+        return validateManagerExists(managerEmail, companyId)
+                .flatMap(manager -> partnershipRepository.findPendingByProvider(manager.getCompany().id))
+                .map(items -> items.stream().map(this::toPartnershipResponse).toList());
     }
 
 
@@ -190,7 +199,9 @@ public class PartnershipService {
         return new PartnershipResponse(
             partnership.id,
             partnership.getClientCompany().id,
+            partnership.getClientCompany().getName(),
             partnership.getBenefit().id,
+            partnership.getBenefit().getName(),
             partnership.getStatus(),
             partnership.getCreatedAt()
         );

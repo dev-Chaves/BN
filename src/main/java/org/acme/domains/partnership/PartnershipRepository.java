@@ -34,8 +34,18 @@ public class PartnershipRepository implements PanacheRepository<Partnership> {
     }
 
     public Uni<Partnership> findByIdWithProvider(Long id) {
-        return find("select p from Partnership p join fetch p.benefit b join fetch b.provider where p.id = ?1", id)
+        return find("select p from Partnership p join fetch p.clientCompany join fetch p.benefit b join fetch b.provider where p.id = ?1", id)
                 .firstResult();
+    }
+
+    public Uni<List<Partnership>> findPendingByProvider(Long providerId) {
+        return find("""
+                select p from Partnership p
+                join fetch p.clientCompany
+                join fetch p.benefit b
+                join fetch b.provider
+                where b.provider.id = ?1 and p.status = ?2 order by p.createdAt
+                """, providerId, PartnershipStatus.PENDING).list();
     }
 
     public Uni<Boolean> existsActivePartnership(Long clientCompanyId, Long benefitId) {
