@@ -1,72 +1,67 @@
-quarkus:
-  http:
-    auth:
-      proactive: false
+spring:
+  application:
+    name: bn-api
   datasource:
-    db-kind: postgresql
-
-  hibernate-orm:
-    jdbc:
-      timezone: UTC
-
-  smallrye-jwt:
+    url: ${DATABASE_URL:${SPRING_DATASOURCE_URL:${QUARKUS_DATASOURCE_JDBC_URL:jdbc:postgresql://localhost:5432/benefix}}}
+    username: ${DATABASE_USERNAME:${SPRING_DATASOURCE_USERNAME:${QUARKUS_DATASOURCE_USERNAME:postgres}}}
+    password: ${DATABASE_PASSWORD:${SPRING_DATASOURCE_PASSWORD:${QUARKUS_DATASOURCE_PASSWORD:}}}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  flyway:
     enabled: true
+    validate-on-migrate: true
+    baseline-on-migrate: false
+    locations: classpath:db/migration
+  mvc:
+    problemdetails:
+      enabled: false
 
-  swagger-ui:
-    always-include: true
+server:
+  port: ${PORT:8080}
 
-  rate-limiter:
-    buckets:
-      auth-group:
-        limits:
-          - permitted-uses: ${AUTH_RATE_LIMIT_USES_SECOND:5}
-            period: ${AUTH_RATE_LIMIT_PERIOD_SECOND:1S}
-          - permitted-uses: ${AUTH_RATE_LIMIT_USES_MINUTE:30}
-            period: ${AUTH_RATE_LIMIT_PERIOD_MINUTE:1M}
-      onboarding-group:
-        limits:
-          - permitted-uses: ${ONBOARDING_RATE_LIMIT_USES_SECOND:2}
-            period: ${ONBOARDING_RATE_LIMIT_PERIOD_SECOND:1S}
-          - permitted-uses: ${ONBOARDING_RATE_LIMIT_USES_MINUTE:10}
-            period: ${ONBOARDING_RATE_LIMIT_PERIOD_MINUTE:1M}
-      redemption-group:
-        limits:
-          - permitted-uses: ${REDEMPTION_RATE_LIMIT_USES_SECOND:10}
-            period: ${REDEMPTION_RATE_LIMIT_PERIOD_SECOND:1S}
-          - permitted-uses: ${REDEMPTION_RATE_LIMIT_USES_MINUTE:120}
-            period: ${REDEMPTION_RATE_LIMIT_PERIOD_MINUTE:1M}
-mp:
-  jwt:
-    token:
-      header: Cookie
-      cookie: jwt
-    verify:
-      publickey:
-        location: /opt/bn/secrets/publicKey.pem
-      issuer: bn-api
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
 
 app:
   public-url: ${APP_PUBLIC_URL:http://localhost:3000}
   cookie:
-    secure: true
+    secure: ${COOKIE_SECURE:true}
+  jwt:
+    issuer: bn-api
+    expiration: PT3H
+    public-key: ${JWT_PUBLIC_KEY_PATH:/opt/bn/secrets/publicKey.pem}
+    private-key: ${JWT_PRIVATE_KEY_PATH:/opt/bn/secrets/privateKey.pem}
+  rate-limit:
+    auth:
+      per-second: ${AUTH_RATE_LIMIT_USES_SECOND:5}
+      per-minute: ${AUTH_RATE_LIMIT_USES_MINUTE:30}
+    onboarding:
+      per-second: ${ONBOARDING_RATE_LIMIT_USES_SECOND:2}
+      per-minute: ${ONBOARDING_RATE_LIMIT_USES_MINUTE:10}
+    redemption:
+      per-second: ${REDEMPTION_RATE_LIMIT_USES_SECOND:10}
+      per-minute: ${REDEMPTION_RATE_LIMIT_USES_MINUTE:120}
   swagger:
     auth:
       username: ${SWAGGER_BASIC_AUTH_USERNAME:}
       password: ${SWAGGER_BASIC_AUTH_PASSWORD:}
 
-
-smallrye:
-  jwt:
-    sign:
-      key:
-        location: /opt/bn/secrets/privateKey.pem
-
-"%prod":
-  quarkus:
-    http:
-      auth:
-        basic: true
-        permission:
-          docs:
-            paths: /q/swagger-ui/*,/q/openapi*
-            policy: authenticated
+springdoc:
+  api-docs:
+    path: /q/openapi
+  swagger-ui:
+    path: /q/swagger-ui
