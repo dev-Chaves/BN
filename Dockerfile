@@ -7,10 +7,13 @@ RUN ./mvnw -B dependency:go-offline
 COPY src src
 RUN ./mvnw -B -DskipTests -Pnative native:compile
 
-FROM alpine:3.22
+FROM debian:bookworm-slim
 WORKDIR /app
-RUN apk add --no-cache wget
-RUN addgroup -S spring && adduser -S spring -G spring
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates wget \
+    && rm -rf /var/lib/apt/lists/*
+RUN groupadd --system spring \
+    && useradd --system --gid spring spring
 USER spring:spring
 COPY --from=build /app/target/ubm .
 EXPOSE 8080
