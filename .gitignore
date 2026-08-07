@@ -31,3 +31,7 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# JWT signing material is provisioned externally in production.
+src/main/resources/privateKey.pem
+src/main/resources/publicKey.pem

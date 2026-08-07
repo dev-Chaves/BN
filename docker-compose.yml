@@ -1,0 +1,23 @@
+services:
+  bn-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: bn-api:latest
+    container_name: bn-api
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    env_file:
+      - ${BN_ENV_FILE:-.env}
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      JWT_PUBLIC_KEY_PATH: /opt/bn/secrets/publicKey.pem
+      JWT_PRIVATE_KEY_PATH: /opt/bn/secrets/privateKey.pem
+    volumes:
+      - /opt/bn/secrets:/opt/bn/secrets:ro
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10

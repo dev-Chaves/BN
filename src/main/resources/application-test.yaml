@@ -1,0 +1,19 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:bnfix;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none
+  flyway:
+    enabled: false
+
+app:
+  cookie:
+    secure: false
+  swagger:
+    auth:
+      username: test-docs
+      password: test-docs-password

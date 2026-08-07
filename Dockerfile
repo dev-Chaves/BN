@@ -1,0 +1,17 @@
+FROM ghcr.io/graalvm/native-image-community:25 AS build
+WORKDIR /app
+COPY pom.xml .
+COPY .mvn .mvn
+COPY mvnw .
+RUN ./mvnw -B dependency:go-offline
+COPY src src
+RUN ./mvnw -B -DskipTests -Pnative native:compile
+
+FROM alpine:3.22
+WORKDIR /app
+RUN apk add --no-cache wget
+RUN addgroup -S spring && adduser -S spring -G spring
+USER spring:spring
+COPY --from=build /app/target/ubm .
+EXPOSE 8080
+ENTRYPOINT ["/app/ubm"]
