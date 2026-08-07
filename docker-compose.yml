@@ -1,22 +1,4 @@
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: bn-postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: benefix
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
-    ports:
-      - "5432:5432"
-    healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U postgres -d benefix" ]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-    volumes:
-      - bn_postgres_data:/var/lib/postgresql/data
-
   bn-api:
     build:
       context: .
@@ -26,37 +8,16 @@ services:
     restart: unless-stopped
     ports:
       - "8080:8080"
+    env_file:
+      - ${BN_ENV_FILE:-.env}
     environment:
-      # Ajuste as variáveis de ambiente do banco para apontar para o container postgres
-      # ou para o RDS em produção
-      QUARKUS_DATASOURCE_JDBC_URL: jdbc:postgresql://bn-postgres:5432/benefix
-      QUARKUS_DATASOURCE_REACTIVE_URL: postgresql://bn-postgres:5432/benefix
-      QUARKUS_DATASOURCE_USERNAME: postgres
-      QUARKUS_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
-      QUARKUS_PROFILE: prod
-      APP_PUBLIC_URL: ${APP_PUBLIC_URL:-http://localhost:3000}
-      AUTH_RATE_LIMIT_USES_SECOND: ${AUTH_RATE_LIMIT_USES_SECOND:-5}
-      AUTH_RATE_LIMIT_PERIOD_SECOND: ${AUTH_RATE_LIMIT_PERIOD_SECOND:-1S}
-      AUTH_RATE_LIMIT_USES_MINUTE: ${AUTH_RATE_LIMIT_USES_MINUTE:-30}
-      AUTH_RATE_LIMIT_PERIOD_MINUTE: ${AUTH_RATE_LIMIT_PERIOD_MINUTE:-1M}
-      ONBOARDING_RATE_LIMIT_USES_SECOND: ${ONBOARDING_RATE_LIMIT_USES_SECOND:-2}
-      ONBOARDING_RATE_LIMIT_PERIOD_SECOND: ${ONBOARDING_RATE_LIMIT_PERIOD_SECOND:-1S}
-      ONBOARDING_RATE_LIMIT_USES_MINUTE: ${ONBOARDING_RATE_LIMIT_USES_MINUTE:-10}
-      ONBOARDING_RATE_LIMIT_PERIOD_MINUTE: ${ONBOARDING_RATE_LIMIT_PERIOD_MINUTE:-1M}
-      SWAGGER_BASIC_AUTH_USERNAME: ${SWAGGER_BASIC_AUTH_USERNAME:?SWAGGER_BASIC_AUTH_USERNAME is required}
-      SWAGGER_BASIC_AUTH_PASSWORD: ${SWAGGER_BASIC_AUTH_PASSWORD:?SWAGGER_BASIC_AUTH_PASSWORD is required}
-      TZ: UTC
+      SPRING_PROFILES_ACTIVE: prod
+      JWT_PUBLIC_KEY_PATH: /opt/bn/secrets/publicKey.pem
+      JWT_PRIVATE_KEY_PATH: /opt/bn/secrets/privateKey.pem
     volumes:
-      - ./src/main/resources/privateKey.pem:/opt/bn/secrets/privateKey.pem:ro
-      - ./src/main/resources/publicKey.pem:/opt/bn/secrets/publicKey.pem:ro
-    depends_on:
-      postgres:
-        condition: service_healthy
+      - /opt/bn/secrets:/opt/bn/secrets:ro
     healthcheck:
-      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:8080/q/health/ready" ]
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/actuator/health"]
       interval: 10s
       timeout: 5s
       retries: 10
-
-volumes:
-  bn_postgres_data:

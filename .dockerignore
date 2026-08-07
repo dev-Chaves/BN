@@ -1,6 +1,0 @@
-*
-!pom.xml
-!src/
-!src/**
-!target/
-!target/*-runner
