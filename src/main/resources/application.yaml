@@ -62,6 +62,8 @@ app:
 
 springdoc:
   api-docs:
+    enabled: false
     path: /q/openapi
   swagger-ui:
+    enabled: false
     path: /q/swagger-ui

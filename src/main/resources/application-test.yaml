@@ -17,3 +17,9 @@ app:
     auth:
       username: test-docs
       password: test-docs-password
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true

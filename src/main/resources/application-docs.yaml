@@ -1,0 +1,13 @@
+springdoc:
+  api-docs:
+    enabled: true
+    path: /q/openapi
+  swagger-ui:
+    enabled: true
+    path: /q/swagger-ui
+
+app:
+  swagger:
+    auth:
+      username: ${SWAGGER_BASIC_AUTH_USERNAME:}
+      password: ${SWAGGER_BASIC_AUTH_PASSWORD:}

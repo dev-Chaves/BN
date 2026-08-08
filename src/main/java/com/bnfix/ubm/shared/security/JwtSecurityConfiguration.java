@@ -107,6 +107,7 @@ public class JwtSecurityConfiguration {
     }
 
     @Bean
+    @Profile({"docs", "test"})
     UserDetailsService swaggerUserDetailsService(
             @Value("${app.swagger.auth.username:}") String username,
             @Value("${app.swagger.auth.password:}") String password,
@@ -122,6 +123,7 @@ public class JwtSecurityConfiguration {
 
     @Bean
     @Order(1)
+    @Profile({"docs", "test"})
     SecurityFilterChain swaggerSecurityChain(
             HttpSecurity http,
             UserDetailsService swaggerUsers,
