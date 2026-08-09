@@ -15,7 +15,8 @@ public class TenantGuard {
     private final PartnershipRepository partnerships;
 
     public TenantGuard(CompanyRepository companies, PartnershipRepository partnerships) {
-        this.companies = companies; this.partnerships = partnerships;
+        this.companies = companies;
+        this.partnerships = partnerships;
     }
 
     public Company verifyManagerCompanyAccess(Manager manager, Long companyId) {
@@ -34,8 +35,11 @@ public class TenantGuard {
 
     public Partnership verifyManagerPartnershipProviderAccess(Manager manager, Partnership partnership) {
         AccessStatusGuard.requireActive(manager);
-        Long providerId = partnership == null || partnership.getBenefit() == null || partnership.getBenefit().getProvider() == null
-                ? null : partnership.getBenefit().getProvider().id;
+        Long providerId = partnership == null
+                        || partnership.getBenefit() == null
+                        || partnership.getBenefit().getProvider() == null
+                ? null
+                : partnership.getBenefit().getProvider().id;
         requireCompanyId(manager, providerId);
         return partnership;
     }
@@ -43,7 +47,10 @@ public class TenantGuard {
     public Benefit verifyEmployeeBenefitAccess(Employee employee, Benefit benefit) {
         AccessStatusGuard.requireActive(employee);
         Long companyId = employee.getCompany() == null ? null : employee.getCompany().id;
-        if (companyId == null || benefit == null || benefit.id == null || !partnerships.existsActivePartnership(companyId, benefit.id))
+        if (companyId == null
+                || benefit == null
+                || benefit.id == null
+                || !partnerships.existsActivePartnership(companyId, benefit.id))
             throw new SecurityException("Benefit not available for tenant");
         return benefit;
     }

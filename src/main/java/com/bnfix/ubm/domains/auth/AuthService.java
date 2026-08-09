@@ -11,9 +11,8 @@ import com.bnfix.ubm.domains.manager.ManagerRepository;
 import com.bnfix.ubm.domains.shared.enums.Role;
 import com.bnfix.ubm.shared.security.AccessStatusGuard;
 import java.util.Locale;
-import java.util.UUID;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.context.annotation.Profile;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,10 +26,17 @@ public class AuthService {
     private final TokenService tokens;
     private final BCryptPasswordEncoder passwordEncoder;
 
-    public AuthService(AccountRepository accounts, ManagerRepository managers, EmployeeRepository employees,
-                       TokenService tokens, BCryptPasswordEncoder passwordEncoder) {
-        this.accounts = accounts; this.managers = managers; this.employees = employees;
-        this.tokens = tokens; this.passwordEncoder = passwordEncoder;
+    public AuthService(
+            AccountRepository accounts,
+            ManagerRepository managers,
+            EmployeeRepository employees,
+            TokenService tokens,
+            BCryptPasswordEncoder passwordEncoder) {
+        this.accounts = accounts;
+        this.managers = managers;
+        this.employees = employees;
+        this.tokens = tokens;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Transactional(readOnly = true)
@@ -53,12 +59,14 @@ public class AuthService {
     private LoginResponse managerToken(Account account) {
         Manager manager = managers.findActiveByAccountId(account.id).orElseThrow(AuthenticationException::new);
         AccessStatusGuard.requireActive(manager);
-        return new LoginResponse(tokens.generateToken(account.getEmail(), account.id, manager.getCompany().id, Role.MANAGER.name()));
+        return new LoginResponse(
+                tokens.generateToken(account.getEmail(), account.id, manager.getCompany().id, Role.MANAGER.name()));
     }
 
     private LoginResponse employeeToken(Account account) {
         Employee employee = employees.findByAccountId(account.id).orElseThrow(AuthenticationException::new);
         AccessStatusGuard.requireActive(employee);
-        return new LoginResponse(tokens.generateToken(account.getEmail(), account.id, employee.getCompany().id, Role.USER.name()));
+        return new LoginResponse(
+                tokens.generateToken(account.getEmail(), account.id, employee.getCompany().id, Role.USER.name()));
     }
 }

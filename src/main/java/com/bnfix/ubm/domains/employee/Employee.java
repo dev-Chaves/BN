@@ -1,11 +1,115 @@
 package com.bnfix.ubm.domains.employee;
 
-import com.bnfix.ubm.domains.account.Account; import com.bnfix.ubm.domains.company.Company; import com.bnfix.ubm.domains.subscription.Subscription;
-import jakarta.persistence.*; import java.time.LocalDateTime; import java.util.List;
-@Entity @Table(name="employees") public class Employee {
- @Id @GeneratedValue(strategy=GenerationType.SEQUENCE,generator="employeesSeq") @SequenceGenerator(name="employeesSeq",sequenceName="employees_SEQ",allocationSize=50) public Long id; @Column(nullable=false) private String name;
- @OneToOne(cascade=CascadeType.ALL) @JoinColumn(name="account_id",referencedColumnName="id",nullable=false) private Account account; @ManyToOne(fetch=FetchType.LAZY) @JoinColumn(name="company_id",nullable=false) private Company company; @Enumerated(EnumType.STRING) private EmployeeStatus active; @OneToMany(cascade=CascadeType.ALL,mappedBy="employee") private List<Subscription> subscriptions; @Column(nullable=false,name="created_at") private LocalDateTime createdAt; protected Employee(){}
- private Employee(Builder b){name=b.name;company=b.company;account=b.account;active=b.active;} public String getName(){return name;} public Account getAccount(){return account;} public Company getCompany(){return company;} public EmployeeStatus getActive(){return active;} public List<Subscription> getSubscriptions(){return subscriptions;} public LocalDateTime getCreatedAt(){return createdAt;}
- @PrePersist protected void onCreate(){createdAt=LocalDateTime.now();if(active==null)active=EmployeeStatus.DISABLED;} public void update(String n){if(n!=null&&!n.isBlank())name=n;} public void active(){if(active==EmployeeStatus.ACTIVE)throw new IllegalArgumentException("This employee is already activated");active=EmployeeStatus.ACTIVE;} public void disable(){if(active==EmployeeStatus.DISABLED)throw new IllegalArgumentException("This employee is already disabled");active=EmployeeStatus.DISABLED;} public void defineCompany(Company c){company=c;}
- public static Builder builder(String n,Company c,Account a){return new Builder(n,c,a);} public static class Builder{private final String name;private final Company company;private final Account account;private EmployeeStatus active=EmployeeStatus.DISABLED;public Builder(String n,Company c,Account a){name=n;company=c;account=a;}public Employee build(){return new Employee(this);}}
+import com.bnfix.ubm.domains.account.Account;
+import com.bnfix.ubm.domains.company.Company;
+import com.bnfix.ubm.domains.subscription.Subscription;
+import jakarta.persistence.*;
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Entity
+@Table(name = "employees")
+public class Employee {
+    @Id
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "employeesSeq")
+    @SequenceGenerator(name = "employeesSeq", sequenceName = "employees_SEQ", allocationSize = 50)
+    public Long id;
+
+    @Column(nullable = false)
+    private String name;
+
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "account_id", referencedColumnName = "id", nullable = false)
+    private Account account;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "company_id", nullable = false)
+    private Company company;
+
+    @Enumerated(EnumType.STRING)
+    private EmployeeStatus active;
+
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "employee")
+    private List<Subscription> subscriptions;
+
+    @Column(nullable = false, name = "created_at")
+    private LocalDateTime createdAt;
+
+    protected Employee() {}
+
+    private Employee(Builder b) {
+        name = b.name;
+        company = b.company;
+        account = b.account;
+        active = b.active;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public Account getAccount() {
+        return account;
+    }
+
+    public Company getCompany() {
+        return company;
+    }
+
+    public EmployeeStatus getActive() {
+        return active;
+    }
+
+    public List<Subscription> getSubscriptions() {
+        return subscriptions;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        if (active == null) active = EmployeeStatus.DISABLED;
+    }
+
+    public void update(String n) {
+        if (n != null && !n.isBlank()) name = n;
+    }
+
+    public void active() {
+        if (active == EmployeeStatus.ACTIVE) throw new IllegalArgumentException("This employee is already activated");
+        active = EmployeeStatus.ACTIVE;
+    }
+
+    public void disable() {
+        if (active == EmployeeStatus.DISABLED) throw new IllegalArgumentException("This employee is already disabled");
+        active = EmployeeStatus.DISABLED;
+    }
+
+    public void defineCompany(Company c) {
+        company = c;
+    }
+
+    public static Builder builder(String n, Company c, Account a) {
+        return new Builder(n, c, a);
+    }
+
+    public static class Builder {
+        private final String name;
+        private final Company company;
+        private final Account account;
+        private EmployeeStatus active = EmployeeStatus.DISABLED;
+
+        public Builder(String n, Company c, Account a) {
+            name = n;
+            company = c;
+            account = a;
+        }
+
+        public Employee build() {
+            return new Employee(this);
+        }
+    }
 }

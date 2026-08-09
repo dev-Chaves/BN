@@ -1,7 +1,5 @@
 package com.bnfix.ubm.shared.nativeimage;
 
-import java.util.List;
-
 import com.bnfix.ubm.api.ApiError;
 import com.bnfix.ubm.domains.account.Account;
 import com.bnfix.ubm.domains.announcement.Announcement;
@@ -62,7 +60,7 @@ import com.bnfix.ubm.domains.sharedbenefit.dto.SharedBenefitResponse;
 import com.bnfix.ubm.domains.subscription.Subscription;
 import com.bnfix.ubm.domains.subscription.dto.CreateSubscriptionRequest;
 import com.bnfix.ubm.domains.subscription.dto.SubscriptionResponse;
-
+import java.util.List;
 import org.springframework.aot.hint.MemberCategory;
 import org.springframework.aot.hint.RuntimeHints;
 import org.springframework.aot.hint.RuntimeHintsRegistrar;
@@ -70,53 +68,84 @@ import org.springframework.aot.hint.TypeReference;
 
 public final class NativeRuntimeHints implements RuntimeHintsRegistrar {
 
-	private static final MemberCategory[] REFLECTION = MemberCategory.values();
+    private static final MemberCategory[] REFLECTION = MemberCategory.values();
 
-	@Override
-	public void registerHints(RuntimeHints hints, ClassLoader classLoader) {
-		registerArrayTypes(hints);
-		registerDomainTypes(hints);
-	}
+    @Override
+    public void registerHints(RuntimeHints hints, ClassLoader classLoader) {
+        registerArrayTypes(hints);
+        registerDomainTypes(hints);
+    }
 
-	private void registerArrayTypes(RuntimeHints hints) {
-		hints.reflection().registerType(TypeReference.of("java.util.UUID[]"), REFLECTION);
-		hints.reflection().registerType(TypeReference.of("java.lang.Long[]"), REFLECTION);
-	}
+    private void registerArrayTypes(RuntimeHints hints) {
+        hints.reflection().registerType(TypeReference.of("java.util.UUID[]"), REFLECTION);
+        hints.reflection().registerType(TypeReference.of("java.lang.Long[]"), REFLECTION);
+    }
 
-	private void registerDomainTypes(RuntimeHints hints) {
-		List<TypeReference> types = TypeReference.listOf(
-				Account.class, Announcement.class, AnnouncementRecipient.class,
-				Benefit.class, BenefitAccessRequest.class, BenefitRedemption.class,
-				Category.class, Company.class, Employee.class, Manager.class,
-				Partnership.class, RedemptionToken.class, Subscription.class,
-				CPF.class, CNPJ.class,
-				BenefitAccessRequestStatus.class, EmployeeStatus.class,
-				PartnershipStatus.class, RedemptionTokenStatus.class, Role.class,
-				ApiError.class,
-				CreateAnnouncementRequest.class, EmployeeAnnouncement.class,
-				EmployeeAnnouncementPage.class, ManagerAnnouncement.class,
-				ManagerAnnouncementPage.class, UnreadCountResponse.class,
-				LoginContextData.class, LoginRequest.class, LoginResponse.class,
-				SwitchCompanyRequest.class,
-				BenefitResponse.class, CreateBenefitRequest.class, UpdateBenefitRequest.class,
-				BenefitAccessRequestResponse.class, CreateBenefitAccessRequest.class,
-				RejectBenefitAccessRequest.class,
-				CategoryResponse.class,
-				CompanyResponse.class, CreateCompanyRequest.class,
-				DeactivateCompanyRequest.class, UpdateCompanyRequest.class,
-				CreateEmployeeRequest.class, EmployeeResponse.class, UpdateEmployeeRequest.class,
-				ChangeManagerPasswordRequest.class, CreateManagerRequest.class,
-				ManagerResponse.class, UpdateManagerEmailRequest.class,
-				OnboardingRequest.class, OnboardingRequest.ManagerRegistrationData.class,
-				OnboardingResponse.class,
-				CreatePartnershipRequest.class, PartnershipResponse.class,
-				RedemptionPreviewResponse.class, RedemptionResponse.class,
-				RedemptionTokenRequest.class, RedemptionTokenResponse.class,
-				SharedBenefitResponse.class,
-				CreateSubscriptionRequest.class, SubscriptionResponse.class
-		);
-		for (TypeReference type : types) {
-			hints.reflection().registerType(type, REFLECTION);
-		}
-	}
+    private void registerDomainTypes(RuntimeHints hints) {
+        List<TypeReference> types = TypeReference.listOf(
+                Account.class,
+                Announcement.class,
+                AnnouncementRecipient.class,
+                Benefit.class,
+                BenefitAccessRequest.class,
+                BenefitRedemption.class,
+                Category.class,
+                Company.class,
+                Employee.class,
+                Manager.class,
+                Partnership.class,
+                RedemptionToken.class,
+                Subscription.class,
+                CPF.class,
+                CNPJ.class,
+                BenefitAccessRequestStatus.class,
+                EmployeeStatus.class,
+                PartnershipStatus.class,
+                RedemptionTokenStatus.class,
+                Role.class,
+                ApiError.class,
+                CreateAnnouncementRequest.class,
+                EmployeeAnnouncement.class,
+                EmployeeAnnouncementPage.class,
+                ManagerAnnouncement.class,
+                ManagerAnnouncementPage.class,
+                UnreadCountResponse.class,
+                LoginContextData.class,
+                LoginRequest.class,
+                LoginResponse.class,
+                SwitchCompanyRequest.class,
+                BenefitResponse.class,
+                CreateBenefitRequest.class,
+                UpdateBenefitRequest.class,
+                BenefitAccessRequestResponse.class,
+                CreateBenefitAccessRequest.class,
+                RejectBenefitAccessRequest.class,
+                CategoryResponse.class,
+                CompanyResponse.class,
+                CreateCompanyRequest.class,
+                DeactivateCompanyRequest.class,
+                UpdateCompanyRequest.class,
+                CreateEmployeeRequest.class,
+                EmployeeResponse.class,
+                UpdateEmployeeRequest.class,
+                ChangeManagerPasswordRequest.class,
+                CreateManagerRequest.class,
+                ManagerResponse.class,
+                UpdateManagerEmailRequest.class,
+                OnboardingRequest.class,
+                OnboardingRequest.ManagerRegistrationData.class,
+                OnboardingResponse.class,
+                CreatePartnershipRequest.class,
+                PartnershipResponse.class,
+                RedemptionPreviewResponse.class,
+                RedemptionResponse.class,
+                RedemptionTokenRequest.class,
+                RedemptionTokenResponse.class,
+                SharedBenefitResponse.class,
+                CreateSubscriptionRequest.class,
+                SubscriptionResponse.class);
+        for (TypeReference type : types) {
+            hints.reflection().registerType(type, REFLECTION);
+        }
+    }
 }

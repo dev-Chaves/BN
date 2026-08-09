@@ -24,9 +24,13 @@ public class AuthController {
     private final SwitchCompanyService switchCompanyService;
     private final boolean cookieSecure;
 
-    public AuthController(AuthService authService, SwitchCompanyService switchCompanyService,
-                          @Value("${app.cookie.secure:true}") boolean cookieSecure) {
-        this.authService = authService; this.switchCompanyService = switchCompanyService; this.cookieSecure = cookieSecure;
+    public AuthController(
+            AuthService authService,
+            SwitchCompanyService switchCompanyService,
+            @Value("${app.cookie.secure:true}") boolean cookieSecure) {
+        this.authService = authService;
+        this.switchCompanyService = switchCompanyService;
+        this.cookieSecure = cookieSecure;
     }
 
     @PostMapping("/login")
@@ -36,29 +40,43 @@ public class AuthController {
 
     @PostMapping("/switch-company")
     @PreAuthorize("hasRole('MANAGER')")
-    public ResponseEntity<LoginResponse> switchCompany(@Valid @RequestBody SwitchCompanyRequest request,
-                                                        Authentication authentication) {
+    public ResponseEntity<LoginResponse> switchCompany(
+            @Valid @RequestBody SwitchCompanyRequest request, Authentication authentication) {
         return tokenResponse(switchCompanyService.switchCompany(authentication.getName(), request.companyId()));
     }
 
     @PostMapping("/logout")
     public ResponseEntity<Void> logout() {
-        return ResponseEntity.noContent().header("Set-Cookie", expiredCookie().toString())
-                .header("Cache-Control", "no-store").build();
+        return ResponseEntity.noContent()
+                .header("Set-Cookie", expiredCookie().toString())
+                .header("Cache-Control", "no-store")
+                .build();
     }
 
     private ResponseEntity<LoginResponse> tokenResponse(LoginResponse response) {
-        return ResponseEntity.ok().header("Set-Cookie", sessionCookie(response.token()).toString())
-                .header("Cache-Control", "no-store").body(response);
+        return ResponseEntity.ok()
+                .header("Set-Cookie", sessionCookie(response.token()).toString())
+                .header("Cache-Control", "no-store")
+                .body(response);
     }
 
     private ResponseCookie sessionCookie(String token) {
-        return ResponseCookie.from("jwt", token).httpOnly(true).secure(cookieSecure).path("/")
-                .sameSite("Strict").maxAge(SESSION_SECONDS).build();
+        return ResponseCookie.from("jwt", token)
+                .httpOnly(true)
+                .secure(cookieSecure)
+                .path("/")
+                .sameSite("Strict")
+                .maxAge(SESSION_SECONDS)
+                .build();
     }
 
     private ResponseCookie expiredCookie() {
-        return ResponseCookie.from("jwt", "").httpOnly(true).secure(cookieSecure).path("/")
-                .sameSite("Strict").maxAge(0).build();
+        return ResponseCookie.from("jwt", "")
+                .httpOnly(true)
+                .secure(cookieSecure)
+                .path("/")
+                .sameSite("Strict")
+                .maxAge(0)
+                .build();
     }
 }

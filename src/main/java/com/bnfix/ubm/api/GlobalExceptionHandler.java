@@ -1,17 +1,16 @@
 package com.bnfix.ubm.api;
 
+import com.bnfix.ubm.domains.auth.AuthenticationException;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.ConstraintViolationException;
+import java.time.OffsetDateTime;
+import java.util.NoSuchElementException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import com.bnfix.ubm.domains.auth.AuthenticationException;
-import jakarta.persistence.EntityNotFoundException;
-import org.springframework.dao.DataIntegrityViolationException;
-import java.util.NoSuchElementException;
-
-import java.time.OffsetDateTime;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -24,6 +23,7 @@ public class GlobalExceptionHandler {
     ResponseEntity<ApiError> security(SecurityException exception) {
         return error(HttpStatus.FORBIDDEN, exception.getMessage());
     }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     ResponseEntity<ApiError> validation(MethodArgumentNotValidException exception) {
         String message = exception.getBindingResult().getFieldErrors().stream()
@@ -55,7 +55,7 @@ public class GlobalExceptionHandler {
 
     private ResponseEntity<ApiError> error(HttpStatus status, String message) {
         return ResponseEntity.status(status)
-                .body(new ApiError(message == null ? status.getReasonPhrase() : message,
-                        status.value(), OffsetDateTime.now()));
+                .body(new ApiError(
+                        message == null ? status.getReasonPhrase() : message, status.value(), OffsetDateTime.now()));
     }
 }

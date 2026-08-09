@@ -54,7 +54,8 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
     private boolean allowed(String ip, Rule rule) {
         long now = System.nanoTime();
-        return windows.computeIfAbsent(ip + ":" + rule.name(), ignored -> new Window()).accept(now, rule);
+        return windows.computeIfAbsent(ip + ":" + rule.name(), ignored -> new Window())
+                .accept(now, rule);
     }
 
     private Rule ruleFor(HttpServletRequest request) {

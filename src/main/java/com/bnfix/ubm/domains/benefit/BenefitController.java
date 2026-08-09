@@ -1,7 +1,82 @@
 package com.bnfix.ubm.domains.benefit;
-import com.bnfix.ubm.domains.benefit.dto.*; import org.springframework.security.core.annotation.AuthenticationPrincipal; import org.springframework.security.access.prepost.PreAuthorize; import org.springframework.security.oauth2.jwt.Jwt; import org.springframework.web.bind.annotation.*; import jakarta.validation.Valid; import org.springframework.http.*; import org.springframework.data.domain.Page;
-@RestController @RequestMapping("/benefits") public class BenefitController {private final BenefitService s;public BenefitController(BenefitService s){this.s=s;} private String e(Jwt j){return j.getSubject();} private Long c(Jwt j){Object v=j.getClaims().get("companyId");return v instanceof Number n?n.longValue():Long.valueOf(v.toString());}
- @PostMapping @PreAuthorize("hasRole('MANAGER')") public ResponseEntity<BenefitResponse> create(@Valid @RequestBody CreateBenefitRequest r,@AuthenticationPrincipal Jwt j){return ResponseEntity.status(201).body(s.create(r,e(j),c(j)));}
- @GetMapping("/tenant") @PreAuthorize("hasRole('MANAGER')") public Page<BenefitResponse> tenant(@RequestParam(required=false) Long categoryId,@RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="50") int size,@AuthenticationPrincipal Jwt j){return s.tenant(e(j),c(j),categoryId,page,size);}
- @GetMapping("/marketplace") @PreAuthorize("hasRole('MANAGER')") public Page<BenefitResponse> market(@RequestParam(required=false) Long categoryId,@RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="50") int size,@AuthenticationPrincipal Jwt j){return s.marketplace(e(j),c(j),categoryId,page,size);}
- @PutMapping("/{id}") @PreAuthorize("hasRole('MANAGER')") public BenefitResponse update(@PathVariable Long id,@Valid @RequestBody UpdateBenefitRequest r,@AuthenticationPrincipal Jwt j){return s.update(id,r,e(j),c(j));} @PutMapping("/{id}/activate") @PreAuthorize("hasRole('MANAGER')") public BenefitResponse activate(@PathVariable Long id,@AuthenticationPrincipal Jwt j){return s.status(id,e(j),c(j),true);} @PutMapping("/{id}/deactivate") @PreAuthorize("hasRole('MANAGER')") public BenefitResponse deactivate(@PathVariable Long id,@AuthenticationPrincipal Jwt j){return s.status(id,e(j),c(j),false);} @DeleteMapping("/{id}") @PreAuthorize("hasRole('MANAGER')") public ResponseEntity<Void> delete(@PathVariable Long id,@AuthenticationPrincipal Jwt j){s.delete(id,e(j),c(j));return ResponseEntity.noContent().build();}}
+
+import com.bnfix.ubm.domains.benefit.dto.*;
+import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.http.*;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/benefits")
+public class BenefitController {
+    private final BenefitService s;
+
+    public BenefitController(BenefitService s) {
+        this.s = s;
+    }
+
+    private String e(Jwt j) {
+        return j.getSubject();
+    }
+
+    private Long c(Jwt j) {
+        Object v = j.getClaims().get("companyId");
+        return v instanceof Number n ? n.longValue() : Long.valueOf(v.toString());
+    }
+
+    @PostMapping
+    @PreAuthorize("hasRole('MANAGER')")
+    public ResponseEntity<BenefitResponse> create(
+            @Valid @RequestBody CreateBenefitRequest r, @AuthenticationPrincipal Jwt j) {
+        return ResponseEntity.status(201).body(s.create(r, e(j), c(j)));
+    }
+
+    @GetMapping("/tenant")
+    @PreAuthorize("hasRole('MANAGER')")
+    public Page<BenefitResponse> tenant(
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size,
+            @AuthenticationPrincipal Jwt j) {
+        return s.tenant(e(j), c(j), categoryId, page, size);
+    }
+
+    @GetMapping("/marketplace")
+    @PreAuthorize("hasRole('MANAGER')")
+    public Page<BenefitResponse> market(
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size,
+            @AuthenticationPrincipal Jwt j) {
+        return s.marketplace(e(j), c(j), categoryId, page, size);
+    }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('MANAGER')")
+    public BenefitResponse update(
+            @PathVariable Long id, @Valid @RequestBody UpdateBenefitRequest r, @AuthenticationPrincipal Jwt j) {
+        return s.update(id, r, e(j), c(j));
+    }
+
+    @PutMapping("/{id}/activate")
+    @PreAuthorize("hasRole('MANAGER')")
+    public BenefitResponse activate(@PathVariable Long id, @AuthenticationPrincipal Jwt j) {
+        return s.status(id, e(j), c(j), true);
+    }
+
+    @PutMapping("/{id}/deactivate")
+    @PreAuthorize("hasRole('MANAGER')")
+    public BenefitResponse deactivate(@PathVariable Long id, @AuthenticationPrincipal Jwt j) {
+        return s.status(id, e(j), c(j), false);
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('MANAGER')")
+    public ResponseEntity<Void> delete(@PathVariable Long id, @AuthenticationPrincipal Jwt j) {
+        s.delete(id, e(j), c(j));
+        return ResponseEntity.noContent().build();
+    }
+}
