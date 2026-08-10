@@ -34,10 +34,10 @@ public class RedemptionToken {
 
     protected RedemptionToken() {}
 
-    public RedemptionToken(Subscription s, String h, LocalDateTime e) {
-        subscription = s;
-        tokenHash = h;
-        expiresAt = e;
+    public RedemptionToken(Subscription subscription, String tokenHash, LocalDateTime expiresAt) {
+        this.subscription = subscription;
+        this.tokenHash = tokenHash;
+        this.expiresAt = expiresAt;
     }
 
     @PrePersist

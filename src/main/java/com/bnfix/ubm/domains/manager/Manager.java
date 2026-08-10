@@ -40,11 +40,11 @@ public class Manager {
 
     protected Manager() {}
 
-    private Manager(Builder b) {
-        name = b.name;
-        company = b.company;
-        account = b.account;
-        companyOwner = b.companyOwner;
+    private Manager(Builder builder) {
+        name = builder.name;
+        company = builder.company;
+        account = builder.account;
+        companyOwner = builder.companyOwner;
     }
 
     public String getName() {
@@ -78,8 +78,8 @@ public class Manager {
         if (companyOwner == null) companyOwner = false;
     }
 
-    public void update(String n) {
-        if (n != null && !n.isBlank()) name = n;
+    public void update(String newName) {
+        if (newName != null && !newName.isBlank()) name = newName;
     }
 
     public void activeManager() {
@@ -90,12 +90,12 @@ public class Manager {
         active = false;
     }
 
-    public void defineCompany(Company c) {
-        company = c;
+    public void defineCompany(Company company) {
+        this.company = company;
     }
 
-    public static Builder builder(String n, Company c, Account a) {
-        return new Builder(n, c, a);
+    public static Builder builder(String name, Company company, Account account) {
+        return new Builder(name, company, account);
     }
 
     public static class Builder {
@@ -104,10 +104,10 @@ public class Manager {
         private final Account account;
         private Boolean companyOwner = false;
 
-        public Builder(String n, Company c, Account a) {
-            name = n;
-            company = c;
-            account = a;
+        public Builder(String name, Company company, Account account) {
+            this.name = name;
+            this.company = company;
+            this.account = account;
         }
 
         public Builder companyOwner() {

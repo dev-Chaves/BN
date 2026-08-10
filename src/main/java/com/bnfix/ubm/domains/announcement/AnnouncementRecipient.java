@@ -33,9 +33,9 @@ public class AnnouncementRecipient {
 
     protected AnnouncementRecipient() {}
 
-    public AnnouncementRecipient(Announcement a, Employee e) {
-        announcement = a;
-        employee = e;
+    public AnnouncementRecipient(Announcement announcement, Employee employee) {
+        this.announcement = announcement;
+        this.employee = employee;
     }
 
     public Announcement getAnnouncement() {
@@ -54,7 +54,7 @@ public class AnnouncementRecipient {
         return readAt != null;
     }
 
-    public void markRead(LocalDateTime t) {
-        if (readAt == null) readAt = t;
+    public void markRead(LocalDateTime readAt) {
+        if (this.readAt == null) this.readAt = readAt;
     }
 }

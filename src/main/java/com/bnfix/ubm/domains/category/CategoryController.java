@@ -8,15 +8,15 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/categories")
 public class CategoryController {
-    private final CategoryService service;
+    private final CategoryService categoryService;
 
-    public CategoryController(CategoryService service) {
-        this.service = service;
+    public CategoryController(CategoryService categoryService) {
+        this.categoryService = categoryService;
     }
 
     @GetMapping
     @PreAuthorize("hasRole('MANAGER')")
     public List<CategoryResponse> list() {
-        return service.listAll();
+        return categoryService.listAll();
     }
 }

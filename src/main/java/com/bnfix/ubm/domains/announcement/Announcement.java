@@ -32,11 +32,11 @@ public class Announcement {
 
     protected Announcement() {}
 
-    public Announcement(Company c, Manager a, String t, String x) {
-        company = c;
-        author = a;
-        title = require(t, 160, "Title");
-        content = require(x, 4000, "Content");
+    public Announcement(Company company, Manager author, String title, String content) {
+        this.company = company;
+        this.author = author;
+        this.title = require(title, 160, "Title");
+        this.content = require(content, 4000, "Content");
     }
 
     @PrePersist
@@ -64,10 +64,10 @@ public class Announcement {
         return publishedAt;
     }
 
-    private static String require(String v, int max, String f) {
-        if (v == null || v.isBlank()) throw new IllegalArgumentException(f + " cannot be blank");
-        v = v.strip();
-        if (v.length() > max) throw new IllegalArgumentException(f + " cannot exceed " + max + " characters");
-        return v;
+    private static String require(String value, int max, String field) {
+        if (value == null || value.isBlank()) throw new IllegalArgumentException(field + " cannot be blank");
+        value = value.strip();
+        if (value.length() > max) throw new IllegalArgumentException(field + " cannot exceed " + max + " characters");
+        return value;
     }
 }

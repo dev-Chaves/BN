@@ -26,9 +26,9 @@ public class Subscription {
 
     protected Subscription() {}
 
-    private Subscription(Builder b) {
-        benefit = b.benefit;
-        employee = b.employee;
+    private Subscription(Builder builder) {
+        benefit = builder.benefit;
+        employee = builder.employee;
     }
 
     public Benefit getBenefit() {
@@ -48,17 +48,17 @@ public class Subscription {
         createdAt = LocalDateTime.now();
     }
 
-    public static Builder builder(Benefit b, Employee e) {
-        return new Builder(b, e);
+    public static Builder builder(Benefit benefit, Employee employee) {
+        return new Builder(benefit, employee);
     }
 
     public static class Builder {
         private final Benefit benefit;
         private final Employee employee;
 
-        public Builder(Benefit b, Employee e) {
-            benefit = b;
-            employee = e;
+        public Builder(Benefit benefit, Employee employee) {
+            this.benefit = benefit;
+            this.employee = employee;
         }
 
         public Subscription build() {

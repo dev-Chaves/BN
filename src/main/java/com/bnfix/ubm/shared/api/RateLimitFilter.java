@@ -8,11 +8,13 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /** Lightweight in-process limiter matching the existing endpoint groups. */
+@Slf4j
 @Component
 public class RateLimitFilter extends OncePerRequestFilter {
     private final Map<String, Window> windows = new ConcurrentHashMap<>();
@@ -46,6 +48,12 @@ public class RateLimitFilter extends OncePerRequestFilter {
             chain.doFilter(request, response);
             return;
         }
+        log.warn(
+                "Rate limit exceeded for {} {} (ip={}, rule={})",
+                request.getMethod(),
+                request.getRequestURI(),
+                request.getRemoteAddr(),
+                rule.name());
         response.setStatus(429);
         response.setHeader("Retry-After", "1");
         response.setContentType("application/json");

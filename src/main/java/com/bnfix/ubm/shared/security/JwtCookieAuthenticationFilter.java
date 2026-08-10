@@ -6,6 +6,7 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.server.resource.authentication.BearerTokenAuthenticationToken;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationProvider;
@@ -13,6 +14,7 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+@Slf4j
 @Component
 public class JwtCookieAuthenticationFilter extends OncePerRequestFilter {
     private final JwtAuthenticationProvider provider;
@@ -46,6 +48,7 @@ public class JwtCookieAuthenticationFilter extends OncePerRequestFilter {
             }
             chain.doFilter(request, response);
         } catch (org.springframework.security.core.AuthenticationException exception) {
+            log.warn("Rejected token for {} {}", request.getMethod(), request.getRequestURI());
             SecurityContextHolder.clearContext();
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid or expired token");
         } finally {

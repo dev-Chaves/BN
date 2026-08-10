@@ -4,6 +4,7 @@ import com.bnfix.ubm.domains.auth.dto.LoginRequest;
 import com.bnfix.ubm.domains.auth.dto.LoginResponse;
 import com.bnfix.ubm.domains.auth.dto.SwitchCompanyRequest;
 import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.ResponseCookie;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@Slf4j
 @RestController
 @Profile("!test")
 @RequestMapping("/auth")
@@ -35,6 +37,7 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
+        log.info("Login attempt for email {}", request.email());
         return tokenResponse(authService.login(request));
     }
 
@@ -42,11 +45,13 @@ public class AuthController {
     @PreAuthorize("hasRole('MANAGER')")
     public ResponseEntity<LoginResponse> switchCompany(
             @Valid @RequestBody SwitchCompanyRequest request, Authentication authentication) {
+        log.info("Company switch requested by {} to company {}", authentication.getName(), request.companyId());
         return tokenResponse(switchCompanyService.switchCompany(authentication.getName(), request.companyId()));
     }
 
     @PostMapping("/logout")
     public ResponseEntity<Void> logout() {
+        log.info("User logged out");
         return ResponseEntity.noContent()
                 .header("Set-Cookie", expiredCookie().toString())
                 .header("Cache-Control", "no-store")

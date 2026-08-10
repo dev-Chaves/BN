@@ -42,6 +42,9 @@ public class Benefit {
     @Column(columnDefinition = "TEXT")
     private String terms;
 
+    @Column(name = "usages")
+    private Integer usages;
+
     @OneToMany(mappedBy = "benefit")
     private List<Subscription> subscriptions;
 
@@ -57,21 +60,21 @@ public class Benefit {
 
     protected Benefit() {}
 
-    private Benefit(Builder b) {
-        name = b.name;
-        provider = b.provider;
-        description = b.description;
-        categories = new HashSet<>(b.categories);
-        publiclyVisible = b.publiclyVisible;
-        validFrom = b.validFrom;
-        validUntil = b.validUntil;
-        maxUsesPerUser = b.maxUsesPerUser;
-        terms = b.terms;
+    private Benefit(Builder builder) {
+        name = builder.name;
+        provider = builder.provider;
+        description = builder.description;
+        categories = new HashSet<>(builder.categories);
+        publiclyVisible = builder.publiclyVisible;
+        validFrom = builder.validFrom;
+        validUntil = builder.validUntil;
+        maxUsesPerUser = builder.maxUsesPerUser;
+        terms = builder.terms;
         validateValidityWindow();
     }
 
-    public static Builder builder(String n, Company p) {
-        return new Builder(n, p);
+    public static Builder builder(String name, Company provider) {
+        return new Builder(name, provider);
     }
 
     public String getName() {
@@ -118,6 +121,10 @@ public class Benefit {
         return createdAt;
     }
 
+    public Integer getUsages() {
+        return usages;
+    }
+
     @PrePersist
     public void onCreate() {
         createdAt = LocalDateTime.now();
@@ -134,17 +141,18 @@ public class Benefit {
         active = false;
     }
 
-    public void update(String n, String d) {
-        if (n != null && !n.isBlank()) name = n;
-        if (d != null && !d.isBlank()) description = d;
+    public void update(String name, String description) {
+        if (name != null && !name.isBlank()) this.name = name;
+        if (description != null && !description.isBlank()) this.description = description;
     }
 
-    public void updateCategories(Set<Category> c) {
-        if (c != null) categories = new HashSet<>(c);
+    public void updateCategories(Set<Category> categories) {
+        if (categories != null) this.categories = new HashSet<>(categories);
     }
 
-    public void updateAvailability(Boolean v, LocalDateTime from, LocalDateTime until, Integer max, String terms) {
-        if (v != null) publiclyVisible = v;
+    public void updateAvailability(
+            Boolean visible, LocalDateTime from, LocalDateTime until, Integer max, String terms) {
+        if (visible != null) publiclyVisible = visible;
         if (from != null) validFrom = from;
         if (until != null) validUntil = until;
         if (max != null) maxUsesPerUser = max;
@@ -183,27 +191,32 @@ public class Benefit {
         private Integer maxUsesPerUser = 1;
         private String terms;
 
-        public Builder(String n, Company p) {
-            name = n;
-            provider = p;
+        public Builder(String name, Company provider) {
+            this.name = name;
+            this.provider = provider;
         }
 
-        public Builder description(String d) {
-            description = d;
+        public Builder description(String description) {
+            this.description = description;
             return this;
         }
 
-        public Builder categories(Set<Category> c) {
-            if (c != null) categories.addAll(c);
+        public Builder categories(Set<Category> categories) {
+            if (categories != null) this.categories.addAll(categories);
             return this;
         }
 
-        public Builder availability(Boolean v, LocalDateTime f, LocalDateTime u, Integer m, String t) {
-            if (v != null) publiclyVisible = v;
-            validFrom = f;
-            validUntil = u;
-            if (m != null) maxUsesPerUser = m;
-            terms = t;
+        public Builder availability(
+                Boolean visible,
+                LocalDateTime validFrom,
+                LocalDateTime validUntil,
+                Integer maxUsesPerUser,
+                String terms) {
+            if (visible != null) publiclyVisible = visible;
+            this.validFrom = validFrom;
+            this.validUntil = validUntil;
+            if (maxUsesPerUser != null) this.maxUsesPerUser = maxUsesPerUser;
+            this.terms = terms;
             return this;
         }
 

@@ -15,44 +15,48 @@ import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+@Slf4j
 @Service
 public class CompanyService {
-    private final CompanyRepository companies;
-    private final AccountRepository accounts;
-    private final ManagerRepository managers;
-    private final EmployeeRepository employees;
-    private final PartnershipRepository partnerships;
-    private final RedemptionTokenRepository tokens;
+    private final CompanyRepository companyRepository;
+    private final AccountRepository accountRepository;
+    private final ManagerRepository managerRepository;
+    private final EmployeeRepository employeeRepository;
+    private final PartnershipRepository partnershipRepository;
+    private final RedemptionTokenRepository redemptionTokenRepository;
     private final EntityManager entityManager;
-    private final BCryptPasswordEncoder passwords;
+    private final BCryptPasswordEncoder passwordEncoder;
 
     public CompanyService(
-            CompanyRepository companies,
-            AccountRepository accounts,
-            ManagerRepository managers,
-            EmployeeRepository employees,
-            PartnershipRepository partnerships,
-            RedemptionTokenRepository tokens,
+            CompanyRepository companyRepository,
+            AccountRepository accountRepository,
+            ManagerRepository managerRepository,
+            EmployeeRepository employeeRepository,
+            PartnershipRepository partnershipRepository,
+            RedemptionTokenRepository redemptionTokenRepository,
             EntityManager entityManager,
-            BCryptPasswordEncoder passwords) {
-        this.companies = companies;
-        this.accounts = accounts;
-        this.managers = managers;
-        this.employees = employees;
-        this.partnerships = partnerships;
-        this.tokens = tokens;
+            BCryptPasswordEncoder passwordEncoder) {
+        this.companyRepository = companyRepository;
+        this.accountRepository = accountRepository;
+        this.managerRepository = managerRepository;
+        this.employeeRepository = employeeRepository;
+        this.partnershipRepository = partnershipRepository;
+        this.redemptionTokenRepository = redemptionTokenRepository;
         this.entityManager = entityManager;
-        this.passwords = passwords;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Transactional
     public List<CompanyResponse> listMine(String email) {
-        return managers.findActiveByEmail(email).stream().map(this::response).toList();
+        return managerRepository.findActiveByEmail(email).stream()
+                .map(this::response)
+                .toList();
     }
 
     @Transactional
@@ -62,22 +66,25 @@ public class CompanyService {
 
     @Transactional
     public CompanyResponse create(CreateCompanyRequest request, String email) {
-        Account account = accounts.findByEmail(email).orElseThrow(() -> notFound("Account not found"));
+        Account account = accountRepository.findByEmail(email).orElseThrow(() -> notFound("Account not found"));
         if (account.getRole() != Role.MANAGER)
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Account cannot manage companies");
-        if (companies.findByCNPJ(request.cnpj()).isPresent())
+        if (companyRepository.findByCNPJ(request.cnpj()).isPresent())
             throw new ResponseStatusException(HttpStatus.CONFLICT, "CNPJ already registered");
-        Company company = companies.save(
+        Company company = companyRepository.save(
                 Company.builder(request.name(), CNPJ.of(request.cnpj())).build());
-        return response(managers.save(Manager.builder(account.getName(), company, account)
+        Manager manager = managerRepository.save(Manager.builder(account.getName(), company, account)
                 .companyOwner()
-                .build()));
+                .build());
+        log.info("Company {} created by manager {}", company.id, manager.id);
+        return response(manager);
     }
 
     @Transactional
     public CompanyResponse update(String email, Long id, UpdateCompanyRequest request) {
         Manager manager = activeManager(email, id);
         manager.getCompany().update(request.name());
+        log.info("Company {} updated by manager {}", id, manager.id);
         return response(manager);
     }
 
@@ -87,7 +94,7 @@ public class CompanyService {
         if (!Boolean.TRUE.equals(manager.getCompanyOwner()))
             throw new ResponseStatusException(
                     HttpStatus.FORBIDDEN, "Only the company owner can deactivate the company");
-        if (!passwords.matches(request.password(), manager.getAccount().getPassword()))
+        if (!passwordEncoder.matches(request.password(), manager.getAccount().getPassword()))
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password is incorrect");
         Company company = manager.getCompany();
         company.deactivateCompany();
@@ -97,27 +104,34 @@ public class CompanyService {
                 .setParameter("now", LocalDateTime.now())
                 .setParameter("id", id)
                 .executeUpdate();
-        managers.deactivateByCompanyId(id);
-        employees.disableByCompanyId(id);
+        managerRepository.deactivateByCompanyId(id);
+        employeeRepository.disableByCompanyId(id);
         entityManager
                 .createQuery("update Benefit b set b.active = false where b.provider.id = :id")
                 .setParameter("id", id)
                 .executeUpdate();
-        partnerships.disableByCompanyId(id);
-        tokens.revokeActiveByCompanyId(id);
+        partnershipRepository.disableByCompanyId(id);
+        redemptionTokenRepository.revokeActiveByCompanyId(id);
+        log.info("Company {} deactivated by manager {}", id, manager.id);
         return response(manager);
     }
 
     private Manager activeManager(String email, Long companyId) {
-        Manager manager =
-                managers.findByEmailAndCompanyId(email, companyId).orElseThrow(() -> notFound("Company not found"));
+        Manager manager = managerRepository
+                .findByEmailAndCompanyId(email, companyId)
+                .orElseThrow(() -> notFound("Company not found"));
         return AccessStatusGuard.requireActive(manager);
     }
 
     private CompanyResponse response(Manager manager) {
-        Company c = manager.getCompany();
+        Company company = manager.getCompany();
         return new CompanyResponse(
-                c.id, c.getName(), c.getCnpj().getValue(), c.getActive(), manager.getCompanyOwner(), c.getCreatedAt());
+                company.id,
+                company.getName(),
+                company.getCnpj().getValue(),
+                company.getActive(),
+                manager.getCompanyOwner(),
+                company.getCreatedAt());
     }
 
     private ResponseStatusException notFound(String message) {

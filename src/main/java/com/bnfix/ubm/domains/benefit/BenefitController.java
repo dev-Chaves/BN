@@ -2,6 +2,7 @@ package com.bnfix.ubm.domains.benefit;
 
 import com.bnfix.ubm.domains.benefit.dto.*;
 import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -9,29 +10,31 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
+@Slf4j
 @RestController
 @RequestMapping("/benefits")
 public class BenefitController {
-    private final BenefitService s;
+    private final BenefitService benefitService;
 
-    public BenefitController(BenefitService s) {
-        this.s = s;
+    public BenefitController(BenefitService benefitService) {
+        this.benefitService = benefitService;
     }
 
-    private String e(Jwt j) {
-        return j.getSubject();
+    private String e(Jwt jwt) {
+        return jwt.getSubject();
     }
 
-    private Long c(Jwt j) {
-        Object v = j.getClaims().get("companyId");
-        return v instanceof Number n ? n.longValue() : Long.valueOf(v.toString());
+    private Long c(Jwt jwt) {
+        Object value = jwt.getClaims().get("companyId");
+        return value instanceof Number number ? number.longValue() : Long.valueOf(value.toString());
     }
 
     @PostMapping
     @PreAuthorize("hasRole('MANAGER')")
     public ResponseEntity<BenefitResponse> create(
-            @Valid @RequestBody CreateBenefitRequest r, @AuthenticationPrincipal Jwt j) {
-        return ResponseEntity.status(201).body(s.create(r, e(j), c(j)));
+            @Valid @RequestBody CreateBenefitRequest request, @AuthenticationPrincipal Jwt jwt) {
+        log.info("POST /benefits by {}", e(jwt));
+        return ResponseEntity.status(201).body(benefitService.create(request, e(jwt), c(jwt)));
     }
 
     @GetMapping("/tenant")
@@ -40,8 +43,8 @@ public class BenefitController {
             @RequestParam(required = false) Long categoryId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size,
-            @AuthenticationPrincipal Jwt j) {
-        return s.tenant(e(j), c(j), categoryId, page, size);
+            @AuthenticationPrincipal Jwt jwt) {
+        return benefitService.tenant(e(jwt), c(jwt), categoryId, page, size);
     }
 
     @GetMapping("/marketplace")
@@ -50,33 +53,37 @@ public class BenefitController {
             @RequestParam(required = false) Long categoryId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size,
-            @AuthenticationPrincipal Jwt j) {
-        return s.marketplace(e(j), c(j), categoryId, page, size);
+            @AuthenticationPrincipal Jwt jwt) {
+        return benefitService.marketplace(e(jwt), c(jwt), categoryId, page, size);
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('MANAGER')")
     public BenefitResponse update(
-            @PathVariable Long id, @Valid @RequestBody UpdateBenefitRequest r, @AuthenticationPrincipal Jwt j) {
-        return s.update(id, r, e(j), c(j));
+            @PathVariable Long id, @Valid @RequestBody UpdateBenefitRequest request, @AuthenticationPrincipal Jwt jwt) {
+        log.info("PUT /benefits/{} by {}", id, e(jwt));
+        return benefitService.update(id, request, e(jwt), c(jwt));
     }
 
     @PutMapping("/{id}/activate")
     @PreAuthorize("hasRole('MANAGER')")
-    public BenefitResponse activate(@PathVariable Long id, @AuthenticationPrincipal Jwt j) {
-        return s.status(id, e(j), c(j), true);
+    public BenefitResponse activate(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
+        log.info("PUT /benefits/{}/activate by {}", id, e(jwt));
+        return benefitService.status(id, e(jwt), c(jwt), true);
     }
 
     @PutMapping("/{id}/deactivate")
     @PreAuthorize("hasRole('MANAGER')")
-    public BenefitResponse deactivate(@PathVariable Long id, @AuthenticationPrincipal Jwt j) {
-        return s.status(id, e(j), c(j), false);
+    public BenefitResponse deactivate(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
+        log.info("PUT /benefits/{}/deactivate by {}", id, e(jwt));
+        return benefitService.status(id, e(jwt), c(jwt), false);
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('MANAGER')")
-    public ResponseEntity<Void> delete(@PathVariable Long id, @AuthenticationPrincipal Jwt j) {
-        s.delete(id, e(j), c(j));
+    public ResponseEntity<Void> delete(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
+        log.info("DELETE /benefits/{} by {}", id, e(jwt));
+        benefitService.delete(id, e(jwt), c(jwt));
         return ResponseEntity.noContent().build();
     }
 }

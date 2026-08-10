@@ -32,12 +32,12 @@ public class Account {
 
     protected Account() {}
 
-    private Account(Builder b) {
-        name = b.name;
-        cpf = b.cpf;
-        password = b.password;
-        email = b.email.trim().toLowerCase(Locale.ROOT);
-        role = b.role;
+    private Account(Builder builder) {
+        name = builder.name;
+        cpf = builder.cpf;
+        password = builder.password;
+        email = builder.email.trim().toLowerCase(Locale.ROOT);
+        role = builder.role;
     }
 
     public String getName() {
@@ -78,12 +78,12 @@ public class Account {
         private final String password;
         private final Role role;
 
-        public Builder(String n, CPF c, String p, String e, Role r) {
-            name = n;
-            cpf = c;
-            password = p;
-            email = e;
-            role = r;
+        public Builder(String name, CPF cpf, String password, String email, Role role) {
+            this.name = name;
+            this.cpf = cpf;
+            this.password = password;
+            this.email = email;
+            this.role = role;
         }
 
         public Account build() {

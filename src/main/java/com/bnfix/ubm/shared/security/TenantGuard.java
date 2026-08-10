@@ -7,22 +7,25 @@ import com.bnfix.ubm.domains.employee.Employee;
 import com.bnfix.ubm.domains.manager.Manager;
 import com.bnfix.ubm.domains.partnership.Partnership;
 import com.bnfix.ubm.domains.partnership.PartnershipRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @Component
 public class TenantGuard {
-    private final CompanyRepository companies;
-    private final PartnershipRepository partnerships;
+    private final CompanyRepository companyRepository;
+    private final PartnershipRepository partnershipRepository;
 
-    public TenantGuard(CompanyRepository companies, PartnershipRepository partnerships) {
-        this.companies = companies;
-        this.partnerships = partnerships;
+    public TenantGuard(CompanyRepository companyRepository, PartnershipRepository partnershipRepository) {
+        this.companyRepository = companyRepository;
+        this.partnershipRepository = partnershipRepository;
     }
 
     public Company verifyManagerCompanyAccess(Manager manager, Long companyId) {
         AccessStatusGuard.requireActive(manager);
         requireCompanyId(manager, companyId);
-        Company company = companies.findById(companyId).orElseThrow(() -> new SecurityException("Company not found"));
+        Company company =
+                companyRepository.findById(companyId).orElseThrow(() -> new SecurityException("Company not found"));
         if (!Boolean.TRUE.equals(company.getActive())) throw new SecurityException("Company is inactive");
         return company;
     }
@@ -50,7 +53,7 @@ public class TenantGuard {
         if (companyId == null
                 || benefit == null
                 || benefit.id == null
-                || !partnerships.existsActivePartnership(companyId, benefit.id))
+                || !partnershipRepository.existsActivePartnership(companyId, benefit.id))
             throw new SecurityException("Benefit not available for tenant");
         return benefit;
     }
@@ -58,6 +61,13 @@ public class TenantGuard {
     private void requireCompanyId(Manager manager, Long expected) {
         if (expected == null || manager.getCompany() == null || manager.getCompany().id == null)
             throw new SecurityException("Company not found");
-        if (!manager.getCompany().id.equals(expected)) throw new SecurityException("Tenant mismatch");
+        if (!manager.getCompany().id.equals(expected)) {
+            log.warn(
+                    "Tenant mismatch denied for manager {} (managerCompany={}, targetCompany={})",
+                    manager.getAccount().getEmail(),
+                    manager.getCompany().id,
+                    expected);
+            throw new SecurityException("Tenant mismatch");
+        }
     }
 }

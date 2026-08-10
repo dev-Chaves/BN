@@ -43,9 +43,9 @@ public class Company {
 
     protected Company() {}
 
-    private Company(Builder b) {
-        name = b.name;
-        cnpj = b.cnpj;
+    private Company(Builder builder) {
+        name = builder.name;
+        cnpj = builder.cnpj;
     }
 
     public String getName() {
@@ -86,8 +86,8 @@ public class Company {
         active = true;
     }
 
-    public void update(String n) {
-        if (n != null && !n.isBlank()) name = n;
+    public void update(String name) {
+        if (name != null && !name.isBlank()) this.name = name;
     }
 
     public void activeCompany() {
@@ -98,28 +98,28 @@ public class Company {
         active = false;
     }
 
-    public static Builder builder(String n, CNPJ c) {
-        return new Builder(n, c);
+    public static Builder builder(String name, CNPJ cnpj) {
+        return new Builder(name, cnpj);
     }
 
     public static class Builder {
         private final String name;
         private final CNPJ cnpj;
 
-        public Builder(String n, CNPJ c) {
-            name = Objects.requireNonNull(n);
-            cnpj = Objects.requireNonNull(c);
+        public Builder(String name, CNPJ cnpj) {
+            this.name = Objects.requireNonNull(name);
+            this.cnpj = Objects.requireNonNull(cnpj);
         }
 
-        public Builder employee(Employee e) {
+        public Builder employee(Employee employee) {
             return this;
         }
 
-        public Builder manager(Manager m) {
+        public Builder manager(Manager manager) {
             return this;
         }
 
-        public Builder benefit(Benefit b) {
+        public Builder benefit(Benefit benefit) {
             return this;
         }
 

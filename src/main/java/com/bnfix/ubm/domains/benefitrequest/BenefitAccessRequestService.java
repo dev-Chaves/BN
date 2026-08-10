@@ -5,122 +5,138 @@ import com.bnfix.ubm.domains.benefit.*;
 import com.bnfix.ubm.domains.benefitrequest.dto.*;
 import com.bnfix.ubm.domains.employee.*;
 import com.bnfix.ubm.domains.manager.*;
+import com.bnfix.ubm.domains.partnership.PartnershipRepository;
 import com.bnfix.ubm.domains.subscription.*;
 import com.bnfix.ubm.shared.security.*;
 import java.time.LocalDateTime;
 import java.util.*;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 public class BenefitAccessRequestService {
-    private final AccountRepository accounts;
-    private final EmployeeRepository employees;
-    private final ManagerRepository managers;
-    private final BenefitRepository benefits;
-    private final BenefitAccessRequestRepository requests;
-    private final SubscriptionRepository subscriptions;
+    private final AccountRepository accountRepository;
+    private final EmployeeRepository employeeRepository;
+    private final ManagerRepository managerRepository;
+    private final BenefitRepository benefitRepository;
+    private final BenefitAccessRequestRepository benefitAccessRequestRepository;
+    private final SubscriptionRepository subscriptionRepository;
+    private final PartnershipRepository partnershipRepository;
 
     public BenefitAccessRequestService(
-            AccountRepository a,
-            EmployeeRepository e,
-            ManagerRepository m,
-            BenefitRepository b,
-            BenefitAccessRequestRepository r,
-            SubscriptionRepository s) {
-        accounts = a;
-        employees = e;
-        managers = m;
-        benefits = b;
-        requests = r;
-        subscriptions = s;
+            AccountRepository accountRepository,
+            EmployeeRepository employeeRepository,
+            ManagerRepository managerRepository,
+            BenefitRepository benefitRepository,
+            BenefitAccessRequestRepository benefitAccessRequestRepository,
+            SubscriptionRepository subscriptionRepository,
+            PartnershipRepository partnershipRepository) {
+        this.accountRepository = accountRepository;
+        this.employeeRepository = employeeRepository;
+        this.managerRepository = managerRepository;
+        this.benefitRepository = benefitRepository;
+        this.benefitAccessRequestRepository = benefitAccessRequestRepository;
+        this.subscriptionRepository = subscriptionRepository;
+        this.partnershipRepository = partnershipRepository;
     }
 
     @Transactional
     public BenefitAccessRequestResponse request(String email, Long benefitId) {
-        Employee e = employee(email);
-        Benefit b = benefits.findByIdWithProviderAndCategories(benefitId)
+        Employee employee = employee(email);
+        Benefit benefit = benefitRepository
+                .findByIdWithProviderAndCategories(benefitId)
                 .orElseThrow(() -> new NoSuchElementException("Benefit not found"));
-        if (b.getProvider().id.equals(e.getCompany().id))
+        if (benefit.getProvider().id.equals(employee.getCompany().id))
             throw new IllegalArgumentException("Own-company benefit does not require sharing");
-        if (!b.isAvailableAt(LocalDateTime.now())) throw new IllegalStateException("Benefit is not available");
-        if (subscriptions.existsByEmployeeAndBenefit(e.id, b.id))
+        if (!benefit.isAvailableAt(LocalDateTime.now())) throw new IllegalStateException("Benefit is not available");
+        if (subscriptionRepository.existsByEmployeeAndBenefit(employee.id, benefit.id))
             throw new IllegalStateException("Benefit is already available to this employee");
-        if (requests.findPending(e.id, b.id).isPresent())
+        if (benefitAccessRequestRepository.findPending(employee.id, benefit.id).isPresent())
             throw new IllegalStateException("A pending request already exists");
-        return response(requests.save(new BenefitAccessRequest(e, b)));
+        BenefitAccessRequest request = benefitAccessRequestRepository.save(new BenefitAccessRequest(employee, benefit));
+        log.info("Benefit access request {} created by employee {} for benefit {}", request.id, employee.id, benefitId);
+        return response(request);
     }
 
     @Transactional(readOnly = true)
     public List<BenefitAccessRequestResponse> mine(String email) {
-        return requests.findByEmployee(employee(email).id).stream()
+        return benefitAccessRequestRepository.findByEmployee(employee(email).id).stream()
                 .map(this::response)
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public List<BenefitAccessRequestResponse> pending(String email, Long company) {
-        Manager m = manager(email, company);
-        return requests.findPendingByProvider(m.getCompany().id).stream()
+        Manager manager = manager(email, company);
+        return benefitAccessRequestRepository.findPendingByProvider(manager.getCompany().id).stream()
                 .map(this::response)
                 .toList();
     }
 
     @Transactional
     public BenefitAccessRequestResponse approve(String email, Long company, Long id) {
-        Manager m = manager(email, company);
-        BenefitAccessRequest r = owned(id, m);
-        AccessStatusGuard.requireActive(r.getEmployee());
-        if (!r.getBenefit().isOperationalAt(LocalDateTime.now()))
+        Manager manager = manager(email, company);
+        BenefitAccessRequest benefitAccessRequest = owned(id, manager);
+        AccessStatusGuard.requireActive(benefitAccessRequest.getEmployee());
+        if (!benefitAccessRequest.getBenefit().isOperationalAt(LocalDateTime.now()))
             throw new IllegalStateException("Benefit is no longer available");
-        r.approve(m);
-        if (!subscriptions.existsByEmployeeAndBenefit(r.getEmployee().id, r.getBenefit().id))
-            subscriptions.save(
-                    Subscription.builder(r.getBenefit(), r.getEmployee()).build());
-        return response(r);
+        benefitAccessRequest.approve(manager);
+        if (!subscriptionRepository.existsByEmployeeAndBenefit(
+                benefitAccessRequest.getEmployee().id, benefitAccessRequest.getBenefit().id))
+            subscriptionRepository.save(
+                    Subscription.builder(benefitAccessRequest.getBenefit(), benefitAccessRequest.getEmployee())
+                            .build());
+        log.info("Benefit access request {} approved by manager {}", id, manager.id);
+        return response(benefitAccessRequest);
     }
 
     @Transactional
     public BenefitAccessRequestResponse reject(String email, Long company, Long id, String reason) {
-        Manager m = manager(email, company);
-        BenefitAccessRequest r = owned(id, m);
-        r.reject(m, reason);
-        return response(r);
+        Manager manager = manager(email, company);
+        BenefitAccessRequest benefitAccessRequest = owned(id, manager);
+        benefitAccessRequest.reject(manager, reason);
+        log.info("Benefit access request {} rejected by manager {}", id, manager.id);
+        return response(benefitAccessRequest);
     }
 
-    private BenefitAccessRequest owned(Long id, Manager m) {
-        BenefitAccessRequest r =
-                requests.findByIdWithRelations(id).orElseThrow(() -> new NoSuchElementException("Request not found"));
-        if (!r.getBenefit().getProvider().id.equals(m.getCompany().id))
+    private BenefitAccessRequest owned(Long id, Manager manager) {
+        BenefitAccessRequest benefitAccessRequest = benefitAccessRequestRepository
+                .findByIdWithRelations(id)
+                .orElseThrow(() -> new NoSuchElementException("Request not found"));
+        if (!benefitAccessRequest.getBenefit().getProvider().id.equals(manager.getCompany().id))
             throw new SecurityException("Only the provider company can review this request");
-        return r;
+        return benefitAccessRequest;
     }
 
-    private Employee employee(String e) {
-        return accounts.findByEmail(e)
-                .flatMap(a -> employees.findByAccountId(a.id))
+    private Employee employee(String email) {
+        return accountRepository
+                .findByEmail(email)
+                .flatMap(account -> employeeRepository.findByAccountId(account.id))
                 .map(AccessStatusGuard::requireActive)
                 .orElseThrow(() -> new NoSuchElementException("Employee not found"));
     }
 
-    private Manager manager(String e, Long id) {
-        return managers.findByEmailAndCompanyId(e, id)
+    private Manager manager(String email, Long id) {
+        return managerRepository
+                .findByEmailAndCompanyId(email, id)
                 .map(AccessStatusGuard::requireActive)
                 .orElseThrow(() -> new NoSuchElementException("Manager not found"));
     }
 
-    private BenefitAccessRequestResponse response(BenefitAccessRequest r) {
+    private BenefitAccessRequestResponse response(BenefitAccessRequest benefitAccessRequest) {
         return new BenefitAccessRequestResponse(
-                r.id,
-                r.getBenefit().id,
-                r.getBenefit().getName(),
-                r.getBenefit().getProvider().getName(),
-                r.getEmployee().id,
-                r.getEmployee().getName(),
-                r.getEmployee().getCompany().getName(),
-                r.getStatus(),
-                r.getRequestedAt(),
-                r.getReviewedAt(),
-                r.getRejectionReason());
+                benefitAccessRequest.id,
+                benefitAccessRequest.getBenefit().id,
+                benefitAccessRequest.getBenefit().getName(),
+                benefitAccessRequest.getBenefit().getProvider().getName(),
+                benefitAccessRequest.getEmployee().id,
+                benefitAccessRequest.getEmployee().getName(),
+                benefitAccessRequest.getEmployee().getCompany().getName(),
+                benefitAccessRequest.getStatus(),
+                benefitAccessRequest.getRequestedAt(),
+                benefitAccessRequest.getReviewedAt(),
+                benefitAccessRequest.getRejectionReason());
     }
 }

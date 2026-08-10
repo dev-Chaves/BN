@@ -17,20 +17,22 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.Base64;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+@Slf4j
 @Service
 public class RedemptionService {
     private final AccountRepository accountRepository;
     private final EmployeeRepository employeeRepository;
     private final ManagerRepository managerRepository;
     private final SubscriptionRepository subscriptionRepository;
-    private final RedemptionTokenRepository tokenRepository;
-    private final BenefitRedemptionRepository redemptionRepository;
+    private final RedemptionTokenRepository redemptionTokenRepository;
+    private final BenefitRedemptionRepository benefitRedemptionRepository;
     private final SecureRandom random = new SecureRandom();
     private final String publicUrl;
 
@@ -39,15 +41,15 @@ public class RedemptionService {
             EmployeeRepository employeeRepository,
             ManagerRepository managerRepository,
             SubscriptionRepository subscriptionRepository,
-            RedemptionTokenRepository tokenRepository,
-            BenefitRedemptionRepository redemptionRepository,
+            RedemptionTokenRepository redemptionTokenRepository,
+            BenefitRedemptionRepository benefitRedemptionRepository,
             @Value("${app.public-url:http://localhost:3000}") String publicUrl) {
         this.accountRepository = accountRepository;
         this.employeeRepository = employeeRepository;
         this.managerRepository = managerRepository;
         this.subscriptionRepository = subscriptionRepository;
-        this.tokenRepository = tokenRepository;
-        this.redemptionRepository = redemptionRepository;
+        this.redemptionTokenRepository = redemptionTokenRepository;
+        this.benefitRedemptionRepository = benefitRedemptionRepository;
         this.publicUrl = publicUrl;
     }
 
@@ -61,10 +63,11 @@ public class RedemptionService {
         if (!subscription.getBenefit().isOperationalAt(now))
             throw new IllegalStateException("Benefit is not available");
         validateUsageLimit(subscription);
-        tokenRepository.revokeActiveBySubscription(subscription.id);
+        redemptionTokenRepository.revokeActiveBySubscription(subscription.id);
         String rawToken = generateToken();
         LocalDateTime expiresAt = now.plusMinutes(3);
-        tokenRepository.save(new RedemptionToken(subscription, hash(rawToken), expiresAt));
+        redemptionTokenRepository.save(new RedemptionToken(subscription, hash(rawToken), expiresAt));
+        log.info("Redemption token issued by employee {} for subscription {}", employee.id, subscriptionId);
         return new RedemptionTokenResponse(
                 rawToken, publicUrl.replaceAll("/$", "") + "/resgatar/" + rawToken, expiresAt);
     }
@@ -90,13 +93,19 @@ public class RedemptionService {
         verifyProvider(manager, token);
         validateUsageLimit(token.getSubscription());
         LocalDateTime now = LocalDateTime.now();
-        if (tokenRepository.consumeIfActive(token.id, now) != 1)
+        if (redemptionTokenRepository.consumeIfActive(token.id, now) != 1)
             throw new IllegalStateException("Token expired or already used");
-        BenefitRedemption redemption = redemptionRepository.save(new BenefitRedemption(
+        BenefitRedemption redemption = benefitRedemptionRepository.save(new BenefitRedemption(
                 token.getSubscription(),
                 token,
                 token.getSubscription().getBenefit().getProvider(),
                 manager));
+        log.info(
+                "Benefit redeemed by manager {} (redemption {}, benefit {}, employee {})",
+                manager.id,
+                redemption.id,
+                token.getSubscription().getBenefit().id,
+                token.getSubscription().getEmployee().id);
         return new RedemptionResponse(
                 redemption.id,
                 redemption.getSubscription().getBenefit().getName(),
@@ -105,8 +114,9 @@ public class RedemptionService {
     }
 
     private RedemptionToken findValidToken(String rawToken) {
-        RedemptionToken token =
-                tokenRepository.findByHashWithRelations(hash(rawToken)).orElseThrow(() -> notFound("Token not found"));
+        RedemptionToken token = redemptionTokenRepository
+                .findByHashWithRelations(hash(rawToken))
+                .orElseThrow(() -> notFound("Token not found"));
         LocalDateTime now = LocalDateTime.now();
         if (token.getStatus() != RedemptionTokenStatus.ACTIVE
                 || !token.getExpiresAt().isAfter(now)) throw new IllegalStateException("Token expired or already used");
@@ -122,7 +132,7 @@ public class RedemptionService {
     }
 
     private void validateUsageLimit(Subscription subscription) {
-        if (redemptionRepository.countBySubscriptionId(subscription.id)
+        if (benefitRedemptionRepository.countBySubscriptionId(subscription.id)
                 >= subscription.getBenefit().getMaxUsesPerUser())
             throw new IllegalStateException("Benefit usage limit reached");
     }
@@ -149,8 +159,8 @@ public class RedemptionService {
         try {
             return java.util.HexFormat.of()
                     .formatHex(MessageDigest.getInstance("SHA-256").digest(token.getBytes(StandardCharsets.UTF_8)));
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 is not available", e);
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("SHA-256 is not available", exception);
         }
     }
 

@@ -30,9 +30,9 @@ public class Partnership {
 
     protected Partnership() {}
 
-    private Partnership(Builder b) {
-        clientCompany = b.clientCompany;
-        benefit = b.benefit;
+    private Partnership(Builder builder) {
+        clientCompany = builder.clientCompany;
+        benefit = builder.benefit;
     }
 
     public Company getClientCompany() {
@@ -57,21 +57,21 @@ public class Partnership {
         status = PartnershipStatus.PENDING;
     }
 
-    public void updateStatus(PartnershipStatus s) {
-        if (s != null) status = s;
+    public void updateStatus(PartnershipStatus status) {
+        if (status != null) this.status = status;
     }
 
-    public static Builder builder(Company c, Benefit b) {
-        return new Builder(c, b);
+    public static Builder builder(Company company, Benefit benefit) {
+        return new Builder(company, benefit);
     }
 
     public static class Builder {
         private final Company clientCompany;
         private final Benefit benefit;
 
-        public Builder(Company c, Benefit b) {
-            clientCompany = c;
-            benefit = b;
+        public Builder(Company company, Benefit benefit) {
+            clientCompany = company;
+            this.benefit = benefit;
         }
 
         public Partnership build() {

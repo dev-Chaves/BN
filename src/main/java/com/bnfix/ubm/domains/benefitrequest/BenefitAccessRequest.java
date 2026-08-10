@@ -44,9 +44,9 @@ public class BenefitAccessRequest {
 
     protected BenefitAccessRequest() {}
 
-    public BenefitAccessRequest(Employee e, Benefit b) {
-        employee = e;
-        benefit = b;
+    public BenefitAccessRequest(Employee employee, Benefit benefit) {
+        this.employee = employee;
+        this.benefit = benefit;
     }
 
     @PrePersist
@@ -83,20 +83,20 @@ public class BenefitAccessRequest {
         return rejectionReason;
     }
 
-    public void approve(Manager m) {
+    public void approve(Manager manager) {
         ensurePending();
         status = BenefitAccessRequestStatus.APPROVED;
-        reviewedBy = m;
+        reviewedBy = manager;
         reviewedAt = LocalDateTime.now();
         rejectionReason = null;
     }
 
-    public void reject(Manager m, String r) {
+    public void reject(Manager manager, String reason) {
         ensurePending();
         status = BenefitAccessRequestStatus.REJECTED;
-        reviewedBy = m;
+        reviewedBy = manager;
         reviewedAt = LocalDateTime.now();
-        rejectionReason = r;
+        rejectionReason = reason;
     }
 
     private void ensurePending() {

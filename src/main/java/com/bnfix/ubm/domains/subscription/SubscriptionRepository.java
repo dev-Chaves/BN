@@ -11,8 +11,8 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Long
 
     Optional<Subscription> findByEmployeeIdAndBenefitId(Long employeeId, Long benefitId);
 
-    default boolean existsByEmployeeAndBenefit(Long e, Long b) {
-        return findByEmployeeIdAndBenefitId(e, b).isPresent();
+    default boolean existsByEmployeeAndBenefit(Long employeeId, Long benefitId) {
+        return findByEmployeeIdAndBenefitId(employeeId, benefitId).isPresent();
     }
 
     @Query(

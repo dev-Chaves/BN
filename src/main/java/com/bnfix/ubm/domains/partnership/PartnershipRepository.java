@@ -9,13 +9,14 @@ public interface PartnershipRepository extends JpaRepository<Partnership, Long> 
 
     List<Partnership> findByBenefitId(Long id);
 
-    List<Partnership> findByStatus(PartnershipStatus s);
+    List<Partnership> findByStatus(PartnershipStatus status);
 
-    List<Partnership> findByClientCompanyIdAndStatus(Long id, PartnershipStatus s);
+    List<Partnership> findByClientCompanyIdAndStatus(Long id, PartnershipStatus status);
 
-    boolean existsByClientCompanyIdAndBenefitId(Long c, Long b);
+    boolean existsByClientCompanyIdAndBenefitId(Long clientCompanyId, Long benefitId);
 
-    Optional<Partnership> findByClientCompanyIdAndBenefitIdAndStatus(Long c, Long b, PartnershipStatus s);
+    Optional<Partnership> findByClientCompanyIdAndBenefitIdAndStatus(
+            Long clientCompanyId, Long benefitId, PartnershipStatus status);
 
     @Query(
             "select p from Partnership p join fetch p.clientCompany join fetch p.benefit b join fetch b.provider where p.id=:id")
@@ -29,11 +30,12 @@ public interface PartnershipRepository extends JpaRepository<Partnership, Long> 
         return findPendingByProvider(id, PartnershipStatus.PENDING);
     }
 
-    default boolean existsActivePartnership(Long c, Long b) {
-        return existsByClientCompanyIdAndBenefitIdAndStatus(c, b, PartnershipStatus.ACTIVE);
+    default boolean existsActivePartnership(Long clientCompanyId, Long benefitId) {
+        return existsByClientCompanyIdAndBenefitIdAndStatus(clientCompanyId, benefitId, PartnershipStatus.ACTIVE);
     }
 
-    boolean existsByClientCompanyIdAndBenefitIdAndStatus(Long c, Long b, PartnershipStatus s);
+    boolean existsByClientCompanyIdAndBenefitIdAndStatus(
+            Long clientCompanyId, Long benefitId, PartnershipStatus status);
 
     @Modifying
     @Query(

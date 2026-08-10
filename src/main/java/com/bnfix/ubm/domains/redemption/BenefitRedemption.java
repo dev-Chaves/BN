@@ -35,11 +35,12 @@ public class BenefitRedemption {
 
     protected BenefitRedemption() {}
 
-    public BenefitRedemption(Subscription s, RedemptionToken t, Company c, Manager m) {
-        subscription = s;
-        token = t;
-        providerCompany = c;
-        redeemedBy = m;
+    public BenefitRedemption(
+            Subscription subscription, RedemptionToken token, Company providerCompany, Manager redeemedBy) {
+        this.subscription = subscription;
+        this.token = token;
+        this.providerCompany = providerCompany;
+        this.redeemedBy = redeemedBy;
     }
 
     @PrePersist

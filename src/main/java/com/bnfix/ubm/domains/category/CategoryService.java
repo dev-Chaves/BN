@@ -7,16 +7,16 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class CategoryService {
-    private final CategoryRepository repository;
+    private final CategoryRepository categoryRepository;
 
-    public CategoryService(CategoryRepository repository) {
-        this.repository = repository;
+    public CategoryService(CategoryRepository categoryRepository) {
+        this.categoryRepository = categoryRepository;
     }
 
     @Transactional(readOnly = true)
     public List<CategoryResponse> listAll() {
-        return repository.findAllByOrderByNameAsc().stream()
-                .map(c -> new CategoryResponse(c.id, c.getName()))
+        return categoryRepository.findAllByOrderByNameAsc().stream()
+                .map(category -> new CategoryResponse(category.id, category.getName()))
                 .toList();
     }
 }

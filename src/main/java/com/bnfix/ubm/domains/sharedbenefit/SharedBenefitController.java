@@ -10,21 +10,21 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/shared-benefits")
 public class SharedBenefitController {
-    private final SharedBenefitService s;
+    private final SharedBenefitService sharedBenefitService;
 
-    public SharedBenefitController(SharedBenefitService s) {
-        this.s = s;
+    public SharedBenefitController(SharedBenefitService sharedBenefitService) {
+        this.sharedBenefitService = sharedBenefitService;
     }
 
     @GetMapping("/available")
     @PreAuthorize("hasRole('USER')")
-    public List<SharedBenefitResponse> available(@AuthenticationPrincipal Jwt j) {
-        return s.available(j.getSubject());
+    public List<SharedBenefitResponse> available(@AuthenticationPrincipal Jwt jwt) {
+        return sharedBenefitService.available(jwt.getSubject());
     }
 
     @GetMapping("/me")
     @PreAuthorize("hasRole('USER')")
-    public List<SharedBenefitResponse> mine(@AuthenticationPrincipal Jwt j) {
-        return s.mine(j.getSubject());
+    public List<SharedBenefitResponse> mine(@AuthenticationPrincipal Jwt jwt) {
+        return sharedBenefitService.mine(jwt.getSubject());
     }
 }
