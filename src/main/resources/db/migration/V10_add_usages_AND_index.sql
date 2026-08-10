@@ -1,1 +1,0 @@
-ALTER TABLE benefits ADD COLUMN usages BIGINT;

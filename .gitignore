@@ -35,3 +35,11 @@ build/
 # JWT signing material is provisioned externally in production.
 src/main/resources/privateKey.pem
 src/main/resources/publicKey.pem
+
+### macOS ###
+.DS_Store
+
+### Local environment ###
+.env
+.quarkus/
+postman/

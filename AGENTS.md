@@ -29,7 +29,7 @@ Order matters for submission: `spotless:apply` → `compile` → `test`. `spotle
 
 ## Data layer
 
-- Flyway migrations in `src/main/resources/db/migration/` (`V1__...`, `V10_add_usages_AND_index.sql`). `spring.jpa.hibernate.ddl-auto: validate` + `validate-on-migrate`. **Schema changes need a new numbered `V<n>` migration**, not `ddl-auto: create`.
+- Flyway migrations in `src/main/resources/db/migration/` (`V1__...`, `V10__add_usages.sql`). `spring.jpa.hibernate.ddl-auto: validate` + `validate-on-migrate`. **Schema changes need a new numbered `V<n>` migration**, not `ddl-auto: create`.
 - `hibernate-maven-plugin` `enhance` goal runs at build (bytecode enhancement) — entities rely on it for dirty checking/immutable fields.
 - Local run expects a PostgreSQL at `jdbc:postgresql://localhost:5432/benefix`. Tests use H2 in PostgreSQL mode via `application-test.yaml` (flyway disabled).
 

@@ -1,0 +1,1 @@
+ALTER TABLE benefits ADD COLUMN usages INTEGER;
