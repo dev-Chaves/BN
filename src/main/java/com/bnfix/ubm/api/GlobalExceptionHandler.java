@@ -12,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
 
 @Slf4j
 @RestControllerAdvice
@@ -66,6 +67,24 @@ public class GlobalExceptionHandler {
     ResponseEntity<ApiError> unexpected(Exception exception) {
         log.error("Unhandled exception", exception);
         return error(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error");
+    }
+
+    @ExceptionHandler(IllegalStateException.class)
+    ResponseEntity<ApiError> illegal(Exception exception) {
+        log.error("Illegal state for the method: " + exception.getMessage());
+
+        return error(HttpStatus.BAD_REQUEST, "Invalid state");
+    }
+
+    @ExceptionHandler(ResponseStatusException.class)
+    ResponseEntity<ApiError> statusError(ResponseStatusException exception) {
+        log.warn("""
+                Request failed with: ,
+                status: "%s",
+                message: "%s"
+                """.formatted(exception.getStatusCode(), exception.getMessage()));
+
+        return error((HttpStatus) exception.getStatusCode(), exception.getReason());
     }
 
     private ResponseEntity<ApiError> error(HttpStatus status, String message) {
