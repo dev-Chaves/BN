@@ -2,8 +2,8 @@ package com.bnfix.ubm.domains.auth;
 
 import com.bnfix.ubm.domains.account.Account;
 import com.bnfix.ubm.domains.account.AccountRepository;
+import com.bnfix.ubm.domains.auth.dto.AuthResult;
 import com.bnfix.ubm.domains.auth.dto.LoginRequest;
-import com.bnfix.ubm.domains.auth.dto.LoginResponse;
 import com.bnfix.ubm.domains.employee.Employee;
 import com.bnfix.ubm.domains.employee.EmployeeRepository;
 import com.bnfix.ubm.domains.manager.Manager;
@@ -26,6 +26,7 @@ public class AuthService {
     private final ManagerRepository managerRepository;
     private final EmployeeRepository employeeRepository;
     private final TokenService tokenService;
+    private final AuthMeService authMeService;
     private final BCryptPasswordEncoder passwordEncoder;
 
     public AuthService(
@@ -33,16 +34,18 @@ public class AuthService {
             ManagerRepository managerRepository,
             EmployeeRepository employeeRepository,
             TokenService tokenService,
+            AuthMeService authMeService,
             BCryptPasswordEncoder passwordEncoder) {
         this.accountRepository = accountRepository;
         this.managerRepository = managerRepository;
         this.employeeRepository = employeeRepository;
         this.tokenService = tokenService;
+        this.authMeService = authMeService;
         this.passwordEncoder = passwordEncoder;
     }
 
     @Transactional(readOnly = true)
-    public LoginResponse login(LoginRequest request) {
+    public AuthResult login(LoginRequest request) {
         String email = request.email().trim().toLowerCase(Locale.ROOT);
         Account account = accountRepository.findByEmail(email).orElse(null);
         String hash = account == null ? DUMMY_PASSWORD_HASH : account.getPassword();
@@ -56,29 +59,35 @@ public class AuthService {
             log.warn("Login denied for email {} with no role", email);
             throw new AuthenticationException();
         }
-        LoginResponse response =
+        AuthResult result =
                 switch (account.getRole()) {
-                    case ADMIN ->
-                        new LoginResponse(tokenService.generateToken(email, account.id, null, Role.ADMIN.name()));
+                    case ADMIN -> adminToken(account);
                     case MANAGER -> managerToken(account);
                     case USER -> employeeToken(account);
                     default -> throw new AuthenticationException();
                 };
         log.info("User {} logged in as {}", email, account.getRole());
-        return response;
+        return result;
     }
 
-    private LoginResponse managerToken(Account account) {
+    private AuthResult adminToken(Account account) {
+        String token = tokenService.generateToken(account.getEmail(), account.id, null, Role.ADMIN.name());
+        return new AuthResult(token, authMeService.build(account, Role.ADMIN.name(), null));
+    }
+
+    private AuthResult managerToken(Account account) {
         Manager manager = managerRepository.findActiveByAccountId(account.id).orElseThrow(AuthenticationException::new);
         AccessStatusGuard.requireActive(manager);
-        return new LoginResponse(tokenService.generateToken(
-                account.getEmail(), account.id, manager.getCompany().id, Role.MANAGER.name()));
+        String token = tokenService.generateToken(
+                account.getEmail(), account.id, manager.getCompany().id, Role.MANAGER.name());
+        return new AuthResult(token, authMeService.build(account, Role.MANAGER.name(), manager.getCompany()));
     }
 
-    private LoginResponse employeeToken(Account account) {
+    private AuthResult employeeToken(Account account) {
         Employee employee = employeeRepository.findByAccountId(account.id).orElseThrow(AuthenticationException::new);
         AccessStatusGuard.requireActive(employee);
-        return new LoginResponse(
-                tokenService.generateToken(account.getEmail(), account.id, employee.getCompany().id, Role.USER.name()));
+        String token =
+                tokenService.generateToken(account.getEmail(), account.id, employee.getCompany().id, Role.USER.name());
+        return new AuthResult(token, authMeService.build(account, Role.USER.name(), employee.getCompany()));
     }
 }

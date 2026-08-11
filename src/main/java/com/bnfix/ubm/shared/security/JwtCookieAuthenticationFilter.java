@@ -6,6 +6,7 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.server.resource.authentication.BearerTokenAuthenticationToken;
@@ -18,9 +19,11 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @Component
 public class JwtCookieAuthenticationFilter extends OncePerRequestFilter {
     private final JwtAuthenticationProvider provider;
+    private final RevokedTokenStore revokedTokenStore;
 
-    public JwtCookieAuthenticationFilter(JwtAuthenticationProvider provider) {
+    public JwtCookieAuthenticationFilter(JwtAuthenticationProvider provider, RevokedTokenStore revokedTokenStore) {
         this.provider = provider;
+        this.revokedTokenStore = revokedTokenStore;
     }
 
     @Override
@@ -38,8 +41,14 @@ public class JwtCookieAuthenticationFilter extends OncePerRequestFilter {
             if (token != null && !token.isBlank()) {
                 JwtAuthenticationToken authentication =
                         (JwtAuthenticationToken) provider.authenticate(new BearerTokenAuthenticationToken(token));
-                SecurityContextHolder.getContext().setAuthentication(authentication);
                 var jwt = authentication.getToken();
+                if (isRevoked(jwt)) {
+                    log.warn("Revoked token rejected for {} {}", request.getMethod(), request.getRequestURI());
+                    SecurityContextHolder.clearContext();
+                    response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid or expired token");
+                    return;
+                }
+                SecurityContextHolder.getContext().setAuthentication(authentication);
                 Object companyClaim = jwt.getClaims().get("companyId");
                 Long companyId = companyClaim instanceof Number number
                         ? number.longValue()
@@ -55,6 +64,12 @@ public class JwtCookieAuthenticationFilter extends OncePerRequestFilter {
             TenantContext.clear();
             SecurityContextHolder.clearContext();
         }
+    }
+
+    private boolean isRevoked(org.springframework.security.oauth2.jwt.Jwt jwt) {
+        String jti = jwt.getClaimAsString("jti");
+        if (jti == null) return false;
+        return revokedTokenStore.isRevoked(UUID.fromString(jti), jwt.getExpiresAt());
     }
 
     private String bearer(String header) {

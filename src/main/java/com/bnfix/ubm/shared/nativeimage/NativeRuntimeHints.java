@@ -10,9 +10,8 @@ import com.bnfix.ubm.domains.announcement.dto.EmployeeAnnouncementPage;
 import com.bnfix.ubm.domains.announcement.dto.ManagerAnnouncement;
 import com.bnfix.ubm.domains.announcement.dto.ManagerAnnouncementPage;
 import com.bnfix.ubm.domains.announcement.dto.UnreadCountResponse;
-import com.bnfix.ubm.domains.auth.dto.LoginContextData;
+import com.bnfix.ubm.domains.auth.dto.AuthMeResponse;
 import com.bnfix.ubm.domains.auth.dto.LoginRequest;
-import com.bnfix.ubm.domains.auth.dto.LoginResponse;
 import com.bnfix.ubm.domains.auth.dto.SwitchCompanyRequest;
 import com.bnfix.ubm.domains.benefit.Benefit;
 import com.bnfix.ubm.domains.benefit.dto.BenefitResponse;
@@ -110,9 +109,8 @@ public final class NativeRuntimeHints implements RuntimeHintsRegistrar {
                 ManagerAnnouncement.class,
                 ManagerAnnouncementPage.class,
                 UnreadCountResponse.class,
-                LoginContextData.class,
+                AuthMeResponse.class,
                 LoginRequest.class,
-                LoginResponse.class,
                 SwitchCompanyRequest.class,
                 BenefitResponse.class,
                 CreateBenefitRequest.class,

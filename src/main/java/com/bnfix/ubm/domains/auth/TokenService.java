@@ -38,6 +38,7 @@ public class TokenService {
                 .subject(email)
                 .claim("upn", email)
                 .claim("email", email)
+                .claim("jti", UUID.randomUUID().toString())
                 .claim("groups", List.of(role));
         if (accountId != null) claims.claim("accountId", accountId.toString());
         if (companyId != null) claims.claim("companyId", companyId);

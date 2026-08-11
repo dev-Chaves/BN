@@ -1,6 +1,7 @@
 package com.bnfix.ubm.domains.auth;
 
-import com.bnfix.ubm.domains.auth.dto.LoginResponse;
+import com.bnfix.ubm.domains.auth.dto.AuthMeResponse;
+import com.bnfix.ubm.domains.auth.dto.AuthResult;
 import com.bnfix.ubm.domains.manager.Manager;
 import com.bnfix.ubm.domains.manager.ManagerRepository;
 import com.bnfix.ubm.domains.shared.enums.Role;
@@ -17,21 +18,26 @@ import org.springframework.transaction.annotation.Transactional;
 public class SwitchCompanyService {
     private final ManagerRepository managerRepository;
     private final TokenService tokenService;
+    private final AuthMeService authMeService;
 
-    public SwitchCompanyService(ManagerRepository managerRepository, TokenService tokenService) {
+    public SwitchCompanyService(
+            ManagerRepository managerRepository, TokenService tokenService, AuthMeService authMeService) {
         this.managerRepository = managerRepository;
         this.tokenService = tokenService;
+        this.authMeService = authMeService;
     }
 
     @Transactional(readOnly = true)
-    public LoginResponse switchCompany(String email, Long companyId) {
+    public AuthResult switchCompany(String email, Long companyId) {
         Manager manager = managerRepository
                 .findByEmailAndCompanyId(email, companyId)
                 .orElseThrow(() -> new AuthenticationException());
         AccessStatusGuard.requireActive(manager);
         UUID accountId = manager.getAccount().id;
+        String token = tokenService.generateToken(
+                manager.getAccount().getEmail(), accountId, manager.getCompany().id, Role.MANAGER.name());
+        AuthMeResponse user = authMeService.build(manager.getAccount(), Role.MANAGER.name(), manager.getCompany());
         log.info("Manager {} switched to company {}", manager.getAccount().getEmail(), companyId);
-        return new LoginResponse(tokenService.generateToken(
-                manager.getAccount().getEmail(), accountId, manager.getCompany().id, Role.MANAGER.name()));
+        return new AuthResult(token, user);
     }
 }
