@@ -55,7 +55,7 @@ public class Benefit {
             inverseJoinColumns = @JoinColumn(name = "category_id"))
     private Set<Category> categories = new HashSet<>();
 
-    @Column(name = "description_tsv", insertable = false, updatable = false)
+    @Column(name = "description_tsv", insertable = false, updatable = false, columnDefinition = "tsvector")
     private String descriptionTsv;
 
     @Column(name = "created_at")
