@@ -155,11 +155,11 @@ public class JwtSecurityConfiguration {
         http.csrf(csrf -> csrf.disable())
                 .cors(cors -> {})
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(
-                        auth -> auth.requestMatchers("/auth/login", "/onboarding", "/actuator/health", "/error")
-                                .permitAll()
-                                .anyRequest()
-                                .authenticated())
+                .authorizeHttpRequests(auth -> auth.requestMatchers(
+                                "/auth/login", "/onboarding", "/actuator/health", "/error", "benefits/public")
+                        .permitAll()
+                        .anyRequest()
+                        .authenticated())
                 .addFilterBefore(jwtFilter, BearerTokenAuthenticationFilter.class);
         return http.build();
     }

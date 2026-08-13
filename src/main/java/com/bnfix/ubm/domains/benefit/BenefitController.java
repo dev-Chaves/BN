@@ -4,7 +4,6 @@ import com.bnfix.ubm.domains.benefit.dto.*;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
@@ -87,14 +86,5 @@ public class BenefitController {
         log.info("DELETE /benefits/{} by {}", id, e(jwt));
         benefitService.delete(id, e(jwt), c(jwt));
         return ResponseEntity.noContent().build();
-    }
-
-    @GetMapping()
-    public Page<BenefitPublicResponse> getActiveBenefits(
-            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
-    ){
-      log.info("GET public-benefits");
-
-      return benefitService.publicMarketplace(pageable);
     }
 }

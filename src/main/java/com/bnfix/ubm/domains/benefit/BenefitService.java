@@ -76,9 +76,22 @@ public class BenefitService {
     }
 
     @Transactional(readOnly = true)
-    public Page<BenefitPublicResponse> publicMarketplace(Pageable pageable){
+    public Page<BenefitPublicResponse> publicMarketplace(Pageable pageable) {
 
         Page<Benefit> benefits = benefitRepository.findActiveBenefits(pageable);
+
+        benefits.getTotalElements();
+
+        return benefits.map(this::publicResponse);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<BenefitPublicResponse> publicSearch(Pageable pageable, String termo) {
+        if (termo.isBlank()) {
+            throw new IllegalArgumentException("Illegal termo for the search");
+        }
+
+        Page<Benefit> benefits = benefitRepository.findByTextDescription(termo, pageable);
 
         return benefits.map(this::publicResponse);
     }
@@ -160,7 +173,11 @@ public class BenefitService {
                         .toList());
     }
 
-    private BenefitPublicResponse publicResponse(Benefit benefit){
-        return new BenefitPublicResponse(benefit.id, benefit.getName(), benefit.getDescription(), benefit.getProvider().getName());
+    private BenefitPublicResponse publicResponse(Benefit benefit) {
+        return new BenefitPublicResponse(
+                benefit.id,
+                benefit.getName(),
+                benefit.getDescription(),
+                benefit.getProvider().getName());
     }
 }

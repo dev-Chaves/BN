@@ -35,12 +35,14 @@ public interface BenefitRepository extends JpaRepository<Benefit, Long> {
     @Query("select b from Benefit b join fetch b.provider where b.active = true and b.publiclyVisible = true")
     Page<Benefit> findActiveBenefits(Pageable pageable);
 
-    @Query(
-            value = "select * from benefits where description_tsv @@ websearch_to_tsquery(:language, :termo)",
-            nativeQuery = true)
-    List<Benefit> findByTextDescription(@Param("language") String language, @Param("termo") String termo);
+    @Query(value = """
+select * from benefits b where description_tsv @@ websearch_to_tsquery(:language, :termo) order by ts_rank(
+b.description_tsv, websearch_to_tsquery(":language", :termo) ) DESC , b.id DESC
+""", nativeQuery = true)
+    Page<Benefit> findByTextDescription(
+            @Param("language") String language, @Param("termo") String termo, Pageable pageable);
 
-    default List<Benefit> findByTextDescription(String termo) {
-        return findByTextDescription(language, termo);
+    default Page<Benefit> findByTextDescription(String termo, Pageable pageable) {
+        return findByTextDescription(language, termo, pageable);
     }
 }
