@@ -22,6 +22,11 @@ spring:
   mvc:
     problemdetails:
       enabled: false
+  data:
+    web:
+      pageable:
+        max-page-size: 50
+        default-page-size: 20
 
 server:
   port: ${PORT:8080}

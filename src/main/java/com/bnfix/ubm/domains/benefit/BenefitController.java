@@ -4,6 +4,10 @@ import com.bnfix.ubm.domains.benefit.dto.*;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -41,20 +45,18 @@ public class BenefitController {
     @PreAuthorize("hasRole('MANAGER')")
     public Page<BenefitResponse> tenant(
             @RequestParam(required = false) Long categoryId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "50") int size,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
             @AuthenticationPrincipal Jwt jwt) {
-        return benefitService.tenant(e(jwt), c(jwt), categoryId, page, size);
+        return benefitService.tenant(e(jwt), c(jwt), categoryId, pageable);
     }
 
     @GetMapping("/marketplace")
     @PreAuthorize("hasRole('MANAGER')")
     public Page<BenefitResponse> market(
             @RequestParam(required = false) Long categoryId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "50") int size,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
             @AuthenticationPrincipal Jwt jwt) {
-        return benefitService.marketplace(e(jwt), c(jwt), categoryId, page, size);
+        return benefitService.marketplace(e(jwt), c(jwt), categoryId, pageable);
     }
 
     @PutMapping("/{id}")
@@ -85,5 +87,14 @@ public class BenefitController {
         log.info("DELETE /benefits/{} by {}", id, e(jwt));
         benefitService.delete(id, e(jwt), c(jwt));
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping()
+    public Page<BenefitPublicResponse> getActiveBenefits(
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
+    ){
+      log.info("GET public-benefits");
+
+      return benefitService.publicMarketplace(pageable);
     }
 }

@@ -55,6 +55,9 @@ public class Benefit {
             inverseJoinColumns = @JoinColumn(name = "category_id"))
     private Set<Category> categories = new HashSet<>();
 
+    @Column(name = "description_tsv", insertable = false, updatable = false)
+    private String descriptionTsv;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -123,6 +126,10 @@ public class Benefit {
 
     public Integer getUsages() {
         return usages;
+    }
+
+    public String getDescriptionTsv() {
+        return descriptionTsv;
     }
 
     @PrePersist

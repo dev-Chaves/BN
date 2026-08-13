@@ -58,9 +58,8 @@ public class BenefitService {
     }
 
     @Transactional(readOnly = true)
-    public Page<BenefitResponse> tenant(String email, Long id, Long categoryId, int page, int size) {
+    public Page<BenefitResponse> tenant(String email, Long id, Long categoryId, Pageable pageable) {
         manager(email, id);
-        Pageable pageable = PageRequest.of(Math.max(0, page), Math.clamp(size, 1, 100));
         return (categoryId == null
                         ? benefitRepository.findByCompanyId(id, pageable)
                         : benefitRepository.findByCompanyIdAndCategoryId(id, categoryId, pageable))
@@ -68,13 +67,20 @@ public class BenefitService {
     }
 
     @Transactional(readOnly = true)
-    public Page<BenefitResponse> marketplace(String email, Long id, Long categoryId, int page, int size) {
+    public Page<BenefitResponse> marketplace(String email, Long id, Long categoryId, Pageable pageable) {
         manager(email, id);
-        Pageable pageable = PageRequest.of(Math.max(0, page), Math.min(Math.max(1, size), 100));
         return (categoryId == null
                         ? benefitRepository.findPublicAvailableByProviderNot(id, pageable)
                         : benefitRepository.findActiveByProviderNotAndCategoryId(id, categoryId, pageable))
                 .map(this::response);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<BenefitPublicResponse> publicMarketplace(Pageable pageable){
+
+        Page<Benefit> benefits = benefitRepository.findActiveBenefits(pageable);
+
+        return benefits.map(this::publicResponse);
     }
 
     @Transactional
@@ -152,5 +158,9 @@ public class BenefitService {
                 benefit.getCategories().stream()
                         .map(category -> new CategoryResponse(category.id, category.getName()))
                         .toList());
+    }
+
+    private BenefitPublicResponse publicResponse(Benefit benefit){
+        return new BenefitPublicResponse(benefit.id, benefit.getName(), benefit.getDescription(), benefit.getProvider().getName());
     }
 }
