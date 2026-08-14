@@ -27,9 +27,9 @@ public class PublicBenefitController {
         return benefitService.publicMarketplace(pageable);
     }
 
-    @GetMapping("/{termo}")
+    @GetMapping("")
     public Page<BenefitPublicResponse> searchBenefitByTermo(
-            @PathVariable @RequestParam String termo, @PageableDefault(size = 20) Pageable pageable) {
+            @RequestParam String termo, @PageableDefault(size = 20) Pageable pageable) {
         log.info("Been search the term: {}", termo);
 
         return benefitService.publicSearch(pageable, termo);
