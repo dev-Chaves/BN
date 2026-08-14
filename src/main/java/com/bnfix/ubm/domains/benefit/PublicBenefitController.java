@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 
 @Slf4j
 @RestController
-@RequestMapping("benefit/public")
+@RequestMapping("benefits/public")
 public class PublicBenefitController {
 
     private final BenefitService benefitService;
