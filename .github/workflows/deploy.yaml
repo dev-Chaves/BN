@@ -74,7 +74,7 @@ jobs:
                docker logs bn-api || true
                exit 1
              fi
-             docker image prune -f
+             docker image prune -a -f --filter "until=24h"
         env:
           JWT_PUBLIC_KEY: ${{ secrets.JWT_PUBLIC_KEY }}
           JWT_PRIVATE_KEY: ${{ secrets.JWT_PRIVATE_KEY }}
