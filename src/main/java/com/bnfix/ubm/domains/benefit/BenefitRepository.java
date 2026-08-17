@@ -7,8 +7,6 @@ import org.springframework.data.repository.query.Param;
 
 public interface BenefitRepository extends JpaRepository<Benefit, Long> {
 
-    String language = "portuguese";
-
     @Query(
             "select distinct b from Benefit b join fetch b.provider left join fetch b.categories where b.provider.id=:id order by b.createdAt desc")
     Page<Benefit> findByCompanyId(@Param("id") Long id, Pageable pageable);
@@ -36,13 +34,10 @@ public interface BenefitRepository extends JpaRepository<Benefit, Long> {
     Page<Benefit> findActiveBenefits(Pageable pageable);
 
     @Query(value = """
-select * from benefits b where description_tsv @@ websearch_to_tsquery(:language, :termo) order by ts_rank(
+select * from benefits b where description_tsv @@ websearch_to_tsquery('portuguese', :termo) order by ts_rank(
 b.description_tsv, websearch_to_tsquery(":language", :termo) ) DESC , b.id DESC
 """, nativeQuery = true)
     Page<Benefit> findByTextDescription(
             @Param("language") String language, @Param("termo") String termo, Pageable pageable);
 
-    default Page<Benefit> findByTextDescription(String termo, Pageable pageable) {
-        return findByTextDescription(language, termo, pageable);
-    }
 }
