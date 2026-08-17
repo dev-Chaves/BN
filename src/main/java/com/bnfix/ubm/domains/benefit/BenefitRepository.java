@@ -39,5 +39,4 @@ b.description_tsv, websearch_to_tsquery(":language", :termo) ) DESC , b.id DESC
 """, nativeQuery = true)
     Page<Benefit> findByTextDescription(
             @Param("language") String language, @Param("termo") String termo, Pageable pageable);
-
 }
