@@ -35,8 +35,7 @@ public interface BenefitRepository extends JpaRepository<Benefit, Long> {
 
     @Query(value = """
 select * from benefits b where description_tsv @@ websearch_to_tsquery('portuguese', :termo) order by ts_rank(
-b.description_tsv, websearch_to_tsquery(":language", :termo) ) DESC , b.id DESC
+b.description_tsv, websearch_to_tsquery('portuguese', :termo) ) DESC , b.id DESC
 """, nativeQuery = true)
-    Page<Benefit> findByTextDescription(
-            @Param("language") String language, @Param("termo") String termo, Pageable pageable);
+    Page<Benefit> findByTextDescription(@Param("termo") String termo, Pageable pageable);
 }
