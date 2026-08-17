@@ -156,7 +156,12 @@ public class JwtSecurityConfiguration {
                 .cors(cors -> {})
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth.requestMatchers(
-                                "/auth/login", "/onboarding", "/actuator/health", "/error", "/benefits/public/*")
+                                "/auth/login",
+                                "/onboarding",
+                                "/actuator/health",
+                                "/error",
+                                "/benefits/public/*",
+                                "/benefits/public/")
                         .permitAll()
                         .anyRequest()
                         .authenticated())
