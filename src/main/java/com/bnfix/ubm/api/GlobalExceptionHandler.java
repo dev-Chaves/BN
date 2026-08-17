@@ -14,6 +14,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @Slf4j
 @RestControllerAdvice
@@ -93,6 +94,13 @@ public class GlobalExceptionHandler {
         log.warn("HTTP Method not supported to this operation: " + exception.getMethod() + exception.getMessage());
 
         return error(HttpStatus.METHOD_NOT_ALLOWED, "Method no supported");
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    ResponseEntity<ApiError> resourceNotFound(NoResourceFoundException exception) {
+        log.warn("resource not found: " + exception.getResourcePath() + exception.getMessage());
+
+        return error(HttpStatus.NOT_FOUND, "Resource not found");
     }
 
     private ResponseEntity<ApiError> error(HttpStatus status, String message) {
