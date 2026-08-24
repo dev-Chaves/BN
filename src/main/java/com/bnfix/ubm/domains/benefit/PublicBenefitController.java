@@ -32,6 +32,6 @@ public class PublicBenefitController {
             @RequestParam String termo, @PageableDefault(size = 20) Pageable pageable) {
         log.info("Been search the term: {}", termo);
 
-        return benefitService.publicSearch(pageable, termo);
+        return benefitService.searchByDescriptionSimilarity(termo, pageable);
     }
 }

@@ -91,7 +91,7 @@ public class BenefitService {
             throw new IllegalArgumentException("Illegal termo for the search");
         }
 
-        Page<Benefit> benefits = benefitRepository.findByTextDescription(termo, pageable);
+        Page<Benefit> benefits = benefitRepository.searchByDescriptionFullText(termo, pageable);
 
         return benefits.map(this::publicResponse);
     }
@@ -133,6 +133,16 @@ public class BenefitService {
         tenantGuard.verifyManagerCompanyAccess(manager, benefit.getProvider().id);
         benefitRepository.delete(benefit);
         log.info("Benefit {} deleted by manager {}", benefitId, manager.id);
+    }
+
+    public Page<BenefitPublicResponse> searchByDescriptionSimilarity(String term, Pageable pageable){
+
+        log.info("Term being searched: " + term);
+
+        Page<Benefit> benefits = benefitRepository.searchByDescriptionSimilarity(term, pageable);
+
+        return benefits.map(this::publicResponse);
+
     }
 
     private Manager manager(String email, Long id) {
