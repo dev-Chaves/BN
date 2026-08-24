@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.bnfix.ubm.domains.benefit.Benefit;
 import com.bnfix.ubm.domains.benefit.BenefitRepository;
+import com.bnfix.ubm.domains.benefit.dto.BenefitPublicResponse;
+import com.bnfix.ubm.domains.benefit.dto.BenefitSearchProjection;
 import com.bnfix.ubm.domains.company.Company;
 import com.bnfix.ubm.domains.company.CompanyRepository;
 import com.bnfix.ubm.domains.shared.domain.CNPJ;
@@ -108,12 +110,14 @@ public class BenefitIntegrationTest {
                 .description("Natação e Mordomias")
                 .build());
 
-        Page<Benefit> benefits = benefitRepository.searchByDescriptionSimilarity("acad", pageable);
+        Page<BenefitSearchProjection> benefits = benefitRepository.searchByDescriptionSimilarity("acad", pageable);
 
-        assertThat(benefits.getTotalElements()).isEqualTo(2L);
+        Page<BenefitPublicResponse> response = benefits.map(this::publicResponse);
 
-        assertThat(benefits.getContent())
-                .extracting(Benefit::getDescription)
+        assertThat(response.getTotalElements()).isEqualTo(2L);
+
+        assertThat(response.getContent())
+                .extracting(BenefitPublicResponse::description)
                 .containsExactlyInAnyOrder("Academia para todos", "Desconto em produtos da Academia para todos");
     }
 
@@ -137,8 +141,26 @@ public class BenefitIntegrationTest {
                 .description("Natação e Mordomias")
                 .build());
 
-        Page<Benefit> benefits = benefitRepository.searchByDescriptionSimilarity("acad", pageable);
+        Page<BenefitSearchProjection> benefits = benefitRepository.searchByDescriptionSimilarity("acad", pageable);
 
         assertThat(benefits.getTotalElements()).isEqualTo(0);
+    }
+
+    private BenefitPublicResponse publicResponse(Benefit benefit) {
+        return new BenefitPublicResponse(
+                benefit.id,
+                benefit.getName(),
+                benefit.getDescription(),
+                benefit.getProvider().getName());
+    }
+
+
+    private BenefitPublicResponse publicResponse(BenefitSearchProjection benefits){
+        return new BenefitPublicResponse(
+                benefits.getId(),
+                benefits.getName(),
+                benefits.getDescription(),
+                benefits.getProviderName()
+        );
     }
 }

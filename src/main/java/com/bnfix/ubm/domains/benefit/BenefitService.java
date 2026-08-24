@@ -1,6 +1,7 @@
 package com.bnfix.ubm.domains.benefit;
 
 import com.bnfix.ubm.domains.benefit.dto.*;
+import com.bnfix.ubm.domains.benefitrequest.BenefitAccessRequestRepository;
 import com.bnfix.ubm.domains.category.*;
 import com.bnfix.ubm.domains.category.dto.CategoryResponse;
 import com.bnfix.ubm.domains.company.*;
@@ -135,11 +136,12 @@ public class BenefitService {
         log.info("Benefit {} deleted by manager {}", benefitId, manager.id);
     }
 
+    @Transactional(readOnly = true)
     public Page<BenefitPublicResponse> searchByDescriptionSimilarity(String term, Pageable pageable){
 
         log.info("Term being searched: " + term);
 
-        Page<Benefit> benefits = benefitRepository.searchByDescriptionSimilarity(term, pageable);
+        Page<BenefitSearchProjection> benefits = benefitRepository.searchByDescriptionSimilarity(term, pageable);
 
         return benefits.map(this::publicResponse);
 
@@ -189,5 +191,14 @@ public class BenefitService {
                 benefit.getName(),
                 benefit.getDescription(),
                 benefit.getProvider().getName());
+    }
+
+    private BenefitPublicResponse publicResponse(BenefitSearchProjection benefits){
+        return new BenefitPublicResponse(
+                benefits.getId(),
+                benefits.getName(),
+                benefits.getDescription(),
+                benefits.getProviderName()
+        );
     }
 }

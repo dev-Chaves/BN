@@ -1,6 +1,8 @@
 package com.bnfix.ubm.domains.benefit;
 
 import java.util.*;
+
+import com.bnfix.ubm.domains.benefit.dto.BenefitSearchProjection;
 import org.springframework.data.domain.*;
 import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
@@ -40,11 +42,12 @@ b.description_tsv, websearch_to_tsquery('portuguese', :termo) ) DESC , b.id DESC
     Page<Benefit> searchByDescriptionFullText(@Param("termo") String termo, Pageable pageable);
 
     @Query(value = """
-    SELECT *
+    SELECT b.*
     FROM benefits b
+    INNER JOIN companies c on b.provider_id = c.id
     WHERE :termo <% b.description
     ORDER BY word_similarity(:termo ,b.description) desc, b.id desc
     """, nativeQuery = true)
-    Page<Benefit> searchByDescriptionSimilarity(@Param("termo") String termo, Pageable pageable);
+    Page<BenefitSearchProjection> searchByDescriptionSimilarity(@Param("termo") String termo, Pageable pageable);
 
 }
