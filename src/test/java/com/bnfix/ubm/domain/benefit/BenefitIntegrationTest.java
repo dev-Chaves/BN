@@ -9,7 +9,6 @@ import com.bnfix.ubm.domains.benefit.dto.BenefitSearchProjection;
 import com.bnfix.ubm.domains.company.Company;
 import com.bnfix.ubm.domains.company.CompanyRepository;
 import com.bnfix.ubm.domains.shared.domain.CNPJ;
-import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -154,13 +153,8 @@ public class BenefitIntegrationTest {
                 benefit.getProvider().getName());
     }
 
-
-    private BenefitPublicResponse publicResponse(BenefitSearchProjection benefits){
+    private BenefitPublicResponse publicResponse(BenefitSearchProjection benefits) {
         return new BenefitPublicResponse(
-                benefits.getId(),
-                benefits.getName(),
-                benefits.getDescription(),
-                benefits.getProviderName()
-        );
+                benefits.getId(), benefits.getName(), benefits.getDescription(), benefits.getProviderName());
     }
 }

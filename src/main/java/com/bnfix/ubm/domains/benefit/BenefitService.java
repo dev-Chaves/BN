@@ -1,7 +1,6 @@
 package com.bnfix.ubm.domains.benefit;
 
 import com.bnfix.ubm.domains.benefit.dto.*;
-import com.bnfix.ubm.domains.benefitrequest.BenefitAccessRequestRepository;
 import com.bnfix.ubm.domains.category.*;
 import com.bnfix.ubm.domains.category.dto.CategoryResponse;
 import com.bnfix.ubm.domains.company.*;
@@ -137,14 +136,13 @@ public class BenefitService {
     }
 
     @Transactional(readOnly = true)
-    public Page<BenefitPublicResponse> searchByDescriptionSimilarity(String term, Pageable pageable){
+    public Page<BenefitPublicResponse> searchByDescriptionSimilarity(String term, Pageable pageable) {
 
         log.info("Term being searched: " + term);
 
         Page<BenefitSearchProjection> benefits = benefitRepository.searchByDescriptionSimilarity(term, pageable);
 
         return benefits.map(this::publicResponse);
-
     }
 
     private Manager manager(String email, Long id) {
@@ -193,12 +191,8 @@ public class BenefitService {
                 benefit.getProvider().getName());
     }
 
-    private BenefitPublicResponse publicResponse(BenefitSearchProjection benefits){
+    private BenefitPublicResponse publicResponse(BenefitSearchProjection benefits) {
         return new BenefitPublicResponse(
-                benefits.getId(),
-                benefits.getName(),
-                benefits.getDescription(),
-                benefits.getProviderName()
-        );
+                benefits.getId(), benefits.getName(), benefits.getDescription(), benefits.getProviderName());
     }
 }
