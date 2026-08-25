@@ -41,11 +41,19 @@ b.description_tsv, websearch_to_tsquery('portuguese', :termo) ) DESC , b.id DESC
     Page<Benefit> searchByDescriptionFullText(@Param("termo") String termo, Pageable pageable);
 
     @Query(value = """
-            SELECT b.*, c.*
+            SELECT b.id AS id,
+                   b.name AS name,
+                   b.description AS description,
+                   c.name AS "providerName"
             FROM benefits b
             INNER JOIN companies c ON b.provider_id = c.id
             WHERE :termo <% b.description
             ORDER BY word_similarity(:termo, b.description) DESC, b.id DESC
+            """, countQuery = """
+            SELECT COUNT(*)
+            FROM benefits b
+            INNER JOIN companies c ON b.provider_id = c.id
+            WHERE :termo <% b.description
             """, nativeQuery = true)
     Page<BenefitSearchProjection> searchByDescriptionSimilarity(@Param("termo") String termo, Pageable pageable);
 }

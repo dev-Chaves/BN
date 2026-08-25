@@ -24,57 +24,148 @@ jobs:
           native-image-job-reports: 'true'
       - name: Build Native Executable
         run: ./mvnw -B -DskipTests -Pnative native:compile
-      - name: Login no GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build e push da imagem
+      - name: Build da imagem
         run: |
           IMAGE=ghcr.io/dev-chaves/bn
           docker build -f src/main/docker/Dockerfile.native-micro \
             -t ${IMAGE}:${GITHUB_SHA} \
             -t ${IMAGE}:latest \
             .
+      - name: Login no GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Push da imagem candidata
+        run: |
+          IMAGE=ghcr.io/dev-chaves/bn
           docker push ${IMAGE}:${GITHUB_SHA}
-          docker push ${IMAGE}:latest
-      - name: Deploy via SSH
+      - name: Teste e deploy via SSH
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ec2-18-222-189-80.us-east-2.compute.amazonaws.com
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
           port: 22
-          envs: JWT_PUBLIC_KEY,JWT_PRIVATE_KEY
+          envs: JWT_PUBLIC_KEY,JWT_PRIVATE_KEY,GHCR_TOKEN
           script: |
-            set -e
+            set -eu
             IMAGE="ghcr.io/dev-chaves/bn"
             SHA="${{ github.sha }}"
-            echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "dev-chaves" --password-stdin
+            TEST_CONTAINER="bn-api-test"
+            PROD_CONTAINER="bn-api"
+            PREVIOUS_CONTAINER="bn-api-previous"
+            TEST_URL="http://127.0.0.1:8081"
+            PROD_URL="http://127.0.0.1:8080"
+
+            cleanup_test_container() {
+              docker rm -f "$TEST_CONTAINER" >/dev/null 2>&1 || true
+            }
+
+            cleanup_images() {
+              docker image prune -a -f || true
+            }
+
+            on_exit() {
+              STATUS=$?
+              if [ "$STATUS" -ne 0 ]; then
+                echo "Falha no teste ou deploy da imagem ${IMAGE}:${SHA}"
+                docker logs "$TEST_CONTAINER" 2>/dev/null || true
+              fi
+              cleanup_test_container
+              cleanup_images
+              exit "$STATUS"
+            }
+
+            trap on_exit EXIT
+
+            echo "$GHCR_TOKEN" | docker login ghcr.io -u "dev-chaves" --password-stdin
             docker pull ${IMAGE}:${SHA}
             mkdir -p /opt/bn/secrets
             printf '%b\n' "$JWT_PUBLIC_KEY" > /opt/bn/secrets/publicKey.pem
             printf '%b\n' "$JWT_PRIVATE_KEY" > /opt/bn/secrets/privateKey.pem
-            docker stop bn-api || true
-            docker rm bn-api || true
-             docker run -d --name bn-api --restart unless-stopped --env-file /opt/bn/.env \
-               -v /home/ec2-user/certs:/certs:ro -v /opt/bn/secrets:/opt/bn/secrets:ro \
-               -p 127.0.0.1:8080:8080 ${IMAGE}:${SHA}
-             HEALTHY=0
-             for i in $(seq 1 30); do
-               if curl -sf http://127.0.0.1:8080/actuator/health; then
-                 HEALTHY=1
-                 break
-               fi
-               sleep 2
-             done
-             if [ "$HEALTHY" -ne 1 ]; then
-               echo "API não ficou saudável"
-               docker logs bn-api || true
-               exit 1
-             fi
-             docker image prune -a -f --filter "until=24h"
+
+            echo "Subindo imagem candidata na porta 8081"
+            cleanup_test_container
+            docker run -d --name "$TEST_CONTAINER" --env-file /opt/bn/.env \
+              -v /home/ec2-user/certs:/certs:ro \
+              -v /opt/bn/secrets:/opt/bn/secrets:ro \
+              -p 127.0.0.1:8081:8080 \
+              ${IMAGE}:${SHA}
+
+            HEALTHY=0
+            for i in $(seq 1 30); do
+              HEALTH_BODY=$(curl -fsS "$TEST_URL/actuator/health" 2>/dev/null || true)
+              if echo "$HEALTH_BODY" | grep -Eq '"status"[[:space:]]*:[[:space:]]*"UP"'; then
+                HEALTHY=1
+                break
+              fi
+              sleep 2
+            done
+            if [ "$HEALTHY" -ne 1 ]; then
+              echo "A imagem candidata não ficou saudável"
+              exit 1
+            fi
+
+            echo "Executando smoke tests"
+            curl -fsS "$TEST_URL/benefits/public/search?termo=smoke&size=1" >/dev/null
+            AUTH_STATUS=$(curl -sS -o /dev/null -w '%{http_code}' "$TEST_URL/auth/me")
+            case "$AUTH_STATUS" in
+              401|403) ;;
+              *)
+                echo "Endpoint protegido retornou HTTP ${AUTH_STATUS}; esperado 401 ou 403"
+                exit 1
+                ;;
+            esac
+
+            echo "Promovendo imagem candidata para produção"
+            cleanup_test_container
+            docker rm -f "$PREVIOUS_CONTAINER" >/dev/null 2>&1 || true
+            if docker inspect "$PROD_CONTAINER" >/dev/null 2>&1; then
+              docker stop "$PROD_CONTAINER"
+              docker rename "$PROD_CONTAINER" "$PREVIOUS_CONTAINER"
+            fi
+
+            if ! docker run -d --name "$PROD_CONTAINER" --restart unless-stopped --env-file /opt/bn/.env \
+              -v /home/ec2-user/certs:/certs:ro \
+              -v /opt/bn/secrets:/opt/bn/secrets:ro \
+              -p 127.0.0.1:8080:8080 \
+              ${IMAGE}:${SHA}; then
+              echo "Não foi possível subir a nova versão; restaurando a anterior"
+              docker rm -f "$PROD_CONTAINER" >/dev/null 2>&1 || true
+              if docker inspect "$PREVIOUS_CONTAINER" >/dev/null 2>&1; then
+                docker rename "$PREVIOUS_CONTAINER" "$PROD_CONTAINER"
+                docker start "$PROD_CONTAINER"
+              fi
+              exit 1
+            fi
+
+            PROD_HEALTHY=0
+            for i in $(seq 1 15); do
+              if curl -fsS "$PROD_URL/actuator/health" >/dev/null 2>&1; then
+                PROD_HEALTHY=1
+                break
+              fi
+              sleep 2
+            done
+            if [ "$PROD_HEALTHY" -ne 1 ]; then
+              echo "Nova versão falhou após a promoção; restaurando a anterior"
+              docker logs "$PROD_CONTAINER" 2>/dev/null || true
+              docker rm -f "$PROD_CONTAINER" >/dev/null 2>&1 || true
+              if docker inspect "$PREVIOUS_CONTAINER" >/dev/null 2>&1; then
+                docker rename "$PREVIOUS_CONTAINER" "$PROD_CONTAINER"
+                docker start "$PROD_CONTAINER"
+              fi
+              exit 1
+            fi
+
+            docker rm -f "$PREVIOUS_CONTAINER" >/dev/null 2>&1 || true
         env:
           JWT_PUBLIC_KEY: ${{ secrets.JWT_PUBLIC_KEY }}
           JWT_PRIVATE_KEY: ${{ secrets.JWT_PRIVATE_KEY }}
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+      - name: Publicar latest
+        run: |
+          IMAGE=ghcr.io/dev-chaves/bn
+          docker push ${IMAGE}:latest
