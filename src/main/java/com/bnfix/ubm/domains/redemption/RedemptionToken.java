@@ -1,6 +1,7 @@
 package com.bnfix.ubm.domains.redemption;
 
-import com.bnfix.ubm.domains.subscription.Subscription;
+import com.bnfix.ubm.domains.benefit.Benefit;
+import com.bnfix.ubm.domains.employee.Employee;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -13,8 +14,12 @@ public class RedemptionToken {
     public UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "subscription_id", nullable = false)
-    private Subscription subscription;
+    @JoinColumn(name = "employee_id", nullable = false)
+    private Employee employee;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "benefit_id", nullable = false)
+    private Benefit benefit;
 
     @Column(name = "token_hash", nullable = false, unique = true, length = 64)
     private String tokenHash;
@@ -34,8 +39,9 @@ public class RedemptionToken {
 
     protected RedemptionToken() {}
 
-    public RedemptionToken(Subscription subscription, String tokenHash, LocalDateTime expiresAt) {
-        this.subscription = subscription;
+    public RedemptionToken(Employee employee, Benefit benefit, String tokenHash, LocalDateTime expiresAt) {
+        this.employee = employee;
+        this.benefit = benefit;
         this.tokenHash = tokenHash;
         this.expiresAt = expiresAt;
     }
@@ -46,8 +52,12 @@ public class RedemptionToken {
         status = RedemptionTokenStatus.ACTIVE;
     }
 
-    public Subscription getSubscription() {
-        return subscription;
+    public Employee getEmployee() {
+        return employee;
+    }
+
+    public Benefit getBenefit() {
+        return benefit;
     }
 
     public String getTokenHash() {

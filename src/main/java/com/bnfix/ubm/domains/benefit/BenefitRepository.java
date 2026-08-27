@@ -28,6 +28,10 @@ public interface BenefitRepository extends JpaRepository<Benefit, Long> {
 
     List<Benefit> findByProviderIdAndActiveTrue(Long id);
 
+    @Query(
+            "select distinct b from Benefit b join fetch b.provider p left join fetch b.categories where p.active=true and b.active=true and (b.validFrom is null or b.validFrom<=CURRENT_TIMESTAMP) and (b.validUntil is null or b.validUntil>CURRENT_TIMESTAMP) and ((p.id=:company and b.availableToProviderEmployees=true) or exists (select partnership.id from Partnership partnership where partnership.clientCompany.id=:company and partnership.benefit=b and partnership.status=com.bnfix.ubm.domains.partnership.PartnershipStatus.ACTIVE)) order by b.createdAt desc")
+    List<Benefit> findAccessibleByCompany(@Param("company") Long companyId);
+
     @Query("select distinct b from Benefit b join fetch b.provider left join fetch b.categories where b.id=:id")
     Optional<Benefit> findByIdWithProviderAndCategories(@Param("id") Long id);
 

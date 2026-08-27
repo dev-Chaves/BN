@@ -13,4 +13,5 @@ public record CreateBenefitRequest(
         LocalDateTime validFrom,
         LocalDateTime validUntil,
         @Min(1) Integer maxUsesPerUser,
-        @Size(max = 4000) String terms) {}
+        @Size(max = 4000) String terms,
+        Boolean availableToProviderEmployees) {}

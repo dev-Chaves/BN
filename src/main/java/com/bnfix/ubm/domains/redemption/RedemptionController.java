@@ -21,11 +21,11 @@ public class RedemptionController {
         this.redemptionService = redemptionService;
     }
 
-    @PostMapping("/subscriptions/{subscriptionId}/token")
+    @PostMapping("/benefits/{benefitId}/token")
     @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<?> issue(@PathVariable Long subscriptionId, Authentication authentication) {
-        log.info("POST /redemptions/subscriptions/{}/token by {}", subscriptionId, authentication.getName());
-        return ResponseEntity.status(201).body(redemptionService.issue(authentication.getName(), subscriptionId));
+    public ResponseEntity<?> issue(@PathVariable Long benefitId, Authentication authentication) {
+        log.info("POST /redemptions/benefits/{}/token by {}", benefitId, authentication.getName());
+        return ResponseEntity.status(201).body(redemptionService.issue(authentication.getName(), benefitId));
     }
 
     @PostMapping("/provider/preview")

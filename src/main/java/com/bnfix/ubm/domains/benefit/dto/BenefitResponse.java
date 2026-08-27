@@ -13,6 +13,7 @@ public record BenefitResponse(
         Boolean publiclyVisible,
         LocalDateTime validUntil,
         Integer maxUsesPerUser,
+        Boolean availableToProviderEmployees,
         String terms,
         LocalDateTime createdAt,
         List<CategoryResponse> categories) {}

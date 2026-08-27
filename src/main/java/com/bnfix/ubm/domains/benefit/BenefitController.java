@@ -2,6 +2,7 @@ package com.bnfix.ubm.domains.benefit;
 
 import com.bnfix.ubm.domains.benefit.dto.*;
 import jakarta.validation.Valid;
+import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -18,9 +19,11 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/benefits")
 public class BenefitController {
     private final BenefitService benefitService;
+    private final EmployeeBenefitService employeeBenefitService;
 
-    public BenefitController(BenefitService benefitService) {
+    public BenefitController(BenefitService benefitService, EmployeeBenefitService employeeBenefitService) {
         this.benefitService = benefitService;
+        this.employeeBenefitService = employeeBenefitService;
     }
 
     private String e(Jwt jwt) {
@@ -56,6 +59,12 @@ public class BenefitController {
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
             @AuthenticationPrincipal Jwt jwt) {
         return benefitService.marketplace(e(jwt), c(jwt), categoryId, pageable);
+    }
+
+    @GetMapping("/me")
+    @PreAuthorize("hasRole('USER')")
+    public List<EmployeeBenefitResponse> mine(@AuthenticationPrincipal Jwt jwt) {
+        return employeeBenefitService.findAvailable(e(jwt));
     }
 
     @PutMapping("/{id}")

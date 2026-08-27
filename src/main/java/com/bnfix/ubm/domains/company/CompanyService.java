@@ -11,9 +11,7 @@ import com.bnfix.ubm.domains.redemption.RedemptionTokenRepository;
 import com.bnfix.ubm.domains.shared.domain.CNPJ;
 import com.bnfix.ubm.domains.shared.enums.Role;
 import com.bnfix.ubm.shared.security.AccessStatusGuard;
-import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
-import java.time.LocalDateTime;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -30,7 +28,6 @@ public class CompanyService {
     private final EmployeeRepository employeeRepository;
     private final PartnershipRepository partnershipRepository;
     private final RedemptionTokenRepository redemptionTokenRepository;
-    private final EntityManager entityManager;
     private final BCryptPasswordEncoder passwordEncoder;
 
     public CompanyService(
@@ -40,7 +37,6 @@ public class CompanyService {
             EmployeeRepository employeeRepository,
             PartnershipRepository partnershipRepository,
             RedemptionTokenRepository redemptionTokenRepository,
-            EntityManager entityManager,
             BCryptPasswordEncoder passwordEncoder) {
         this.companyRepository = companyRepository;
         this.accountRepository = accountRepository;
@@ -48,7 +44,6 @@ public class CompanyService {
         this.employeeRepository = employeeRepository;
         this.partnershipRepository = partnershipRepository;
         this.redemptionTokenRepository = redemptionTokenRepository;
-        this.entityManager = entityManager;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -98,18 +93,9 @@ public class CompanyService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password is incorrect");
         Company company = manager.getCompany();
         company.deactivateCompany();
-        entityManager
-                .createQuery(
-                        "update BenefitAccessRequest r set r.status = com.bnfix.ubm.domains.benefitrequest.BenefitAccessRequestStatus.CANCELLED, r.reviewedAt = :now where r.employee.company.id = :id and r.status = com.bnfix.ubm.domains.benefitrequest.BenefitAccessRequestStatus.PENDING")
-                .setParameter("now", LocalDateTime.now())
-                .setParameter("id", id)
-                .executeUpdate();
         managerRepository.deactivateByCompanyId(id);
         employeeRepository.disableByCompanyId(id);
-        entityManager
-                .createQuery("update Benefit b set b.active = false where b.provider.id = :id")
-                .setParameter("id", id)
-                .executeUpdate();
+        companyRepository.deactivateBenefits(id);
         partnershipRepository.disableByCompanyId(id);
         redemptionTokenRepository.revokeActiveByCompanyId(id);
         log.info("Company {} deactivated by manager {}", id, manager.id);

@@ -13,24 +13,26 @@ import org.springframework.data.repository.query.Param;
 public interface RedemptionTokenRepository extends JpaRepository<RedemptionToken, UUID> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query(
-            "select t from RedemptionToken t join fetch t.subscription s join fetch s.employee join fetch s.benefit b join fetch b.provider where t.tokenHash = :hash")
+            "select t from RedemptionToken t join fetch t.employee e join fetch e.company join fetch t.benefit b join fetch b.provider where t.tokenHash = :hash")
     Optional<RedemptionToken> findByHashWithRelations(@Param("hash") String hash);
 
     @Modifying
     @Query(
-            "update RedemptionToken t set t.status = :newStatus where t.subscription.id = :subscription and t.status = :oldStatus")
-    int revokeActiveBySubscription(
-            @Param("subscription") Long id,
+            "update RedemptionToken t set t.status = :newStatus where t.employee.id = :employee and t.benefit.id = :benefit and t.status = :oldStatus")
+    int revokeActiveByEmployeeAndBenefit(
+            @Param("employee") Long employeeId,
+            @Param("benefit") Long benefitId,
             @Param("newStatus") RedemptionTokenStatus newStatus,
             @Param("oldStatus") RedemptionTokenStatus oldStatus);
 
-    default int revokeActiveBySubscription(Long id) {
-        return revokeActiveBySubscription(id, RedemptionTokenStatus.REVOKED, RedemptionTokenStatus.ACTIVE);
+    default int revokeActiveByEmployeeAndBenefit(Long employeeId, Long benefitId) {
+        return revokeActiveByEmployeeAndBenefit(
+                employeeId, benefitId, RedemptionTokenStatus.REVOKED, RedemptionTokenStatus.ACTIVE);
     }
 
     @Modifying
     @Query(
-            "update RedemptionToken t set t.status = :newStatus where t.status = :oldStatus and t.subscription.employee.id = :employee")
+            "update RedemptionToken t set t.status = :newStatus where t.status = :oldStatus and t.employee.id = :employee")
     int revokeActiveByEmployee(
             @Param("employee") Long id,
             @Param("newStatus") RedemptionTokenStatus newStatus,
@@ -42,7 +44,7 @@ public interface RedemptionTokenRepository extends JpaRepository<RedemptionToken
 
     @Modifying
     @Query(
-            "update RedemptionToken t set t.status = :newStatus where t.status = :oldStatus and (t.subscription.employee.company.id = :company or t.subscription.benefit.provider.id = :company)")
+            "update RedemptionToken t set t.status = :newStatus where t.status = :oldStatus and (t.employee.company.id = :company or t.benefit.provider.id = :company)")
     int revokeActiveByCompanyId(
             @Param("company") Long id,
             @Param("newStatus") RedemptionTokenStatus newStatus,

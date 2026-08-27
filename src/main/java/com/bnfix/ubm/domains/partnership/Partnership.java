@@ -57,8 +57,25 @@ public class Partnership {
         status = PartnershipStatus.PENDING;
     }
 
-    public void updateStatus(PartnershipStatus status) {
-        if (status != null) this.status = status;
+    public void activate() {
+        requirePending();
+        status = PartnershipStatus.ACTIVE;
+    }
+
+    public void reject() {
+        requirePending();
+        status = PartnershipStatus.REJECTED;
+    }
+
+    public void disable() {
+        if (status != PartnershipStatus.ACTIVE)
+            throw new IllegalStateException("Only an active partnership can be disabled");
+        status = PartnershipStatus.DISABLED;
+    }
+
+    private void requirePending() {
+        if (status != PartnershipStatus.PENDING)
+            throw new IllegalStateException("Only a pending partnership can be reviewed");
     }
 
     public static Builder builder(Company company, Benefit benefit) {

@@ -2,7 +2,6 @@ package com.bnfix.ubm.domains.benefit;
 
 import com.bnfix.ubm.domains.category.Category;
 import com.bnfix.ubm.domains.company.Company;
-import com.bnfix.ubm.domains.subscription.Subscription;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -39,14 +38,14 @@ public class Benefit {
     @Column(name = "max_uses_per_user", nullable = false)
     private Integer maxUsesPerUser = 1;
 
+    @Column(name = "available_to_provider_employees", nullable = false)
+    private Boolean availableToProviderEmployees = false;
+
     @Column(columnDefinition = "TEXT")
     private String terms;
 
     @Column(name = "usages")
     private Integer usages;
-
-    @OneToMany(mappedBy = "benefit")
-    private List<Subscription> subscriptions;
 
     @ManyToMany
     @JoinTable(
@@ -72,6 +71,7 @@ public class Benefit {
         validFrom = builder.validFrom;
         validUntil = builder.validUntil;
         maxUsesPerUser = builder.maxUsesPerUser;
+        availableToProviderEmployees = builder.availableToProviderEmployees;
         terms = builder.terms;
         validateValidityWindow();
     }
@@ -112,6 +112,10 @@ public class Benefit {
         return maxUsesPerUser;
     }
 
+    public Boolean getAvailableToProviderEmployees() {
+        return availableToProviderEmployees;
+    }
+
     public String getTerms() {
         return terms;
     }
@@ -138,6 +142,7 @@ public class Benefit {
         if (active == null) active = false;
         if (publiclyVisible == null) publiclyVisible = true;
         if (maxUsesPerUser == null) maxUsesPerUser = 1;
+        if (availableToProviderEmployees == null) availableToProviderEmployees = false;
     }
 
     public void activeBenefit() {
@@ -158,12 +163,18 @@ public class Benefit {
     }
 
     public void updateAvailability(
-            Boolean visible, LocalDateTime from, LocalDateTime until, Integer max, String terms) {
+            Boolean visible,
+            LocalDateTime from,
+            LocalDateTime until,
+            Integer max,
+            String terms,
+            Boolean availableToProviderEmployees) {
         if (visible != null) publiclyVisible = visible;
         if (from != null) validFrom = from;
         if (until != null) validUntil = until;
         if (max != null) maxUsesPerUser = max;
         if (terms != null) this.terms = terms;
+        if (availableToProviderEmployees != null) this.availableToProviderEmployees = availableToProviderEmployees;
         validateValidityWindow();
     }
 
@@ -196,6 +207,7 @@ public class Benefit {
         private Boolean publiclyVisible = true;
         private LocalDateTime validFrom, validUntil;
         private Integer maxUsesPerUser = 1;
+        private Boolean availableToProviderEmployees = false;
         private String terms;
 
         public Builder(String name, Company provider) {
@@ -218,12 +230,14 @@ public class Benefit {
                 LocalDateTime validFrom,
                 LocalDateTime validUntil,
                 Integer maxUsesPerUser,
-                String terms) {
+                String terms,
+                Boolean availableToProviderEmployees) {
             if (visible != null) publiclyVisible = visible;
             this.validFrom = validFrom;
             this.validUntil = validUntil;
             if (maxUsesPerUser != null) this.maxUsesPerUser = maxUsesPerUser;
             this.terms = terms;
+            if (availableToProviderEmployees != null) this.availableToProviderEmployees = availableToProviderEmployees;
             return this;
         }
 

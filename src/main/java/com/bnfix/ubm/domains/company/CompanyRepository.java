@@ -12,4 +12,8 @@ public interface CompanyRepository extends JpaRepository<Company, Long> {
 
     @Query("select distinct c from Company c join c.offeredBenefits b where b.id = :id")
     Optional<Company> findByBenefitId(@Param("id") Long benefitId);
+
+    @Modifying
+    @Query("update Benefit b set b.active = false where b.provider.id = :companyId")
+    int deactivateBenefits(@Param("companyId") Long companyId);
 }

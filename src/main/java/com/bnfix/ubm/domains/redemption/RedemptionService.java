@@ -1,6 +1,9 @@
 package com.bnfix.ubm.domains.redemption;
 
 import com.bnfix.ubm.domains.account.AccountRepository;
+import com.bnfix.ubm.domains.benefit.Benefit;
+import com.bnfix.ubm.domains.benefit.BenefitAccessPolicy;
+import com.bnfix.ubm.domains.benefit.BenefitRepository;
 import com.bnfix.ubm.domains.employee.Employee;
 import com.bnfix.ubm.domains.employee.EmployeeRepository;
 import com.bnfix.ubm.domains.manager.Manager;
@@ -8,8 +11,6 @@ import com.bnfix.ubm.domains.manager.ManagerRepository;
 import com.bnfix.ubm.domains.redemption.dto.RedemptionPreviewResponse;
 import com.bnfix.ubm.domains.redemption.dto.RedemptionResponse;
 import com.bnfix.ubm.domains.redemption.dto.RedemptionTokenResponse;
-import com.bnfix.ubm.domains.subscription.Subscription;
-import com.bnfix.ubm.domains.subscription.SubscriptionRepository;
 import com.bnfix.ubm.shared.security.AccessStatusGuard;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -31,9 +32,10 @@ public class RedemptionService {
     private final AccountRepository accountRepository;
     private final EmployeeRepository employeeRepository;
     private final ManagerRepository managerRepository;
-    private final SubscriptionRepository subscriptionRepository;
+    private final BenefitRepository benefitRepository;
     private final RedemptionTokenRepository redemptionTokenRepository;
     private final BenefitRedemptionRepository benefitRedemptionRepository;
+    private final BenefitAccessPolicy benefitAccessPolicy;
     private final SecureRandom random = new SecureRandom();
     private final String publicUrl;
 
@@ -41,34 +43,35 @@ public class RedemptionService {
             AccountRepository accountRepository,
             EmployeeRepository employeeRepository,
             ManagerRepository managerRepository,
-            SubscriptionRepository subscriptionRepository,
+            BenefitRepository benefitRepository,
             RedemptionTokenRepository redemptionTokenRepository,
             BenefitRedemptionRepository benefitRedemptionRepository,
+            BenefitAccessPolicy benefitAccessPolicy,
             @Value("${app.public-url:http://localhost:3000}") String publicUrl) {
         this.accountRepository = accountRepository;
         this.employeeRepository = employeeRepository;
         this.managerRepository = managerRepository;
-        this.subscriptionRepository = subscriptionRepository;
+        this.benefitRepository = benefitRepository;
         this.redemptionTokenRepository = redemptionTokenRepository;
         this.benefitRedemptionRepository = benefitRedemptionRepository;
+        this.benefitAccessPolicy = benefitAccessPolicy;
         this.publicUrl = publicUrl;
     }
 
     @Transactional
-    public RedemptionTokenResponse issue(String email, Long subscriptionId) {
+    public RedemptionTokenResponse issue(String email, Long benefitId) {
         Employee employee = findEmployee(email);
-        Subscription subscription = subscriptionRepository
-                .findOwnedWithBenefit(subscriptionId, employee.id)
-                .orElseThrow(() -> notFound("Subscription not found"));
+        Benefit benefit = benefitRepository
+                .findByIdWithProviderAndCategories(benefitId)
+                .orElseThrow(() -> notFound("Benefit not found"));
         LocalDateTime now = LocalDateTime.now();
-        if (!subscription.getBenefit().isOperationalAt(now))
-            throw new IllegalStateException("Benefit is not available");
-        validateUsageLimit(subscription);
-        redemptionTokenRepository.revokeActiveBySubscription(subscription.id);
+        benefitAccessPolicy.requireEligible(employee, benefit, now);
+        validateUsageLimit(employee, benefit);
+        redemptionTokenRepository.revokeActiveByEmployeeAndBenefit(employee.id, benefit.id);
         String rawToken = generateToken();
         LocalDateTime expiresAt = now.plusMinutes(3);
-        redemptionTokenRepository.save(new RedemptionToken(subscription, hash(rawToken), expiresAt));
-        log.info("Redemption token issued by employee {} for subscription {}", employee.id, subscriptionId);
+        redemptionTokenRepository.save(new RedemptionToken(employee, benefit, hash(rawToken), expiresAt));
+        log.info("Redemption token issued by employee {} for benefit {}", employee.id, benefitId);
         return new RedemptionTokenResponse(
                 rawToken, publicUrl.replaceAll("/$", "") + "/resgatar/" + rawToken, expiresAt);
     }
@@ -80,9 +83,9 @@ public class RedemptionService {
         verifyProvider(manager, token);
         return new RedemptionPreviewResponse(
                 true,
-                token.getSubscription().getBenefit().getName(),
-                token.getSubscription().getEmployee().getName(),
-                token.getSubscription().getBenefit().getProvider().getName(),
+                token.getBenefit().getName(),
+                token.getEmployee().getName(),
+                token.getBenefit().getProvider().getName(),
                 token.getExpiresAt(),
                 "Benefit ready to redeem");
     }
@@ -92,25 +95,27 @@ public class RedemptionService {
         Manager manager = findManager(managerEmail, companyId);
         RedemptionToken token = findValidToken(rawToken);
         verifyProvider(manager, token);
-        validateUsageLimit(token.getSubscription());
+        validateUsageLimit(token.getEmployee(), token.getBenefit());
         LocalDateTime now = LocalDateTime.now();
         if (redemptionTokenRepository.consumeIfActive(token.id, now) != 1)
             throw new IllegalStateException("Token expired or already used");
         BenefitRedemption redemption = benefitRedemptionRepository.save(new BenefitRedemption(
-                token.getSubscription(),
+                token.getEmployee(),
+                token.getBenefit(),
                 token,
-                token.getSubscription().getBenefit().getProvider(),
+                token.getBenefit().getProvider(),
+                token.getEmployee().getCompany(),
                 manager));
         log.info(
                 "Benefit redeemed by manager {} (redemption {}, benefit {}, employee {})",
                 manager.id,
                 redemption.id,
-                token.getSubscription().getBenefit().id,
-                token.getSubscription().getEmployee().id);
+                token.getBenefit().id,
+                token.getEmployee().id);
         return new RedemptionResponse(
                 redemption.id,
-                redemption.getSubscription().getBenefit().getName(),
-                redemption.getSubscription().getEmployee().getName(),
+                redemption.getBenefit().getName(),
+                redemption.getEmployee().getName(),
                 redemption.getRedeemedAt());
     }
 
@@ -121,21 +126,18 @@ public class RedemptionService {
         LocalDateTime now = LocalDateTime.now();
         if (token.getStatus() != RedemptionTokenStatus.ACTIVE
                 || !token.getExpiresAt().isAfter(now)) throw new IllegalStateException("Token expired or already used");
-        AccessStatusGuard.requireActive(token.getSubscription().getEmployee());
-        if (!token.getSubscription().getBenefit().isOperationalAt(now))
-            throw new IllegalStateException("Benefit is not available");
+        benefitAccessPolicy.requireEligible(token.getEmployee(), token.getBenefit(), now);
         return token;
     }
 
     private void verifyProvider(Manager manager, RedemptionToken token) {
-        if (!token.getSubscription().getBenefit().getProvider().id.equals(manager.getCompany().id))
+        if (!token.getBenefit().getProvider().id.equals(manager.getCompany().id))
             throw new SecurityException("This establishment cannot redeem the benefit");
     }
 
-    private void validateUsageLimit(Subscription subscription) {
-        if (benefitRedemptionRepository.countBySubscriptionId(subscription.id)
-                >= subscription.getBenefit().getMaxUsesPerUser())
-            throw new IllegalStateException("Benefit usage limit reached");
+    private void validateUsageLimit(Employee employee, Benefit benefit) {
+        if (benefitRedemptionRepository.countByEmployeeIdAndBenefitId(employee.id, benefit.id)
+                >= benefit.getMaxUsesPerUser()) throw new IllegalStateException("Benefit usage limit reached");
     }
 
     private Employee findEmployee(String email) {

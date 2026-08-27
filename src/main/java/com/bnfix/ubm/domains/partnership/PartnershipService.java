@@ -56,14 +56,14 @@ public class PartnershipService {
                 .findByIdWithProvider(id)
                 .orElseThrow(() -> new NoSuchElementException("Partnership not found"));
         tenantGuard.verifyManagerPartnershipProviderAccess(manager, partnership);
-        if ((partnership.getStatus() == PartnershipStatus.PENDING
-                        && (target == PartnershipStatus.ACTIVE || target == PartnershipStatus.REJECTED))
-                || (partnership.getStatus() == PartnershipStatus.ACTIVE && target == PartnershipStatus.DISABLED)) {
-            partnership.updateStatus(target);
-            log.info("Partnership {} transitioned to {} by manager {}", id, target, manager.id);
-            return response(partnership);
+        switch (target) {
+            case ACTIVE -> partnership.activate();
+            case REJECTED -> partnership.reject();
+            case DISABLED -> partnership.disable();
+            default -> throw new IllegalStateException("Invalid partnership status transition");
         }
-        throw new IllegalStateException("Invalid partnership status transition");
+        log.info("Partnership {} transitioned to {} by manager {}", id, target, manager.id);
+        return response(partnership);
     }
 
     @Transactional(readOnly = true)

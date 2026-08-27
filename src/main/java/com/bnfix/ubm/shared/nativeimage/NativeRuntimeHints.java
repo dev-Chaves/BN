@@ -16,12 +16,8 @@ import com.bnfix.ubm.domains.auth.dto.SwitchCompanyRequest;
 import com.bnfix.ubm.domains.benefit.Benefit;
 import com.bnfix.ubm.domains.benefit.dto.BenefitResponse;
 import com.bnfix.ubm.domains.benefit.dto.CreateBenefitRequest;
+import com.bnfix.ubm.domains.benefit.dto.EmployeeBenefitResponse;
 import com.bnfix.ubm.domains.benefit.dto.UpdateBenefitRequest;
-import com.bnfix.ubm.domains.benefitrequest.BenefitAccessRequest;
-import com.bnfix.ubm.domains.benefitrequest.BenefitAccessRequestStatus;
-import com.bnfix.ubm.domains.benefitrequest.dto.BenefitAccessRequestResponse;
-import com.bnfix.ubm.domains.benefitrequest.dto.CreateBenefitAccessRequest;
-import com.bnfix.ubm.domains.benefitrequest.dto.RejectBenefitAccessRequest;
 import com.bnfix.ubm.domains.category.Category;
 import com.bnfix.ubm.domains.category.dto.CategoryResponse;
 import com.bnfix.ubm.domains.company.Company;
@@ -55,10 +51,6 @@ import com.bnfix.ubm.domains.redemption.dto.RedemptionTokenResponse;
 import com.bnfix.ubm.domains.shared.domain.CNPJ;
 import com.bnfix.ubm.domains.shared.domain.CPF;
 import com.bnfix.ubm.domains.shared.enums.Role;
-import com.bnfix.ubm.domains.sharedbenefit.dto.SharedBenefitResponse;
-import com.bnfix.ubm.domains.subscription.Subscription;
-import com.bnfix.ubm.domains.subscription.dto.CreateSubscriptionRequest;
-import com.bnfix.ubm.domains.subscription.dto.SubscriptionResponse;
 import java.util.List;
 import org.springframework.aot.hint.MemberCategory;
 import org.springframework.aot.hint.RuntimeHints;
@@ -86,7 +78,6 @@ public final class NativeRuntimeHints implements RuntimeHintsRegistrar {
                 Announcement.class,
                 AnnouncementRecipient.class,
                 Benefit.class,
-                BenefitAccessRequest.class,
                 BenefitRedemption.class,
                 Category.class,
                 Company.class,
@@ -94,10 +85,8 @@ public final class NativeRuntimeHints implements RuntimeHintsRegistrar {
                 Manager.class,
                 Partnership.class,
                 RedemptionToken.class,
-                Subscription.class,
                 CPF.class,
                 CNPJ.class,
-                BenefitAccessRequestStatus.class,
                 EmployeeStatus.class,
                 PartnershipStatus.class,
                 RedemptionTokenStatus.class,
@@ -114,10 +103,8 @@ public final class NativeRuntimeHints implements RuntimeHintsRegistrar {
                 SwitchCompanyRequest.class,
                 BenefitResponse.class,
                 CreateBenefitRequest.class,
+                EmployeeBenefitResponse.class,
                 UpdateBenefitRequest.class,
-                BenefitAccessRequestResponse.class,
-                CreateBenefitAccessRequest.class,
-                RejectBenefitAccessRequest.class,
                 CategoryResponse.class,
                 CompanyResponse.class,
                 CreateCompanyRequest.class,
@@ -138,10 +125,7 @@ public final class NativeRuntimeHints implements RuntimeHintsRegistrar {
                 RedemptionPreviewResponse.class,
                 RedemptionResponse.class,
                 RedemptionTokenRequest.class,
-                RedemptionTokenResponse.class,
-                SharedBenefitResponse.class,
-                CreateSubscriptionRequest.class,
-                SubscriptionResponse.class);
+                RedemptionTokenResponse.class);
         for (TypeReference type : types) {
             hints.reflection().registerType(type, REFLECTION);
         }

@@ -7,7 +7,6 @@ import com.bnfix.ubm.domains.manager.*;
 import com.bnfix.ubm.domains.redemption.RedemptionTokenRepository;
 import com.bnfix.ubm.domains.shared.domain.CPF;
 import com.bnfix.ubm.domains.shared.enums.Role;
-import com.bnfix.ubm.domains.subscription.CompanyBenefitAssignmentService;
 import com.bnfix.ubm.shared.security.TenantGuard;
 import jakarta.transaction.Transactional;
 import java.util.List;
@@ -27,7 +26,6 @@ public class EmployeeService {
     private final TenantGuard tenantGuard;
     private final RedemptionTokenRepository redemptionTokenRepository;
     private final BCryptPasswordEncoder passwordEncoder;
-    private final CompanyBenefitAssignmentService companyBenefitAssignmentService;
 
     public EmployeeService(
             AccountRepository accountRepository,
@@ -36,8 +34,7 @@ public class EmployeeService {
             EmployeeRepository employeeRepository,
             TenantGuard tenantGuard,
             RedemptionTokenRepository redemptionTokenRepository,
-            BCryptPasswordEncoder passwordEncoder,
-            CompanyBenefitAssignmentService companyBenefitAssignmentService) {
+            BCryptPasswordEncoder passwordEncoder) {
         this.accountRepository = accountRepository;
         this.companyRepository = companyRepository;
         this.managerRepository = managerRepository;
@@ -45,7 +42,6 @@ public class EmployeeService {
         this.tenantGuard = tenantGuard;
         this.redemptionTokenRepository = redemptionTokenRepository;
         this.passwordEncoder = passwordEncoder;
-        this.companyBenefitAssignmentService = companyBenefitAssignmentService;
     }
 
     @Transactional
@@ -63,7 +59,6 @@ public class EmployeeService {
                 .build());
         Employee employee = employeeRepository.save(
                 Employee.builder(request.name(), company, account).build());
-        companyBenefitAssignmentService.assignActiveCompanyBenefits(employee);
         log.info("Employee {} created by manager {} in company {}", employee.id, manager.id, company.id);
         return response(employee);
     }

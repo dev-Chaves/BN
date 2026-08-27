@@ -5,7 +5,6 @@ import com.bnfix.ubm.domains.category.*;
 import com.bnfix.ubm.domains.category.dto.CategoryResponse;
 import com.bnfix.ubm.domains.company.*;
 import com.bnfix.ubm.domains.manager.*;
-import com.bnfix.ubm.domains.subscription.CompanyBenefitAssignmentService;
 import com.bnfix.ubm.shared.security.TenantGuard;
 import java.util.*;
 import lombok.extern.slf4j.Slf4j;
@@ -21,21 +20,18 @@ public class BenefitService {
     private final CategoryRepository categoryRepository;
     private final ManagerRepository managerRepository;
     private final TenantGuard tenantGuard;
-    private final CompanyBenefitAssignmentService companyBenefitAssignmentService;
 
     public BenefitService(
             BenefitRepository benefitRepository,
             CompanyRepository companyRepository,
             CategoryRepository categoryRepository,
             ManagerRepository managerRepository,
-            TenantGuard tenantGuard,
-            CompanyBenefitAssignmentService companyBenefitAssignmentService) {
+            TenantGuard tenantGuard) {
         this.benefitRepository = benefitRepository;
         this.companyRepository = companyRepository;
         this.categoryRepository = categoryRepository;
         this.managerRepository = managerRepository;
         this.tenantGuard = tenantGuard;
-        this.companyBenefitAssignmentService = companyBenefitAssignmentService;
     }
 
     @Transactional
@@ -51,7 +47,8 @@ public class BenefitService {
                         request.validFrom(),
                         request.validUntil(),
                         request.maxUsesPerUser(),
-                        request.terms())
+                        request.terms(),
+                        request.availableToProviderEmployees())
                 .build());
         log.info("Benefit {} created by manager {} for company {}", saved.id, manager.id, company.id);
         return response(saved);
@@ -107,7 +104,8 @@ public class BenefitService {
                 request.validFrom(),
                 request.validUntil(),
                 request.maxUsesPerUser(),
-                request.terms());
+                request.terms(),
+                request.availableToProviderEmployees());
         if (request.categoryIds() != null) benefit.updateCategories(fetch(request.categoryIds()));
         log.info("Benefit {} updated by manager {}", benefitId, manager.id);
         return response(benefit);
@@ -120,7 +118,6 @@ public class BenefitService {
         tenantGuard.verifyManagerCompanyAccess(manager, benefit.getProvider().id);
         if (active) {
             benefit.activeBenefit();
-            companyBenefitAssignmentService.assignBenefitToActiveEmployees(benefit);
         } else benefit.deactivateBenefit();
         log.info("Benefit {} {} by manager {}", benefitId, active ? "activated" : "deactivated", manager.id);
         return response(benefit);
@@ -176,6 +173,7 @@ public class BenefitService {
                 benefit.getPubliclyVisible(),
                 benefit.getValidUntil(),
                 benefit.getMaxUsesPerUser(),
+                benefit.getAvailableToProviderEmployees(),
                 benefit.getTerms(),
                 benefit.getCreatedAt(),
                 benefit.getCategories().stream()

@@ -2,10 +2,8 @@ package com.bnfix.ubm.domains.employee;
 
 import com.bnfix.ubm.domains.account.Account;
 import com.bnfix.ubm.domains.company.Company;
-import com.bnfix.ubm.domains.subscription.Subscription;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Entity
 @Table(name = "employees")
@@ -28,9 +26,6 @@ public class Employee {
 
     @Enumerated(EnumType.STRING)
     private EmployeeStatus active;
-
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "employee")
-    private List<Subscription> subscriptions;
 
     @Column(nullable = false, name = "created_at")
     private LocalDateTime createdAt;
@@ -58,10 +53,6 @@ public class Employee {
 
     public EmployeeStatus getActive() {
         return active;
-    }
-
-    public List<Subscription> getSubscriptions() {
-        return subscriptions;
     }
 
     public LocalDateTime getCreatedAt() {

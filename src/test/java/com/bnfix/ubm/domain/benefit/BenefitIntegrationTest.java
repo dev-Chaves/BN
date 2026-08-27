@@ -17,12 +17,13 @@ import org.springframework.boot.testcontainers.service.connection.ServiceConnect
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
-@Testcontainers
+@Testcontainers(disabledWithoutDocker = true)
 @SpringBootTest(properties = "spring.flyway.enabled=true")
 @ActiveProfiles("test")
 public class BenefitIntegrationTest {
@@ -36,6 +37,9 @@ public class BenefitIntegrationTest {
 
     @Autowired
     private CompanyRepository companyRepository;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     @BeforeEach
     void clean() {
@@ -143,6 +147,27 @@ public class BenefitIntegrationTest {
         Page<BenefitSearchProjection> benefits = benefitRepository.searchByDescriptionSimilarity("acad", pageable);
 
         assertThat(benefits.getTotalElements()).isEqualTo(0);
+    }
+
+    @Test
+    void migrationReplacesSubscriptionBasedAccessSchema() {
+        Integer removedTables = jdbcTemplate.queryForObject(
+                "select count(*) from information_schema.tables where table_schema='public' and table_name in ('subscriptions', 'benefit_access_requests')",
+                Integer.class);
+        Integer tokenColumns = jdbcTemplate.queryForObject(
+                "select count(*) from information_schema.columns where table_schema='public' and table_name='redemption_tokens' and column_name in ('employee_id', 'benefit_id')",
+                Integer.class);
+        Integer oldTokenColumn = jdbcTemplate.queryForObject(
+                "select count(*) from information_schema.columns where table_schema='public' and table_name='redemption_tokens' and column_name='subscription_id'",
+                Integer.class);
+        Integer redemptionColumns = jdbcTemplate.queryForObject(
+                "select count(*) from information_schema.columns where table_schema='public' and table_name='benefit_redemptions' and column_name in ('employee_id', 'benefit_id', 'beneficiary_company_id')",
+                Integer.class);
+
+        assertThat(removedTables).isZero();
+        assertThat(tokenColumns).isEqualTo(2);
+        assertThat(oldTokenColumn).isZero();
+        assertThat(redemptionColumns).isEqualTo(3);
     }
 
     private BenefitPublicResponse publicResponse(Benefit benefit) {

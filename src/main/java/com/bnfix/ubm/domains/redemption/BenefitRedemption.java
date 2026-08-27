@@ -1,8 +1,9 @@
 package com.bnfix.ubm.domains.redemption;
 
+import com.bnfix.ubm.domains.benefit.Benefit;
 import com.bnfix.ubm.domains.company.Company;
+import com.bnfix.ubm.domains.employee.Employee;
 import com.bnfix.ubm.domains.manager.Manager;
-import com.bnfix.ubm.domains.subscription.Subscription;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
@@ -15,8 +16,12 @@ public class BenefitRedemption {
     public Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "subscription_id", nullable = false)
-    private Subscription subscription;
+    @JoinColumn(name = "employee_id", nullable = false)
+    private Employee employee;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "benefit_id", nullable = false)
+    private Benefit benefit;
 
     @OneToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "token_id", nullable = false, unique = true)
@@ -25,6 +30,10 @@ public class BenefitRedemption {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "provider_company_id", nullable = false)
     private Company providerCompany;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "beneficiary_company_id", nullable = false)
+    private Company beneficiaryCompany;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "redeemed_by_manager_id", nullable = false)
@@ -36,10 +45,17 @@ public class BenefitRedemption {
     protected BenefitRedemption() {}
 
     public BenefitRedemption(
-            Subscription subscription, RedemptionToken token, Company providerCompany, Manager redeemedBy) {
-        this.subscription = subscription;
+            Employee employee,
+            Benefit benefit,
+            RedemptionToken token,
+            Company providerCompany,
+            Company beneficiaryCompany,
+            Manager redeemedBy) {
+        this.employee = employee;
+        this.benefit = benefit;
         this.token = token;
         this.providerCompany = providerCompany;
+        this.beneficiaryCompany = beneficiaryCompany;
         this.redeemedBy = redeemedBy;
     }
 
@@ -48,12 +64,28 @@ public class BenefitRedemption {
         redeemedAt = LocalDateTime.now();
     }
 
-    public Subscription getSubscription() {
-        return subscription;
+    public Employee getEmployee() {
+        return employee;
+    }
+
+    public Benefit getBenefit() {
+        return benefit;
     }
 
     public RedemptionToken getToken() {
         return token;
+    }
+
+    public Company getProviderCompany() {
+        return providerCompany;
+    }
+
+    public Company getBeneficiaryCompany() {
+        return beneficiaryCompany;
+    }
+
+    public Manager getRedeemedBy() {
+        return redeemedBy;
     }
 
     public LocalDateTime getRedeemedAt() {
