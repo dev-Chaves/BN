@@ -1,14 +1,7 @@
-FROM ghcr.io/graalvm/native-image-community:25 AS build
-WORKDIR /app
-
-COPY pom.xml .
-COPY .mvn .mvn
-COPY mvnw .
-RUN ./mvnw -B dependency:go-offline
-
-COPY src src
-RUN ./mvnw -B -DskipTests -Pnative native:compile
-
+# O binário nativo é compilado no runner do CI (.github/workflows/deploy.yaml)
+# antes deste build. Este Dockerfile apenas empacota o binário pré-compilado —
+# NÃO recompila o native image. Para build local (docker-compose), use o
+# Dockerfile da raiz, que compila em multi-stage.
 FROM debian:bookworm-slim
 WORKDIR /app
 RUN apt-get update \
@@ -17,6 +10,6 @@ RUN apt-get update \
 RUN groupadd --system spring \
     && useradd --system --gid spring spring
 USER spring:spring
-COPY --from=build /app/target/ubm /app/ubm
+COPY target/ubm /app/ubm
 EXPOSE 8080
 ENTRYPOINT ["/app/ubm"]
