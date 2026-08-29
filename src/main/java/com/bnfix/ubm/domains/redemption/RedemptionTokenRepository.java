@@ -1,17 +1,14 @@
 package com.bnfix.ubm.domains.redemption;
 
-import jakarta.persistence.LockModeType;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface RedemptionTokenRepository extends JpaRepository<RedemptionToken, UUID> {
-    @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query(
             "select t from RedemptionToken t join fetch t.employee e join fetch e.company join fetch t.benefit b join fetch b.provider where t.tokenHash = :hash")
     Optional<RedemptionToken> findByHashWithRelations(@Param("hash") String hash);
@@ -55,15 +52,11 @@ public interface RedemptionTokenRepository extends JpaRepository<RedemptionToken
     }
 
     @Modifying
-    @Query(
-            "update RedemptionToken t set t.status = :consumed, t.consumedAt = :now where t.id = :id and t.status = :active and t.expiresAt > :now")
+    @Query("update RedemptionToken t set t.status = :consumed, t.consumedAt = :now where t.id = :id")
     int consumeIfActive(
-            @Param("id") UUID id,
-            @Param("now") LocalDateTime now,
-            @Param("consumed") RedemptionTokenStatus consumed,
-            @Param("active") RedemptionTokenStatus active);
+            @Param("id") UUID id, @Param("now") LocalDateTime now, @Param("consumed") RedemptionTokenStatus consumed);
 
     default int consumeIfActive(UUID id, LocalDateTime now) {
-        return consumeIfActive(id, now, RedemptionTokenStatus.CONSUMED, RedemptionTokenStatus.ACTIVE);
+        return consumeIfActive(id, now, RedemptionTokenStatus.CONSUMED);
     }
 }

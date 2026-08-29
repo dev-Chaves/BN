@@ -91,8 +91,11 @@ inesperados:               0
 O k6 imprime no stdout o token bruto emitido no `setup()`. Para as queries 1 e 2, calcule o hash:
 
 ```bash
-# macOS (shasum) — no Linux, use sha256sum
-printf '%s' '<token-bruto>' | shasum -a 256 | cut -d' ' -f1
+# macOS (shasum) — no Linux, use sha256sum.
+# ATENÇÃO: a linha de log termina com `" source=console` — extraia só o token
+# (43 caracteres base64url), sem o sufixo do logfmt:
+token=$(grep -o 'token bruto.*' results/lock-50-1.log | head -1 | sed 's/.*hash): //; s/" source=console$//')
+printf '%s' "$token" | shasum -a 256 | cut -d' ' -f1
 psql "$DATABASE_URL" -v token_hash=<hash> -v recent=50 -f verify.sql
 ```
 
@@ -116,12 +119,28 @@ Branch dedicada removendo **duas** das três proteções; restará apenas a `UNI
    ```
    (ajustar o `default` correspondente).
 4. `./mvnw spotless:apply && ./mvnw compile && ./mvnw test`
-5. Build/deploy no ambiente de teste (mesmo comando do passo 1) e repetir a bateria do passo 3
-   usando `RUN_ID=nolock-...`.
+5. Deploy temporário na produção **sem tocar na main** (o `deploy.yaml` tem `workflow_dispatch`
+   e o checkout usa o ref disparado):
+   ```bash
+   gh workflow run deploy.yaml --ref experiment/no-lock   # builda a branch e promove na prod
+   gh run watch                                           # ~10–15 min
+   ```
+6. Repetir a bateria do passo 3 com `RUN_ID=nolock-...` contra a produção. Critério de rodada
+   válida muda: `confirmados == 1`, `429 == 0`, `5xx == 0` — **400 e 409 são resultados
+   esperados** (a distribuição entre eles é dado do experimento).
+7. Rollback imediato (segundos, não depende de rebuild):
+   ```bash
+   docker stop bn-api && docker rm bn-api
+   docker stop bn-api-previous && docker rename bn-api-previous bn-api && docker start bn-api
+   ```
 
-Diferença esperada: as rejeições migram de **400** (CAS recusou) para **409** (violação de unicidade
-detectada pelo banco, `DataIntegrityViolationException`), com impacto observável em latência
-p95/p99 — é esse trade-off que o experimento documenta.
+Diferença esperada: sem lock/CAS, a leitura vê o token `ACTIVE` em corridas simultâneas e o
+`UPDATE` incondicional não recusa ninguém — a rejeição passa a ocorrer na **inserção do
+resgate** (`409`, `DataIntegrityViolationException` → mapeado pelo `GlobalExceptionHandler`)
+quando dois requests colidem na `UNIQUE`, ou no `400` quando o perdedor lê o token já
+`CONSUMED`. Impacto observável em latência p95/p99 e na proporção 400/409 — é esse trade-off
+que o experimento documenta. Bônus: sem `FOR UPDATE`, o `preview` volta a funcionar
+(read-only não é mais violado), confirmando a causa raiz do bug 500.
 
 ## 6. Consolidar
 
@@ -160,9 +179,10 @@ A linha decodificada contém status, duração, VU/iteração e corpo da respost
 
 ```bash
 # Extrair as respostas de uma rodada para NDJSON
+# (o base64 do macOS descarta as quebras de linha do grep — normalize com jq -c)
 grep -oE 'msg="BN-RESP [A-Za-z0-9+/=]+"' results/lock-50-1.log \
   | sed -E 's/msg="BN-RESP //; s/"$//' \
-  | base64 --decode > results/lock-50-1-responses.ndjson
+  | base64 --decode | jq -c . > results/lock-50-1-responses.ndjson
 
 # Contagem por status
 jq -s 'group_by(.status) | map({status: .[0].status, total: length})' results/lock-50-1-responses.ndjson
@@ -210,3 +230,56 @@ a comparação de latência entre variantes. Recomendações:
   ```
 
 - Registre no resumo expandido qual origem foi usada para os números de latência reportados.
+
+## 7. Resultados — execução de 2026-08-29 (variante com proteções)
+
+Ambiente: `https://api.bnfix.com.br` (produção, EC2 + Postgres RDS), origem do tráfego =
+máquina local do autor (WAN). Rate limits de `/redemptions/*` elevados via env no container
+(sem 429 nas 16 rodadas). Seed: benefitId 352, sufixo `1788010364`. Validação por rodada:
+`confirmados == 1` **e** `409 + 429 + inesperados == 0`; rodadas inválidas são repetidas
+(nenhuma precisou de repetição).
+
+| run | conf | 400 | 409 | 429 | 5xx | p95 conf (ms) | med conf (ms) | p95 rej (ms) | med rej (ms) |
+|---|---|---|---|---|---|---|---|---|---|
+| lock-1-1   | 1 | 0  | 0 | 0 | 0 | 169 | 169 | —   | —   |
+| lock-2-1…5 | 1 | 1  | 0 | 0 | 0 | 135–182 | 135–155 | 141–161 | 141–161 |
+| lock-10-1…5| 1 | 9  | 0 | 0 | 0 | 134–143 | 134–143 | 152–159 | 144–149 |
+| lock-50-1…5| 1 | 49 | 0 | 0 | 0 | 135–179 | 135–179 | 196–311 | 173–268 |
+
+### Estatísticas agregadas por nível (todas as repetições, via NDJSON)
+
+| nível | classe | n | p50 | p95 | min | max |
+|---|---|---|---|---|---|---|
+| 2 | confirmados | 5 | 142 | 182 | 135 | 182 |
+| 2 | rejeitados | 5 | 152 | 161 | 142 | 161 |
+| 10 | confirmados | 5 | 137 | 143 | 134 | 143 |
+| 10 | rejeitados | 45 | 149 | 157 | 133 | 160 |
+| 50 | confirmados | 5 | 140 | 179 | 136 | 179 |
+| 50 | rejeitados | 245 | 197 | 294 | 135 | 320 |
+
+### Leitura dos dados
+
+- **Unicidade: 16/16 rodadas com exatamente 1 confirmado e 0 duplicações.** A restrição de uso
+  único se manteve em todos os níveis testados (até 50 consumidores simultâneos).
+- `409` nunca ocorreu: nas rejeições, o **lock pessimista e/ou o CAS** sempre atuou antes da
+  restrição `UNIQUE` — a restrição é a última linha de defesa, não o mecanismo de rejeição.
+- Latência dos **confirmados** é estável entre níveis (p50 ~137–142 ms): o vencedor do lock é
+  atendido no primeiro turno. A latência dos **rejeitados** cresce com a concorrência
+  (152 → 149 → 197 ms de p50; p95 161 → 157 → 294 ms): efeito da fila no `SELECT … FOR UPDATE`
+  somado à espera na fila de requisições do Tomcat.
+- Latência absoluta inclui WAN (ver nota metodológica acima); para o artigo, comparar apenas
+  entre classes/variantes com a mesma origem, ou reexecutar na EC2 para números de servidor.
+
+### Pendências documentadas
+
+1. **Verificação no banco** (`verify.sql`) com os hashes de `results/token-hashes.csv`
+   (16 tokens): confirmar 1 redemption por token e 0 duplicações globais. Requer cliente psql
+   (não instalado na máquina local — usar DBeaver/pgAdmin ou instalar psql).
+2. **Variante sem lock** (seção 5): branch `experiment/no-lock`, reexecutar a bateria e
+   comparar (rejeições devem migrar de 400 para 409).
+3. **Bug de produção — `preview` 500**: `POST /redemptions/provider/preview` retorna 500 com
+   payload e permissões corretos (reproduzido 3×, incl. smoke test do seed). Hipótese:
+   `@Transactional(readOnly = true)` + `@Lock(PESSIMISTIC_WRITE)` no `findByHashWithRelations`
+   — PostgreSQL rejeita `SELECT … FOR UPDATE` em transação read-only; nos testes JVM o preview
+   entra na transação read-write já aberta pelo teste, mascarando o erro. Corrigir (remover
+   `readOnly` ou usar consulta sem lock no preview) e revalidar o smoke do seed.
