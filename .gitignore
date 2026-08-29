@@ -43,3 +43,7 @@ src/main/resources/publicKey.pem
 .env
 .quarkus/
 postman/
+
+# Artefatos do experimento de concorrência (logs/sumários de carga)
+experiments/results/
+experiments/seed-result.json
