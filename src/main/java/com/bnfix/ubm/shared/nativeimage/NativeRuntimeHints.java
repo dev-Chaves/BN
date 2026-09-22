@@ -64,12 +64,21 @@ public final class NativeRuntimeHints implements RuntimeHintsRegistrar {
     @Override
     public void registerHints(RuntimeHints hints, ClassLoader classLoader) {
         registerArrayTypes(hints);
+        registerFlywayTypes(hints);
         registerDomainTypes(hints);
     }
 
     private void registerArrayTypes(RuntimeHints hints) {
         hints.reflection().registerType(TypeReference.of("java.util.UUID[]"), REFLECTION);
         hints.reflection().registerType(TypeReference.of("java.lang.Long[]"), REFLECTION);
+    }
+
+    private void registerFlywayTypes(RuntimeHints hints) {
+        hints.reflection()
+                .registerType(
+                        TypeReference.of(
+                                "org.flywaydb.core.internal.exception.sqlExceptions.FlywaySqlNoIntegratedAuthException"),
+                        REFLECTION);
     }
 
     private void registerDomainTypes(RuntimeHints hints) {
