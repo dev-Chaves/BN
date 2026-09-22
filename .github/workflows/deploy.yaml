@@ -52,7 +52,7 @@ jobs:
       - name: Teste e deploy via SSH
         uses: appleboy/ssh-action@v1.2.0
         with:
-          host: ec2-18-222-189-80.us-east-2.compute.amazonaws.com
+          host: ${{ secrets.EC2_HOST }}
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
           port: 22
