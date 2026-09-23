@@ -74,11 +74,19 @@ public final class NativeRuntimeHints implements RuntimeHintsRegistrar {
     }
 
     private void registerFlywayTypes(RuntimeHints hints) {
-        hints.reflection()
-                .registerType(
-                        TypeReference.of(
-                                "org.flywaydb.core.internal.exception.sqlExceptions.FlywaySqlNoIntegratedAuthException"),
-                        REFLECTION);
+        List<TypeReference> types = List.of(
+                TypeReference.of("org.flywaydb.core.internal.exception.FlywaySqlException"),
+                TypeReference.of(
+                        "org.flywaydb.core.internal.exception.sqlExceptions.FlywaySqlServerUntrustedCertificateSqlException"),
+                TypeReference.of(
+                        "org.flywaydb.core.internal.exception.sqlExceptions.FlywaySqlNoIntegratedAuthException"),
+                TypeReference.of(
+                        "org.flywaydb.core.internal.exception.sqlExceptions.FlywaySqlNoDriversForInteractiveAuthException"),
+                TypeReference.of(
+                        "org.flywaydb.core.internal.exception.sqlExceptions.FlywaySqlUnableToConnectToDbException"));
+        for (TypeReference type : types) {
+            hints.reflection().registerType(type, REFLECTION);
+        }
     }
 
     private void registerDomainTypes(RuntimeHints hints) {
