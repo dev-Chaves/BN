@@ -22,6 +22,8 @@ public class RateLimitFilter extends OncePerRequestFilter {
     private final int authPerMinute;
     private final int onboardingPerSecond;
     private final int onboardingPerMinute;
+    private final int enrollmentPerSecond;
+    private final int enrollmentPerMinute;
     private final int redemptionPerSecond;
     private final int redemptionPerMinute;
 
@@ -30,12 +32,16 @@ public class RateLimitFilter extends OncePerRequestFilter {
             @Value("${app.rate-limit.auth.per-minute:30}") int authPerMinute,
             @Value("${app.rate-limit.onboarding.per-second:2}") int onboardingPerSecond,
             @Value("${app.rate-limit.onboarding.per-minute:10}") int onboardingPerMinute,
+            @Value("${app.rate-limit.enrollment.per-second:20}") int enrollmentPerSecond,
+            @Value("${app.rate-limit.enrollment.per-minute:600}") int enrollmentPerMinute,
             @Value("${app.rate-limit.redemption.per-second:10}") int redemptionPerSecond,
             @Value("${app.rate-limit.redemption.per-minute:120}") int redemptionPerMinute) {
         this.authPerSecond = authPerSecond;
         this.authPerMinute = authPerMinute;
         this.onboardingPerSecond = onboardingPerSecond;
         this.onboardingPerMinute = onboardingPerMinute;
+        this.enrollmentPerSecond = enrollmentPerSecond;
+        this.enrollmentPerMinute = enrollmentPerMinute;
         this.redemptionPerSecond = redemptionPerSecond;
         this.redemptionPerMinute = redemptionPerMinute;
     }
@@ -72,6 +78,8 @@ public class RateLimitFilter extends OncePerRequestFilter {
             return new Rule("auth", authPerSecond, authPerMinute);
         if ("POST".equalsIgnoreCase(request.getMethod()) && "/onboarding".equals(path))
             return new Rule("onboarding", onboardingPerSecond, onboardingPerMinute);
+        if ("POST".equalsIgnoreCase(request.getMethod()) && "/companies/event/enroll".equals(path))
+            return new Rule("enrollment", enrollmentPerSecond, enrollmentPerMinute);
         if ("POST".equalsIgnoreCase(request.getMethod()) && path.startsWith("/redemptions/"))
             return new Rule("redemption", redemptionPerSecond, redemptionPerMinute);
         return null;

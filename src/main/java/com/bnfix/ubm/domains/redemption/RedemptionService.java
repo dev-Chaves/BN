@@ -38,6 +38,7 @@ public class RedemptionService {
     private final BenefitAccessPolicy benefitAccessPolicy;
     private final SecureRandom random = new SecureRandom();
     private final String publicUrl;
+    private final long tokenTtlMinutes;
 
     public RedemptionService(
             AccountRepository accountRepository,
@@ -47,7 +48,8 @@ public class RedemptionService {
             RedemptionTokenRepository redemptionTokenRepository,
             BenefitRedemptionRepository benefitRedemptionRepository,
             BenefitAccessPolicy benefitAccessPolicy,
-            @Value("${app.public-url:http://localhost:3000}") String publicUrl) {
+            @Value("${app.public-url:http://localhost:3000}") String publicUrl,
+            @Value("${app.redemption.token-ttl-minutes:3}") long tokenTtlMinutes) {
         this.accountRepository = accountRepository;
         this.employeeRepository = employeeRepository;
         this.managerRepository = managerRepository;
@@ -56,6 +58,7 @@ public class RedemptionService {
         this.benefitRedemptionRepository = benefitRedemptionRepository;
         this.benefitAccessPolicy = benefitAccessPolicy;
         this.publicUrl = publicUrl;
+        this.tokenTtlMinutes = tokenTtlMinutes;
     }
 
     @Transactional
@@ -69,7 +72,7 @@ public class RedemptionService {
         validateUsageLimit(employee, benefit);
         redemptionTokenRepository.revokeActiveByEmployeeAndBenefit(employee.id, benefit.id);
         String rawToken = generateToken();
-        LocalDateTime expiresAt = now.plusMinutes(3);
+        LocalDateTime expiresAt = now.plusMinutes(tokenTtlMinutes);
         redemptionTokenRepository.save(new RedemptionToken(employee, benefit, hash(rawToken), expiresAt));
         log.info("Redemption token issued by employee {} for benefit {}", employee.id, benefitId);
         return new RedemptionTokenResponse(

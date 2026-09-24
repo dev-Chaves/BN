@@ -43,6 +43,8 @@ management:
 
 app:
   public-url: ${APP_PUBLIC_URL:http://localhost:3000}
+  event:
+    company-id: ${EVENT_COMPANY_ID:0}
   cookie:
     secure: ${COOKIE_SECURE:true}
     domain: ${COOKIE_DOMAIN:.bnfix.com.br}
@@ -53,6 +55,8 @@ app:
     expiration: PT3H
     public-key: ${JWT_PUBLIC_KEY_PATH:/opt/bn/secrets/publicKey.pem}
     private-key: ${JWT_PRIVATE_KEY_PATH:/opt/bn/secrets/privateKey.pem}
+  redemption:
+    token-ttl-minutes: ${REDEMPTION_TOKEN_TTL_MINUTES:3}
   rate-limit:
     auth:
       per-second: ${AUTH_RATE_LIMIT_USES_SECOND:5}
@@ -60,6 +64,9 @@ app:
     onboarding:
       per-second: ${ONBOARDING_RATE_LIMIT_USES_SECOND:2}
       per-minute: ${ONBOARDING_RATE_LIMIT_USES_MINUTE:10}
+    enrollment:
+      per-second: ${ENROLLMENT_RATE_LIMIT_USES_SECOND:20}
+      per-minute: ${ENROLLMENT_RATE_LIMIT_USES_MINUTE:600}
     redemption:
       per-second: ${REDEMPTION_RATE_LIMIT_USES_SECOND:10}
       per-minute: ${REDEMPTION_RATE_LIMIT_USES_MINUTE:120}

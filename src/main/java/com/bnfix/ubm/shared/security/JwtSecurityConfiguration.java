@@ -158,6 +158,7 @@ public class JwtSecurityConfiguration {
                 .authorizeHttpRequests(auth -> auth.requestMatchers(
                                 "/auth/login",
                                 "/onboarding",
+                                "/companies/event/enroll",
                                 "/actuator/health",
                                 "/error",
                                 "/benefits/public/*",

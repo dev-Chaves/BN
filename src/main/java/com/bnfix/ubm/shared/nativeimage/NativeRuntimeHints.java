@@ -30,6 +30,8 @@ import com.bnfix.ubm.domains.employee.EmployeeStatus;
 import com.bnfix.ubm.domains.employee.dto.CreateEmployeeRequest;
 import com.bnfix.ubm.domains.employee.dto.EmployeeResponse;
 import com.bnfix.ubm.domains.employee.dto.UpdateEmployeeRequest;
+import com.bnfix.ubm.domains.enrollment.dto.EnrollmentRequest;
+import com.bnfix.ubm.domains.enrollment.dto.EnrollmentResponse;
 import com.bnfix.ubm.domains.manager.Manager;
 import com.bnfix.ubm.domains.manager.dto.ChangeManagerPasswordRequest;
 import com.bnfix.ubm.domains.manager.dto.CreateManagerRequest;
@@ -130,6 +132,8 @@ public final class NativeRuntimeHints implements RuntimeHintsRegistrar {
                 CreateEmployeeRequest.class,
                 EmployeeResponse.class,
                 UpdateEmployeeRequest.class,
+                EnrollmentRequest.class,
+                EnrollmentResponse.class,
                 ChangeManagerPasswordRequest.class,
                 CreateManagerRequest.class,
                 ManagerResponse.class,
