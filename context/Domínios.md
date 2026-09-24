@@ -7,9 +7,8 @@ Account 1 ── N Manager N ── 1 Company
 Account 1 ── 1 Employee N ── 1 Company
 Company 1 ── N Benefit N ── N Category
 Company(client) 1 ── N Partnership N ── 1 Benefit(provider)
-Employee 1 ── N Subscription N ── 1 Benefit
-Employee 1 ── N BenefitAccessRequest N ── 1 Benefit
-Subscription 1 ── N RedemptionToken ── 0..1 BenefitRedemption
+Employee 1 ── N RedemptionToken N ── 1 Benefit
+RedemptionToken 1 ── 0..1 BenefitRedemption
 Company 1 ── N Announcement 1 ── N AnnouncementRecipient
 ```
 
@@ -36,21 +35,15 @@ PENDING ──→ ACTIVE ──→ DISABLED
     └─────→ REJECTED
 ```
 
-Somente o tenant provedor revisa a solicitação. Uma parceria ativa torna o benefício elegível para assinatura pelos funcionários da empresa cliente.
+Somente o tenant provedor revisa a solicitação. Uma parceria ativa torna o benefício elegível para resgate pelos funcionários da empresa cliente.
 
-## Subscription e compartilhamento
+## Enrollment (auto-cadastro de evento)
 
-`Subscription` liga funcionário e benefício, com unicidade por par. Benefícios próprios ativos são atribuídos a funcionários ativos. Para benefício externo, a assinatura direta exige parceria ativa entre a empresa do funcionário e o benefício.
-
-`SharedBenefitService` separa benefícios disponíveis daqueles já associados ao funcionário.
-
-## Solicitação individual
-
-`BenefitAccessRequest` permite ao funcionário solicitar um benefício externo quando ainda não possui acesso. Não aceita benefício próprio, indisponível, já associado ou solicitação pendente duplicada. O provedor aprova ou rejeita; aprovação cria a associação necessária. Estados: `PENDING`, `APPROVED`, `REJECTED`.
+O funcionário pode ser criado por um caminho público de evento: `POST /companies/event/enroll` cria a conta (`USER`) e o vínculo `Employee` **já ativo** na empresa configurada em `app.event.company-id`. Diferente do fluxo de gestão, não passa por gestor nem por ativação manual — é o único caminho público de criação de funcionário. Quando `app.event.company-id` é `0` ou a empresa está inativa, o endpoint fica indisponível.
 
 ## Redemption
 
-O funcionário emite token aleatório para uma assinatura própria. Apenas o hash é persistido. O token expira em três minutos, pode ser pré-visualizado e é consumido uma vez pelo gestor da empresa provedora. O consumo registra `BenefitRedemption` e respeita disponibilidade e `maxUsesPerUser`.
+O funcionário emite token aleatório para um benefício elegível; apenas o hash é persistido. O token expira em `REDEMPTION_TOKEN_TTL_MINUTES` (padrão três minutos), pode ser pré-visualizado e é consumido uma vez pelo gestor da empresa provedora. Só existe um token ativo por par (funcionário, benefício): emitir novamente revoga o anterior. O consumo registra `BenefitRedemption` e respeita disponibilidade e `maxUsesPerUser`.
 
 Estados do token: `ACTIVE`, `CONSUMED`, `EXPIRED`.
 

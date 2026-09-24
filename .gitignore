@@ -46,4 +46,8 @@ postman/
 
 # Artefatos do experimento de concorrência (logs/sumários de carga)
 experiments/results/
+experiments/results-nolock/
 experiments/seed-result.json
+
+### Claude Code (tooling local) ###
+.claude/

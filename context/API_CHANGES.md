@@ -6,6 +6,48 @@
 
 ---
 
+## Atualização — Inscrição de evento e TTL de token (23/09/2026)
+
+> **Base:** commit `c8aee0e` · **Audiência:** time frontend · **Breaking changes:** nenhuma.
+
+### Novo endpoint — `POST /companies/event/enroll` (público)
+
+Auto-cadastro de participante do evento: cria uma conta `USER` e um `Employee` **já ativo** na empresa configurada no backend (`EVENT_COMPANY_ID`). Não há gestor no fluxo e **não há auto-login** — após o `201`, redirecione para `/login`.
+
+**Request:**
+
+```json
+{ "name": "Maria Silva", "cpf": "12345678909", "email": "maria@exemplo.com", "password": "senha-forte-1" }
+```
+
+**Response 201:**
+
+```json
+{ "employeeId": 1, "name": "Maria Silva", "companyId": 5, "companyName": "Evento", "status": "ACTIVE" }
+```
+
+**Erros:** `400` corpo inválido ou CPF inválido; `404` evento não configurado/inativo (`Enrollment not available`); `409` e-mail/CPF já usados; `429` rate limit.
+
+### TTL do token de resgate agora é configurável
+
+- O QR/token de resgate deixa de ter 3 minutos fixos: passa a vir de `REDEMPTION_TOKEN_TTL_MINUTES` (default `3`).
+- **Sem mudança de contrato** em `POST /redemptions/benefits/{benefitId}/token` (`{token, redemptionUrl, expiresAt}` continua igual).
+- Continua valendo: 1 token ativo por par (funcionário, benefício); emitir de novo revoga o anterior.
+
+### Rate limit
+
+- `POST /companies/event/enroll` entra no rate limit em memória (default `20`/s e `600`/min por IP, ajustável por `ENROLLMENT_RATE_LIMIT_USES_SECOND` / `ENROLLMENT_RATE_LIMIT_USES_MINUTE`). Excedeu → `429`.
+
+### Checklist do frontend
+
+- [ ] Tela pública de cadastro do evento chamando `POST /companies/event/enroll` (nome, CPF, e-mail, senha).
+- [ ] Enviar CPF **sem máscara** (11 dígitos); senha com 10–72 caracteres.
+- [ ] Após `201`, redirecionar para o login com mensagem de sucesso (não há auto-login).
+- [ ] Tratar `400`/`404`/`409`/`429` usando o campo `message`.
+- [ ] Login segue `POST /auth/login` (perfil no body + cookie `jwt` httpOnly; sem token no body).
+
+---
+
 ## TL;DR — Breaking changes
 
 | # | Mudança | Impacto no frontend |

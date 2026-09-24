@@ -9,7 +9,7 @@
 O **Benefix** é uma plataforma B2B SaaS que centraliza a gestão e descoberta de benefícios corporativos. Ele resolve dois problemas simultâneos:
 
 1. **Para empresas (Managers/RH):** eliminar o processo manual e fragmentado de contratar benefícios para funcionários e fechar parcerias com outras empresas.
-2. **Para funcionários (Employees):** ter um único lugar para visualizar todos os benefícios disponíveis, solicitar adesão e consultar informações da empresa.
+2. **Para funcionários (Employees):** ter um único lugar para visualizar os benefícios disponíveis para a sua empresa e usá-los via QR Code.
 
 ---
 
@@ -43,7 +43,7 @@ O principal diferencial do Benefix é a **Vitrine de Benefícios**:
 |---|---|---|
 | Administrador da plataforma | `ADMIN` | Gerencia empresas, configurações gerais |
 | Gestor / RH da empresa | `MANAGER` | Cadastra benefícios, gerencia parcerias, aprova funcionários |
-| Funcionário | `USER` | Visualiza benefícios, solicita adesão (Subscription) |
+| Funcionário | `USER` | Visualiza os benefícios elegíveis (derivados de parcerias ativas) e usa via QR Code |
 
 ---
 
@@ -59,7 +59,7 @@ O principal diferencial do Benefix é a **Vitrine de Benefícios**:
 
 - Chatbot integrado (Rômulo) para consultas sobre benefícios e regras da empresa → [[ChatBot]]
 - QR Code / código individual para validação do benefício no momento do uso
-- Notificações ao gestor quando funcionário solicita um benefício
+- Notificações de adoção e uso para gestores e funcionários
 - Dashboard para métricas de uso por empresa
 
 ---

@@ -1,6 +1,6 @@
 # Roadmap técnico e de produto
 
-Este roadmap parte do estado implementado em 24/08/2026. Priorização sugerida, não compromisso de entrega.
+Este roadmap parte do estado implementado em 23/09/2026. Priorização sugerida, não compromisso de entrega.
 
 ## P0 — Confiabilidade antes de ampliar o produto
 
@@ -24,7 +24,7 @@ Este roadmap parte do estado implementado em 24/08/2026. Priorização sugerida,
 3. Adicionar dashboard de adoção, solicitações, benefícios e consumo por tenant.
 4. Definir expiração/cancelamento de subscriptions e impacto de parceria/benefício desativado.
 5. Evoluir pesquisa do marketplace com categorias públicas, ranking e filtros explícitos.
-6. Avaliar convites e recuperação de senha em vez de senha definida pelo gestor.
+6. Avaliar convites e recuperação de senha em vez de senha definida pelo gestor — o auto-cadastro público de evento já cobre o caso do participante; faltam convite por empresa e recuperação de senha.
 
 ## P3 — Chatbot/MCP
 

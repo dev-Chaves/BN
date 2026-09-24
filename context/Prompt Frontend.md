@@ -2,6 +2,9 @@
 
 > Arquivo de referência para gerar ou instruir um agente/LLM a construir o frontend completo do Benefix.
 
+> [!WARNING]
+> **Parcialmente desatualizado (revisão de 23/09/2026).** Os contratos abaixo que citam `{ token }` no body, `localStorage`, `Subscription`, `/shared-benefits`, `/benefit-requests` e `/checkin/*` **não existem mais**. A fonte de verdade é [`API.md`](API.md) e [`API_CHANGES.md`](API_CHANGES.md). Correções principais: autenticação por **cookie `jwt` httpOnly** (sem token no body, sem `localStorage`); acesso do funcionário derivado de parcerias (`GET /benefits/me`); resgate por `POST /redemptions/benefits/{benefitId}/token` (QR com TTL configurável); validação pelo provedor via `/redemptions/provider/*`; e **auto-cadastro público de evento** em `POST /companies/event/enroll`.
+
 ---
 
 ## Contexto do Projeto
@@ -82,10 +85,13 @@ E use `font-heading` em todos os títulos (`<h1>`, `<h2>`, `CardTitle`, headers 
 
 ```
 POST /auth/login  { email, password }
-→ Response: { token: "eyJ..." }
-→ Salvar token no localStorage (ou cookie httpOnly)
-→ No browser, enviar credenciais/cookies (`credentials: "include"`). O token não deve ficar acessível ao JavaScript. Bearer token é suportado para clientes não-browser.
+→ Response: perfil (AuthMeResponse) no body e cookie `jwt` httpOnly setado pelo servidor
+→ NÃO há token no body e o JS NÃO consegue ler o cookie
+→ Enviar credenciais/cookies (`credentials: "include"` no fetch / `withCredentials: true` no axios)
+→ Restaurar sessão no reload com GET /auth/me; logout com POST /auth/logout
 ```
+
+O cookie é `SameSite=Strict` + `Domain=.bnfix.com.br`: o front precisa estar no mesmo site da API e a origem deve estar em `CORS_ALLOWED_ORIGINS`. Nunca guarde token em `localStorage`.
 
 ### Três Roles com Experiências Distintas
 
@@ -456,19 +462,13 @@ import axios from 'axios'
 
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080',
-})
-
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('benefix_token')
-  if (token) config.headers.Authorization = `Bearer ${token}`
-  return config
+  withCredentials: true, // envia o cookie httpOnly `jwt`; não há token acessível ao JS
 })
 
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('benefix_token')
       window.location.href = '/login'
     }
     return Promise.reject(error)

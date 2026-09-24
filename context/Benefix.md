@@ -1,6 +1,6 @@
 # Documentação Benefix BN
 
-Contexto de produto e documentação técnica do backend. O estado implementado foi revisado em **24 de agosto de 2026** contra código, migrations e configurações.
+Contexto de produto e documentação técnica do backend. O estado implementado foi revisado em **23 de setembro de 2026** contra código, migrations e configurações.
 
 ## Comece aqui
 

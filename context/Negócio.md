@@ -155,9 +155,8 @@ Funcionário declara uso no app → sistema registra
 ```
 CheckIn {
   id
-  subscription       → Subscription (quem está usando)
+  employee           → Employee (quem está usando)
   benefit            → Benefit
-  employee           → Employee
   checkedInAt        → LocalDateTime  (momento do uso)
   confirmedAt        → LocalDateTime? (quando o fornecedor confirmou — pode ser null)
   confirmedBy        → String?        (identificação do atendente — opcional)
@@ -279,7 +278,7 @@ POST /checkin/confirm/{token}
 
 | Evento | Quem notificar |
 |---|---|
-| Funcionário solicita adesão a benefício | Manager da empresa |
+| Funcionário usa um benefício | Manager da empresa (opcional) |
 | Empresa solicita parceria | Manager da empresa fornecedora |
 | Parceria aprovada/rejeitada | Manager da empresa solicitante |
 | Parceria próxima do vencimento | Ambos os Managers |

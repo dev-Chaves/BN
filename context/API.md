@@ -1,6 +1,6 @@
 # API REST
 
-Base local: `http://localhost:8080`. Datas e horas são serializadas em ISO-8601. Endpoints paginados pelo Spring aceitam `page`, `size` (máximo global 50) e `sort`. O inventário abaixo reflete os controllers em 24/08/2026.
+Base local: `http://localhost:8080`. Datas e horas são serializadas em ISO-8601. Endpoints paginados pelo Spring aceitam `page`, `size` (máximo global 50) e `sort`. O inventário abaixo reflete os controllers em 23/09/2026.
 
 ## Autenticação
 
@@ -18,11 +18,28 @@ O perfil contém `accountId`, `email`, `role`, `companyId`, `companyName` e `nam
 | Método e path | Acesso | Entrada / resultado |
 |---|---|---|
 | `POST /onboarding` | público | `{company:{name,cnpj},manager:{name,cpf,email,password}}`; `201` |
+| `POST /companies/event/enroll` | público | `{name,cpf,email,password}`; auto-cadastro na empresa do evento; `201` |
 | `GET /companies` | `MANAGER` | empresas vinculadas ao gestor |
 | `POST /companies` | `MANAGER` | `{name,cnpj}`; cria nova empresa vinculada; `201` |
 | `GET /companies/me` | `MANAGER` | empresa ativa |
 | `PUT /companies/me` | `MANAGER` | `{name}` |
 | `PUT /companies/me/deactivate` | `MANAGER` proprietário | `{password}`; desativa tenant |
+
+## Inscrição de evento
+
+`POST /companies/event/enroll` é público e cria, na empresa configurada em `app.event.company-id` (`EVENT_COMPANY_ID`; `0` desabilita o endpoint), uma conta `USER` e um `Employee` já `ACTIVE`. Não há gestor no fluxo: é o único caminho público de criação de funcionário.
+
+```json
+{ "name": "Maria Silva", "cpf": "12345678909", "email": "maria@exemplo.com", "password": "senha-forte-1" }
+```
+
+Resposta `201`:
+
+```json
+{ "employeeId": 1, "name": "Maria Silva", "companyId": 5, "companyName": "Evento", "status": "ACTIVE" }
+```
+
+Erros: `400` para corpo inválido ou CPF inválido (`CPF is invalid`), `404` quando o evento não está configurado ou a empresa está inativa (`Enrollment not available`), `409` para e-mail/CPF já usados (`Email already in use` / `CPF already in use`) e `429` ao exceder o rate limit.
 
 ## Gestores e funcionários
 
@@ -85,33 +102,19 @@ Criação de benefício:
 
 | Método e path | Acesso | Entrada / resultado |
 |---|---|---|
-| `GET /shared-benefits/available` | `USER` | benefícios elegíveis ainda não assinados |
-| `GET /shared-benefits/me` | `USER` | benefícios assinados |
-| `POST /subscriptions` | `USER` | `{benefitId}`; exige parceria ativa; `201` |
-| `POST /benefit-requests` | `USER` | `{benefitId}`; solicitação individual; `201` |
-| `GET /benefit-requests/me` | `USER` | solicitações do usuário |
+| `GET /benefits/me` | `USER` | benefícios elegíveis para resgate, derivados das parcerias ativas da empresa |
 
-Benefícios próprios ativos são atribuídos aos funcionários da empresa. Benefícios externos normalmente dependem de parceria ativa ou aprovação individual.
-
-## Revisão de solicitações
-
-| Método e path | Acesso | Entrada / resultado |
-|---|---|---|
-| `GET /benefit-requests/provider` | `MANAGER` provedor | solicitações pendentes |
-| `PUT /benefit-requests/{id}/approve` | `MANAGER` provedor | aprova e atribui acesso |
-| `PUT /benefit-requests/{id}/reject` | `MANAGER` provedor | `{reason}` |
-
-Estados: `PENDING`, `APPROVED`, `REJECTED`.
+O acesso do funcionário é derivado automaticamente das parcerias ativas da sua empresa — não há assinatura nem solicitação/aprovação individual. Benefícios do próprio provedor entram apenas quando `availableToProviderEmployees = true`.
 
 ## Resgates
 
 | Método e path | Acesso | Entrada / resultado |
 |---|---|---|
-| `POST /redemptions/subscriptions/{subscriptionId}/token` | `USER` titular | token e URL; `201` |
+| `POST /redemptions/benefits/{benefitId}/token` | `USER` titular | token e URL; `201` |
 | `POST /redemptions/provider/preview` | `MANAGER` provedor | `{token}`; valida sem consumir |
 | `POST /redemptions/provider/consume` | `MANAGER` provedor | `{token}`; registra uso |
 
-O token dura três minutos, só há um token ativo por assinatura e apenas a empresa provedora pode consumi-lo. O limite `maxUsesPerUser` é verificado no consumo.
+O token dura `REDEMPTION_TOKEN_TTL_MINUTES` (padrão três minutos), só há um token ativo por par (funcionário, benefício) — emitir novamente revoga o anterior — e apenas a empresa provedora pode consumi-lo. O limite `maxUsesPerUser` é verificado no consumo.
 
 ## Comunicados
 
@@ -130,4 +133,4 @@ As páginas de comunicado usam `{items,page,size,hasMore}`.
 
 Erros são normalizados por `GlobalExceptionHandler` em `ApiError`; validação tende a `400`, autenticação a `401`, autorização/tenant a `403`, ausência a `404`, conflitos de estado a `409` conforme o caso e falhas inesperadas a `500`.
 
-Rate limit excedido retorna `429` em login, onboarding ou resgates. A documentação executável está em `/q/openapi` e `/q/swagger-ui` somente no profile `docs`, com Basic Auth.
+Rate limit excedido retorna `429` em login, onboarding, inscrição de evento ou resgates. A documentação executável está em `/q/openapi` e `/q/swagger-ui` somente no profile `docs`, com Basic Auth.

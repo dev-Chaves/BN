@@ -18,7 +18,7 @@ HTTP → rate limit/log/JWT → controller + @PreAuthorize
 | Aplicação | Spring Boot 4.1.0, Spring Web MVC |
 | Dados | Spring Data JPA, Hibernate bytecode enhancement |
 | Banco | PostgreSQL; H2 em testes |
-| Migrações | Flyway `V1`–`V12` |
+| Migrações | Flyway `V1`–`V13` |
 | Segurança | Spring Security Resource Server, Nimbus JWT, BCrypt |
 | Documentação | Springdoc 3.0.0, profile `docs` |
 | Operação | Actuator, Docker, GitHub Actions, GHCR, EC2 |

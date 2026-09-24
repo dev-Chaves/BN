@@ -8,8 +8,8 @@
 - benefícios possuem categorias, validade, termos, visibilidade e limite de uso;
 - marketplace público, busca textual e marketplace autenticado;
 - solicitação, aprovação, rejeição e desativação de parceria B2B;
-- funcionários consultam benefícios, assinam os elegíveis e solicitam acesso individual;
-- provedores aprovam/rejeitam solicitações individuais;
+- funcionários consultam os benefícios elegíveis (derivados de parcerias ativas) e emitem token de resgate;
+- participantes de evento se auto-cadastram por endpoint público e passam a resgatar benefícios de parceiros;
 - funcionário emite token e provedor pré-valida/consome o resgate;
 - gestores publicam comunicados e funcionários controlam leitura.
 

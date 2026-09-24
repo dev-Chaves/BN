@@ -1,6 +1,6 @@
 # Benefix BN API
 
-Backend da Benefix, plataforma B2B para empresas publicarem, compartilharem e operarem benefícios corporativos. A API atende gestores, funcionários e administradores, com isolamento por empresa, marketplace, solicitações de acesso, comunicados internos e resgates por token.
+Backend da Benefix, plataforma B2B para empresas publicarem, compartilharem e operarem benefícios corporativos. A API atende gestores, funcionários e administradores, com isolamento por empresa, marketplace, parcerias B2B, auto-cadastro de evento, comunicados internos e resgates por token.
 
 ## Stack e estado atual
 
@@ -8,14 +8,14 @@ Backend da Benefix, plataforma B2B para empresas publicarem, compartilharem e op
 |---|---|
 | Linguagem e framework | Java 25, Spring Boot 4.1.0, Spring MVC |
 | Persistência | Spring Data JPA, Hibernate e PostgreSQL |
-| Schema | Flyway `V1`–`V12`; Hibernate em `validate` |
+| Schema | Flyway `V1`–`V13`; Hibernate em `validate` |
 | Segurança | Spring Security, JWT RS256, cookie `httpOnly` e Bearer token |
 | Produção | GraalVM Native Image 25, Docker, GHCR e EC2 |
 | API docs | Springdoc, profile `docs`, protegido por Basic Auth |
 | Observabilidade | Actuator, request logging e rate limit em memória |
 | Testes | JUnit, Spring Boot Test, H2 e PostgreSQL via Testcontainers |
 
-O projeto implementa onboarding, gestores multiempresa, gestão de funcionários, catálogo próprio, marketplace público e privado, categorias, parcerias B2B, assinatura e solicitação de acesso, comunicados e resgates de uso único.
+O projeto implementa onboarding, gestores multiempresa, gestão de funcionários, catálogo próprio, marketplace público e privado, categorias, parcerias B2B, acesso derivado de parcerias, auto-cadastro público de evento, comunicados e resgates de uso único.
 
 ## Arquitetura
 
@@ -75,6 +75,10 @@ A API usa `http://localhost:8080`; health check: `GET /actuator/health`. Flyway 
 | `COOKIE_DOMAIN` | `.bnfix.com.br` | deixe vazio em desenvolvimento |
 | `CORS_ALLOWED_ORIGINS` | domínios BN | allowlist separada por vírgula |
 | `APP_PUBLIC_URL` | `http://localhost:3000` | link de resgate |
+| `EVENT_COMPANY_ID` | `0` | empresa do evento no auto-cadastro; `0` desliga o endpoint |
+| `REDEMPTION_TOKEN_TTL_MINUTES` | `3` | validade do QR/token de resgate |
+| `ENROLLMENT_RATE_LIMIT_USES_SECOND` | `20` | cadastros por segundo, por IP |
+| `ENROLLMENT_RATE_LIMIT_USES_MINUTE` | `600` | cadastros por minuto, por IP |
 | `PORT` | `8080` | porta HTTP |
 
 Veja [`.env.example`](.env.example) para limites e variáveis adicionais.
@@ -96,15 +100,13 @@ Uma conta MANAGER pode pertencer a várias empresas. `POST /auth/switch-company`
 | `/auth` | login público; demais autenticados | sessão, perfil, logout e tenant |
 | `/onboarding` | público | empresa e gestor proprietário |
 | `/companies` | `MANAGER` | empresas e tenant atual |
+| `/companies/event` | público | auto-cadastro de participante do evento |
 | `/managers` | `ADMIN`/`MANAGER` | criação e autogestão |
 | `/employees` | `MANAGER` | gestão de funcionários |
 | `/benefits/public` | público | vitrine e busca textual |
-| `/benefits` | `MANAGER` | catálogo e marketplace |
+| `/benefits` | `MANAGER`/`USER` | catálogo, marketplace e `GET /benefits/me` |
 | `/categories` | `MANAGER` | categorias |
 | `/partnerships` | `MANAGER` | parceria B2B |
-| `/shared-benefits` | `USER` | benefícios do funcionário |
-| `/subscriptions` | `USER` | assinatura |
-| `/benefit-requests` | `USER`/`MANAGER` | solicitação e revisão |
 | `/redemptions` | `USER`/`MANAGER` | emissão, preview e consumo |
 | `/announcements` | `USER`/`MANAGER` | comunicados |
 

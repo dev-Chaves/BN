@@ -7,7 +7,7 @@ Benefix BN API (`com.bnfix.ubm`, artifact `ubm`). Spring Boot **4.1.0** / Java *
 - Format: `./mvnw spotless:apply` (palantir-java-format 2.97.0)
 - Verify formatting: `./mvnw spotless:check`
 - Compile: `./mvnw compile`
-- Tests: `./mvnw test` — 4 classes, ~1 min; `BenefitIntegrationTest`/`RedemptionIntegrationTest` spin up Postgres 18 via Testcontainers and **require a running Docker daemon** (`disabledWithoutDocker = true`, so they silently skip without it — don't assume green means they ran)
+- Tests: `./mvnw test` — 5 classes, ~1 min; `BenefitIntegrationTest`/`RedemptionIntegrationTest`/`EnrollmentIntegrationTest` spin up Postgres 18 via Testcontainers and **require a running Docker daemon** (`disabledWithoutDocker = true`, so they silently skip without it — don't assume green means they ran)
 - Native build: `./mvnw -B -DskipTests -Pnative native:compile` — slow (minutes), run only when asked
 
 Order matters for submission: `spotless:apply` → `compile` → `test`. `spotless:apply` may rewrite formatting in files you didn't touch if the committed code drifted from 2.97.0; keep those formatting-only changes.
@@ -25,7 +25,8 @@ Order matters for submission: `spotless:apply` → `compile` → `test`. `spotle
 - `domains/shared/` = value types (`CPF`, `CNPJ`) + `Role`. `shared/` (repo root) = cross-cutting infra: `api/RateLimitFilter`, `api/RequestLoggingFilter`, `security/*` (JWT, `TenantGuard`, `TenantContext`), `nativeimage/`.
 - **Multi-tenancy is security-enforced, not schema-based**: every manager/employee call resolves the tenant from the JWT `companyId` claim, and `TenantGuard`/`AccessStatusGuard` verify the user's company matches the target row. New endpoints that touch company-scoped data must go through `TenantGuard`; don't bypass it.
 - Auth: JWT RS256 with RSA keypair **read from PEM files** at runtime (`app.jwt.public-key`/`private-key`, default `/opt/bn/secrets/*.pem`). `AuthService`/`SwitchCompanyService` are `@Profile("!test")`; tests generate their own key via `testJwtKey()`.
-- In-process rate limiting via `RateLimitFilter` for `/auth/login`, `/onboarding`, `/redemptions/`.
+- In-process rate limiting via `RateLimitFilter` for `/auth/login`, `/onboarding`, `/companies/event/enroll`, `/redemptions/`.
+- Public event self-enrollment: `POST /companies/event/enroll` creates an already-active `Employee` bound to the company in `app.event.company-id` (`EVENT_COMPANY_ID`, `0` disables). It bypasses the manager-activates-employee model by design; it is the only public employee-creation path.
 
 ## Data layer
 
@@ -54,7 +55,7 @@ Order matters for submission: `spotless:apply` → `compile` → `test`. `spotle
 
 ## Tests
 
-- 4 test classes: `UbmApplicationTests` (context loads, H2), `BenefitAccessPolicyTest` (unit), and `BenefitIntegrationTest`/`RedemptionIntegrationTest` (Testcontainers Postgres 18). Full `./mvnw test` is the complete suite; run a single one with `./mvnw test -Dtest=BenefitIntegrationTest`.
+- 5 test classes: `UbmApplicationTests` (context loads, H2), `BenefitAccessPolicyTest` (unit), and `BenefitIntegrationTest`/`RedemptionIntegrationTest`/`EnrollmentIntegrationTest` (Testcontainers Postgres 18). Full `./mvnw test` is the complete suite; run a single one with `./mvnw test -Dtest=BenefitIntegrationTest`.
 - All run under `@ActiveProfiles("test")`; `AuthService`/`SwitchCompanyService` beans are `@Profile("!test")` so tests generate their own JWT keys (`testJwtKey()`).
 - Test packages use `com.bnfix.ubm.domain.*` (singular) while main code uses `com.bnfix.ubm.domains` (plural) — don't "fix" either.
 - `experiments/` holds standalone k6 load-test artifacts for the redemption concurrency study (academic publication) — not wired into build/CI; see its `README.md`.

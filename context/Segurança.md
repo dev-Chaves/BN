@@ -16,7 +16,7 @@ O login retorna o perfil no body e grava o token no cookie `jwt`: `HttpOnly`, `S
 
 O claim `groups` vira authority `ROLE_*`. Controllers usam `@PreAuthorize`; qualquer rota não pública exige autenticação.
 
-Rotas públicas: login, onboarding, health check e `GET /benefits/public/**`.
+Rotas públicas: login, onboarding, inscrição de evento (`POST /companies/event/enroll`), health check e `GET /benefits/public/**`.
 
 ## Multi-tenancy
 
@@ -29,9 +29,9 @@ Um gestor pode possuir vários vínculos. `POST /auth/switch-company` valida o v
 - BCrypt para senhas;
 - CORS com allowlist;
 - cookie `SameSite=Strict` e API stateless;
-- rate limit em login, onboarding e resgates;
+- rate limit em login, onboarding, inscrição de evento e resgates;
 - Jakarta Validation e tratamento global de erros;
-- token de resgate guardado apenas como SHA-256, válido por três minutos e consumido atomicamente;
+- token de resgate guardado apenas como SHA-256, válido por `REDEMPTION_TOKEN_TTL_MINUTES` (padrão três minutos) e consumido atomicamente;
 - logs não devem conter senha, JWT ou token bruto.
 
 ## Limitações conhecidas
